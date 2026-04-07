@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(RepositoryStore.self) private var store
     @State private var selectedRepositoryID: Repository.ID?
+    @State private var fileTreeStore: FileTreeStore?
 
     private var selectedRepository: Repository? {
         store.repositories.first { $0.id == selectedRepositoryID }
@@ -10,44 +11,47 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(store.repositories, selection: $selectedRepositoryID) { repo in
-                NavigationLink(value: repo.id) {
-                    Label {
-                        VStack(alignment: .leading) {
+            VStack(spacing: 0) {
+                // Repository picker
+                HStack {
+                    Picker(selection: $selectedRepositoryID) {
+                        Text("Select a repository")
+                            .tag(Repository.ID?.none)
+                        Divider()
+                        ForEach(store.repositories) { repo in
                             Text(repo.name)
-                                .font(.body)
-                            Text(repo.path)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                                .tag(Repository.ID?.some(repo.id))
                         }
-                    } icon: {
-                        Image(systemName: "folder.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .contextMenu {
-                    Button(role: .destructive) {
-                        if selectedRepositoryID == repo.id {
-                            selectedRepositoryID = nil
-                        }
-                        store.remove(repo)
                     } label: {
-                        Label("Remove", systemImage: "trash")
+                        EmptyView()
                     }
-                }
-            }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 350)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                    .labelsHidden()
+
                     Button {
                         addRepository()
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .buttonStyle(.borderless)
                     .help("Add Repository")
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Divider()
+
+                // File tree
+                if let fileTreeStore {
+                    FileTreeView(store: fileTreeStore)
+                } else {
+                    Spacer()
+                    Text("Select a repository")
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
             }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 400)
         } detail: {
             if let repo = selectedRepository {
                 DetailView(repository: repo)
@@ -55,6 +59,13 @@ struct ContentView: View {
                 Text("Select a repository")
                     .font(.title2)
                     .foregroundStyle(.tertiary)
+            }
+        }
+        .onChange(of: selectedRepositoryID) {
+            if let repo = selectedRepository {
+                fileTreeStore = FileTreeStore(rootPath: repo.path)
+            } else {
+                fileTreeStore = nil
             }
         }
     }
