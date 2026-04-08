@@ -16,6 +16,7 @@ enum DetailTab: String, CaseIterable {
 
 struct DetailView: View {
     let repository: Repository
+    @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var selectedTab: DetailTab = .terminal
 
     var body: some View {
@@ -42,13 +43,20 @@ struct DetailView: View {
             Divider()
 
             // Content
-            switch selectedTab {
-            case .terminal:
-                TerminalPlaceholderView(repository: repository)
-            case .code:
-                CodeViewerPlaceholderView()
-            case .diff:
-                DiffViewerPlaceholderView()
+            ZStack {
+                TerminalContainerView(
+                    session: terminalSessionStore.session(for: repository),
+                    isActive: selectedTab == .terminal
+                )
+                .opacity(selectedTab == .terminal ? 1 : 0)
+                .allowsHitTesting(selectedTab == .terminal)
+
+                if selectedTab == .code {
+                    CodeViewerPlaceholderView()
+                }
+                if selectedTab == .diff {
+                    DiffViewerPlaceholderView()
+                }
             }
         }
         .navigationTitle(repository.name)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(RepositoryStore.self) private var store
+    @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var selectedRepositoryID: Repository.ID?
     @State private var fileTreeStore: FileTreeStore?
 
@@ -66,6 +67,13 @@ struct ContentView: View {
                 fileTreeStore = FileTreeStore(rootPath: repo.path)
             } else {
                 fileTreeStore = nil
+            }
+        }
+        .onChange(of: store.repositories) {
+            let validIDs = Set(store.repositories.map(\.id))
+            terminalSessionStore.removeExcept(ids: validIDs)
+            if let selectedRepositoryID, !validIDs.contains(selectedRepositoryID) {
+                self.selectedRepositoryID = nil
             }
         }
     }
