@@ -55,7 +55,7 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 400)
         } detail: {
             if let repo = selectedRepository {
-                DetailView(repository: repo)
+                DetailView(repository: repo, fileTreeStore: fileTreeStore)
             } else {
                 Text("Select a repository")
                     .font(.title2)

@@ -16,8 +16,10 @@ enum DetailTab: String, CaseIterable {
 
 struct DetailView: View {
     let repository: Repository
+    let fileTreeStore: FileTreeStore?
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var selectedTab: DetailTab = .terminal
+    @State private var codeViewerStore = CodeViewerStore()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,14 +53,22 @@ struct DetailView: View {
                 .opacity(selectedTab == .terminal ? 1 : 0)
                 .allowsHitTesting(selectedTab == .terminal)
 
-                if selectedTab == .code {
-                    CodeViewerPlaceholderView()
-                }
+                CodeViewerView(store: codeViewerStore)
+                    .opacity(selectedTab == .code ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .code)
                 if selectedTab == .diff {
                     DiffViewerPlaceholderView()
                 }
             }
         }
         .navigationTitle(repository.name)
+        .onChange(of: fileTreeStore?.selectedNode) { _, newValue in
+            guard let node = newValue, !node.isDirectory else { return }
+            selectedTab = .code
+            Task { await codeViewerStore.load(path: node.path) }
+        }
+        .onChange(of: repository) { _, _ in
+            codeViewerStore.reset()
+        }
     }
 }

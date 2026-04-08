@@ -8,6 +8,7 @@ final class FileTreeStore {
     private(set) var errorMessage: String?
     var expandedIDs: Set<FileNode.ID> = []
     private(set) var loadingIDs: Set<FileNode.ID> = []
+    private(set) var selectedNode: FileNode?
 
     private let rootPath: String
 
@@ -44,6 +45,11 @@ final class FileTreeStore {
 
     func collapse(_ node: FileNode) {
         expandedIDs.remove(node.id)
+    }
+
+    func selectNode(_ node: FileNode) {
+        guard !node.isDirectory else { return }
+        selectedNode = node
     }
 
     private func loadChildren(of node: FileNode) async {

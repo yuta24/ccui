@@ -94,13 +94,23 @@ private struct FileTreeNodeList: View {
                     }
                 }
             } else {
-                Label {
-                    Text(node.name)
-                        .lineLimit(1)
-                } icon: {
-                    Image(systemName: "doc")
-                        .foregroundStyle(.secondary)
+                Button {
+                    store.selectNode(node)
+                } label: {
+                    Label {
+                        Text(node.name)
+                            .lineLimit(1)
+                    } icon: {
+                        Image(systemName: "doc")
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .buttonStyle(.plain)
+                .listRowBackground(
+                    store.selectedNode?.id == node.id
+                        ? Color.accentColor.opacity(0.15)
+                        : Color.clear
+                )
             }
         }
     }
