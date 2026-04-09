@@ -3,23 +3,23 @@ import Foundation
 @Observable
 @MainActor
 final class TerminalSessionStore {
-    private var sessions: [Repository.ID: any TerminalSession] = [:]
+    private var sessions: [String: any TerminalSession] = [:]
 
-    func session(for repository: Repository) -> any TerminalSession {
-        if let existing = sessions[repository.id] {
+    func session(for worktree: Worktree) -> any TerminalSession {
+        if let existing = sessions[worktree.path] {
             return existing
         }
-        let session = SwiftTermSession(workingDirectory: repository.path)
-        sessions[repository.id] = session
+        let session = SwiftTermSession(workingDirectory: worktree.path)
+        sessions[worktree.path] = session
         return session
     }
 
-    func remove(for id: Repository.ID) {
-        sessions.removeValue(forKey: id)
+    func remove(for path: String) {
+        sessions.removeValue(forKey: path)
     }
 
-    func removeExcept(ids: Set<Repository.ID>) {
-        for key in sessions.keys where !ids.contains(key) {
+    func removeExcept(paths: Set<String>) {
+        for key in sessions.keys where !paths.contains(key) {
             sessions.removeValue(forKey: key)
         }
     }

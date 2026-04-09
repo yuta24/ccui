@@ -15,7 +15,7 @@ enum DetailTab: String, CaseIterable {
 }
 
 struct DetailView: View {
-    let repository: Repository
+    let worktree: Worktree
     let fileTreeStore: FileTreeStore?
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var selectedTab: DetailTab = .terminal
@@ -48,7 +48,7 @@ struct DetailView: View {
             // Content
             ZStack {
                 TerminalContainerView(
-                    session: terminalSessionStore.session(for: repository),
+                    session: terminalSessionStore.session(for: worktree),
                     isActive: selectedTab == .terminal
                 )
                 .opacity(selectedTab == .terminal ? 1 : 0)
@@ -57,27 +57,27 @@ struct DetailView: View {
                 CodeViewerView(store: codeViewerStore)
                     .opacity(selectedTab == .code ? 1 : 0)
                     .allowsHitTesting(selectedTab == .code)
-                DiffViewerView(store: diffStore, repositoryPath: repository.path)
+                DiffViewerView(store: diffStore, repositoryPath: worktree.path)
                     .opacity(selectedTab == .diff ? 1 : 0)
                     .allowsHitTesting(selectedTab == .diff)
             }
         }
-        .navigationTitle(repository.name)
+        .navigationTitle(worktree.displayName)
         .onChange(of: fileTreeStore?.selectedNode) { _, newValue in
             guard let node = newValue, !node.isDirectory else { return }
             selectedTab = .code
             Task { await codeViewerStore.load(path: node.path) }
         }
-        .onChange(of: repository) { _, _ in
+        .onChange(of: worktree) { _, _ in
             codeViewerStore.reset()
             diffStore.reset()
             if selectedTab == .diff {
-                Task { await diffStore.load(repositoryPath: repository.path) }
+                Task { await diffStore.load(repositoryPath: worktree.path) }
             }
         }
         .onChange(of: selectedTab) { _, newValue in
             if newValue == .diff, case .idle = diffStore.state {
-                Task { await diffStore.load(repositoryPath: repository.path) }
+                Task { await diffStore.load(repositoryPath: worktree.path) }
             }
         }
     }
