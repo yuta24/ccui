@@ -6,27 +6,22 @@ struct DiffViewerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            modePicker
+            Divider()
+
             switch store.state {
             case .idle:
-                modePicker
-                Divider()
                 idleView
             case .loading:
-                modePicker
-                Divider()
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .loaded(let entries):
-                modePicker
-                Divider()
                 if entries.isEmpty {
                     placeholderView(icon: "tray", message: store.mode == .staged ? "No staged changes" : "No unstaged changes")
                 } else {
                     diffSplitView(entries: entries)
                 }
             case .error(let message):
-                modePicker
-                Divider()
                 placeholderView(icon: "exclamationmark.triangle", message: message)
             }
         }
@@ -88,7 +83,7 @@ struct DiffViewerView: View {
     private func fileList(entries: [DiffFileEntry]) -> some View {
         List(selection: Binding(
             get: { store.selectedFileIndex },
-            set: { store.selectedFileIndex = $0 }
+            set: { store.selectFile($0) }
         )) {
             ForEach(entries) { entry in
                 DiffFileRowView(entry: entry)
@@ -213,26 +208,22 @@ private struct DiffFileContentView: View {
 
     private func diffLineRow(line: DiffLine, gutterWidth: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            // Old line number
             Text(line.oldLineNumber.map(String.init) ?? "")
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .frame(width: gutterWidth, alignment: .trailing)
 
-            // New line number
             Text(line.newLineNumber.map(String.init) ?? "")
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .frame(width: gutterWidth, alignment: .trailing)
                 .padding(.trailing, 8)
 
-            // Sign
             Text(lineSign(line.kind))
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(lineColor(line.kind))
                 .frame(width: 14)
 
-            // Content
             Text(line.content.isEmpty ? " " : line.content)
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)

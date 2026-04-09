@@ -29,19 +29,47 @@ final class WorktreeStore: Identifiable {
         let repoID = repository.id
         do {
             let result = try await Task.detached(priority: .userInitiated) {
-                let output = try Self.runGit(args: ["worktree", "list", "--porcelain"], repositoryPath: repoPath)
+                let output = try GitClient.listWorktrees(repositoryPath: repoPath)
                 return Self.parse(output, repositoryID: repoID)
             }.value
             guard loadToken == token else { return }
             worktrees = result
         } catch {
             guard loadToken == token else { return }
-            print("[WorktreeStore] Failed to list worktrees: \(error)")
             errorMessage = error.localizedDescription
         }
 
         await loadStatus()
     }
+
+    func add(branch: String, path: String, createBranch: Bool) async throws {
+        let repoPath = repository.path
+        var args: [String] = []
+        if createBranch {
+            args = ["-b", branch, path]
+        } else {
+            args = [path, branch]
+        }
+
+        try await Task.detached(priority: .userInitiated) {
+            try GitClient.addWorktree(args: args, repositoryPath: repoPath)
+        }.value
+
+        await load()
+    }
+
+    func remove(_ worktree: Worktree) async throws {
+        let repoPath = repository.path
+        let wtPath = worktree.path
+
+        try await Task.detached(priority: .userInitiated) {
+            try GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath)
+        }.value
+
+        await load()
+    }
+
+    // MARK: - Status
 
     private func loadStatus() async {
         let token = loadToken
@@ -51,7 +79,7 @@ final class WorktreeStore: Identifiable {
             for wt in currentWorktrees {
                 let wtPath = wt.path
                 group.addTask {
-                    let count = try? Self.runGitStatus(worktreePath: wtPath)
+                    let count = try? GitClient.statusCount(worktreePath: wtPath)
                     return (wtPath, count)
                 }
             }
@@ -65,71 +93,11 @@ final class WorktreeStore: Identifiable {
         statusCounts = results
     }
 
-    func add(branch: String, path: String, createBranch: Bool) async throws {
-        let repoPath = repository.path
-        var args = ["worktree", "add"]
-        if createBranch {
-            args += ["-b", branch, path]
-        } else {
-            args += [path, branch]
-        }
-
-        try await Task.detached(priority: .userInitiated) {
-            _ = try Self.runGit(args: args, repositoryPath: repoPath)
-        }.value
-
-        await load()
-    }
-
-    func remove(_ worktree: Worktree) async throws {
-        let repoPath = repository.path
-        let wtPath = worktree.path
-
-        try await Task.detached(priority: .userInitiated) {
-            _ = try Self.runGit(args: ["worktree", "remove", wtPath], repositoryPath: repoPath)
-        }.value
-
-        await load()
-    }
-
-    // MARK: - Git execution
-
-    nonisolated private static func runGit(args: [String], repositoryPath: String) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: repositoryPath)
-
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-
-        try process.run()
-        process.waitUntilExit()
-
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-
-        if process.terminationStatus != 0 {
-            let errString = String(data: errData, encoding: .utf8) ?? "git command failed"
-            throw GitError.commandFailed(errString.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
-
-        return String(data: outData, encoding: .utf8) ?? ""
-    }
-
-    nonisolated private static func runGitStatus(worktreePath: String) throws -> Int {
-        let output = try runGit(args: ["status", "--porcelain"], repositoryPath: worktreePath)
-        return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
-    }
-
-    // MARK: - Porcelain parsing
+    // MARK: - Parsing
 
     nonisolated private static func parse(_ output: String, repositoryID: Repository.ID) -> [Worktree] {
         guard !output.isEmpty else { return [] }
 
-        // Split into blocks separated by blank lines
         let blocks = output.components(separatedBy: "\n\n").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
         var worktrees: [Worktree] = []
@@ -143,11 +111,7 @@ final class WorktreeStore: Identifiable {
                     path = String(line.dropFirst("worktree ".count))
                 } else if line.hasPrefix("branch ") {
                     let ref = String(line.dropFirst("branch ".count))
-                    if ref.hasPrefix("refs/heads/") {
-                        branch = String(ref.dropFirst("refs/heads/".count))
-                    } else {
-                        branch = ref
-                    }
+                    branch = ref.hasPrefix("refs/heads/") ? String(ref.dropFirst("refs/heads/".count)) : ref
                 } else if line == "detached" {
                     branch = nil
                 }

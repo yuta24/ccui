@@ -13,15 +13,9 @@ struct CodeViewerView: View {
         case .loaded(_, let lines):
             codeView(lines: lines)
         case .binary:
-            placeholderView(
-                icon: "doc.questionmark",
-                message: "Cannot preview binary file"
-            )
+            placeholderView(icon: "doc.questionmark", message: "Cannot preview binary file")
         case .error(let message):
-            placeholderView(
-                icon: "exclamationmark.triangle",
-                message: message
-            )
+            placeholderView(icon: "exclamationmark.triangle", message: message)
         }
     }
 

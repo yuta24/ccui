@@ -10,8 +10,14 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 400)
+            SidebarView(
+                selectedWorktree: $selectedWorktree,
+                worktreeStores: worktreeStores,
+                onAddRepository: addRepository,
+                onShowAddWorktree: { showingAddWorktree = $0 },
+                onRemoveWorktree: removeWorktree
+            )
+            .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 400)
         } detail: {
             if let worktree = selectedWorktree {
                 DetailView(worktree: worktree, fileTreeStore: fileTreeStore)
@@ -29,22 +35,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: store.repositories) { _, newValue in
-            let validIDs = Set(newValue.map(\.id))
-            // Create worktree stores for new repos
-            for repo in newValue where worktreeStores[repo.id] == nil {
-                worktreeStores[repo.id] = WorktreeStore(repository: repo)
-            }
-            // Clean up worktree stores for removed repos
-            for key in worktreeStores.keys where !validIDs.contains(key) {
-                worktreeStores.removeValue(forKey: key)
-            }
-            // Clean up terminal sessions
-            let allWorktreePaths = Set(worktreeStores.values.flatMap(\.worktrees).map(\.path))
-            terminalSessionStore.removeExcept(paths: allWorktreePaths)
-            // Clear selection if its repo was removed
-            if let selected = selectedWorktree, !validIDs.contains(selected.repositoryID) {
-                selectedWorktree = nil
-            }
+            syncWorktreeStores(with: newValue)
         }
         .sheet(item: $showingAddWorktree) { wtStore in
             AddWorktreeView(worktreeStore: wtStore)
@@ -56,153 +47,25 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Sidebar
+    // MARK: - State Sync
 
-    private var sidebar: some View {
-        VStack(spacing: 0) {
-            // Header with add repository button
-            HStack {
-                Text("Repositories")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Button {
-                    addRepository()
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderless)
-                .help("Add Repository")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+    private func syncWorktreeStores(with repositories: [Repository]) {
+        let validIDs = Set(repositories.map(\.id))
 
-            Divider()
-
-            if store.repositories.isEmpty {
-                Spacer()
-                Text("Add a repository to get started")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding()
-                Spacer()
-            } else {
-                List(selection: $selectedWorktree) {
-                    ForEach(store.repositories) { repo in
-                        repositorySection(repo)
-                    }
-                }
-                .listStyle(.sidebar)
-            }
+        for repo in repositories where worktreeStores[repo.id] == nil {
+            worktreeStores[repo.id] = WorktreeStore(repository: repo)
         }
-    }
 
-    @ViewBuilder
-    private func repositorySection(_ repo: Repository) -> some View {
-        if let wtStore = worktreeStore(for: repo) {
-            repositorySectionContent(repo: repo, wtStore: wtStore)
-        } else {
-            Section(repo.name) {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+        for key in worktreeStores.keys where !validIDs.contains(key) {
+            worktreeStores.removeValue(forKey: key)
         }
-    }
 
-    @ViewBuilder
-    private func repositorySectionContent(repo: Repository, wtStore: WorktreeStore) -> some View {
-        Section {
-            if wtStore.isLoading && wtStore.worktrees.isEmpty {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else if let error = wtStore.errorMessage, wtStore.worktrees.isEmpty {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(wtStore.worktrees) { wt in
-                    worktreeRow(wt, in: wtStore)
-                        .tag(wt)
-                        .contextMenu {
-                            if !wt.isMain {
-                                Button("Remove Worktree", role: .destructive) {
-                                    removeWorktree(wt, from: wtStore)
-                                }
-                            }
-                        }
-                }
+        let allWorktreePaths = Set(worktreeStores.values.flatMap(\.worktrees).map(\.path))
+        terminalSessionStore.removeExcept(paths: allWorktreePaths)
 
-                Button {
-                    showingAddWorktree = wtStore
-                } label: {
-                    Label("Add Worktree", systemImage: "plus.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        } header: {
-            HStack {
-                Text(repo.name)
-                Spacer()
-                Button {
-                    Task { await wtStore.load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption2)
-                }
-                .buttonStyle(.borderless)
-                .help("Reload worktrees")
-            }
-            .contextMenu {
-                Button("Remove Repository", role: .destructive) {
-                    store.remove(repo)
-                }
-            }
+        if let selected = selectedWorktree, !validIDs.contains(selected.repositoryID) {
+            selectedWorktree = nil
         }
-        .task(id: repo.id) {
-            if wtStore.worktrees.isEmpty && !wtStore.isLoading {
-                await wtStore.load()
-            }
-        }
-    }
-
-    private func worktreeRow(_ wt: Worktree, in store: WorktreeStore) -> some View {
-        HStack {
-            Label {
-                Text(wt.displayName)
-                    .lineLimit(1)
-            } icon: {
-                Image(systemName: wt.isMain ? "house" : "arrow.triangle.branch")
-                    .foregroundStyle(wt.isMain ? .blue : .secondary)
-            }
-            Spacer()
-            if let count = store.statusCounts[wt.path] {
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.secondary.opacity(0.2))
-                        .clipShape(Capsule())
-                } else {
-                    Image(systemName: "checkmark")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                }
-            }
-        }
-    }
-
-    // MARK: - WorktreeStore management
-
-    private func worktreeStore(for repo: Repository) -> WorktreeStore? {
-        worktreeStores[repo.id]
     }
 
     // MARK: - Actions

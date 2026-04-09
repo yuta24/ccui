@@ -5,7 +5,6 @@ struct FileTreeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with reload button
             HStack {
                 Text("Files")
                     .font(.caption)
@@ -25,7 +24,6 @@ struct FileTreeView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
 
-            // Content
             if store.isLoading && store.nodes.isEmpty {
                 Spacer()
                 ProgressView()

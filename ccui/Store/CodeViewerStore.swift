@@ -23,7 +23,6 @@ final class CodeViewerStore {
             let result = try await Task.detached(priority: .userInitiated) {
                 try Self.readFile(at: path)
             }.value
-            // Guard against stale result if another load was triggered
             guard loadedPath == path else { return }
             state = result
         } catch {
@@ -41,7 +40,6 @@ final class CodeViewerStore {
         let url = URL(fileURLWithPath: path)
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
 
-        // Binary detection: check first 8KB for null bytes
         let checkSize = min(data.count, 8192)
         let prefix = data.prefix(checkSize)
         if prefix.contains(0) {

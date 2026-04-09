@@ -29,7 +29,6 @@ final class FileTreeStore {
             }.value
             nodes = result
         } catch {
-            print("[FileTreeStore] Failed to scan: \(error)")
             errorMessage = error.localizedDescription
         }
 
@@ -84,9 +83,7 @@ final class FileTreeStore {
         var folders: [FileNode] = []
         var files: [FileNode] = []
 
-        for name in contents {
-            guard !name.hasPrefix(".") else { continue }
-
+        for name in contents where !name.hasPrefix(".") {
             let fullPath = (path as NSString).appendingPathComponent(name)
             var isDir: ObjCBool = false
             guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }

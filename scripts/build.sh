@@ -10,6 +10,7 @@ xcodebuild build \
   -scheme "$SCHEME" \
   -configuration "$CONFIG" \
   -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO \
   2>&1 \
   | xcbeautify
 

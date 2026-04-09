@@ -24,42 +24,23 @@ struct DetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Tab bar
-            HStack(spacing: 0) {
-                ForEach(DetailTab.allCases, id: \.self) { tab in
-                    Button {
-                        selectedTab = tab
-                    } label: {
-                        Label(tab.rawValue, systemImage: tab.icon)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                    .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .cornerRadius(6)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-
+            tabBar
             Divider()
 
-            // Terminal sub-tab bar
             if selectedTab == .terminal {
                 terminalTabBar
                 Divider()
             }
 
-            // Content
             ZStack {
                 terminalContent
                     .opacity(selectedTab == .terminal ? 1 : 0)
                     .allowsHitTesting(selectedTab == .terminal)
 
-                CodeViewerView(store: codeViewerStore)
+                codeContent
                     .opacity(selectedTab == .code ? 1 : 0)
                     .allowsHitTesting(selectedTab == .code)
+
                 DiffViewerView(store: diffStore, repositoryPath: worktree.path)
                     .opacity(selectedTab == .diff ? 1 : 0)
                     .allowsHitTesting(selectedTab == .diff)
@@ -89,7 +70,41 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - Terminal sub-tab bar
+    // MARK: - Tab Bar
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(DetailTab.allCases, id: \.self) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    Label(tab.rawValue, systemImage: tab.icon)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
+                .cornerRadius(6)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Code Content (with file tree)
+
+    private var codeContent: some View {
+        HSplitView {
+            if let fileTreeStore {
+                FileTreeView(store: fileTreeStore)
+                    .frame(minWidth: 180, idealWidth: 220, maxWidth: 350)
+            }
+            CodeViewerView(store: codeViewerStore)
+        }
+    }
+
+    // MARK: - Terminal Sub-Tab Bar
 
     private var terminalTabBar: some View {
         let sessionList = terminalSessionStore.sessions(for: worktree)
@@ -146,7 +161,7 @@ struct DetailView: View {
         .cornerRadius(4)
     }
 
-    // MARK: - Terminal content
+    // MARK: - Terminal Content
 
     private var terminalContent: some View {
         let sessionList = terminalSessionStore.sessions(for: worktree)
