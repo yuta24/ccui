@@ -165,10 +165,10 @@ struct DetailView: View {
 
             Group {
                 switch bottomPanelStore.selectedTab {
-                case .diff:
-                    DiffViewerView(store: diffStore, repositoryPath: worktree.path)
                 case .code:
                     codeContent
+                case .diff:
+                    DiffViewerView(store: diffStore, repositoryPath: worktree.path)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -179,8 +179,8 @@ struct DetailView: View {
 
     private var panelTabBar: some View {
         HStack(spacing: 2) {
-            panelTabButton(.diff, icon: "arrow.left.arrow.right", label: "Diff")
             panelTabButton(.code, icon: "doc.text", label: "Code")
+            panelTabButton(.diff, icon: "arrow.left.arrow.right", label: "Diff")
 
             Spacer()
 

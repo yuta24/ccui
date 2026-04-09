@@ -10,7 +10,7 @@ final class BottomPanelStore {
 
     var isExpanded: Bool = false
     var panelHeight: CGFloat = 280
-    var selectedTab: PanelTab = .diff
+    var selectedTab: PanelTab = .code
 
     static let minHeight: CGFloat = 120
     static let maxHeightFraction: CGFloat = 0.75
