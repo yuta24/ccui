@@ -3,6 +3,11 @@ import Foundation
 @Observable
 @MainActor
 final class DiffStore {
+    enum DiffMode: String, CaseIterable {
+        case staged = "Staged"
+        case unstaged = "Unstaged"
+    }
+
     enum State {
         case idle
         case loading
@@ -12,18 +17,21 @@ final class DiffStore {
 
     private(set) var state: State = .idle
     var selectedFileIndex: Int?
+    var mode: DiffMode = .staged
     private var loadToken = UUID()
 
-    func load(repositoryPath: String) async {
+    func load(repositoryPath: String, mode newMode: DiffMode? = nil) async {
+        if let newMode { mode = newMode }
         state = .loading
         selectedFileIndex = nil
         let token = UUID()
         loadToken = token
 
         let repoPath = repositoryPath
+        let currentMode = mode
         do {
             let entries = try await Task.detached(priority: .userInitiated) {
-                let output = try Self.runGit(repositoryPath: repoPath)
+                let output = try Self.runGit(repositoryPath: repoPath, mode: currentMode)
                 return Self.parse(output)
             }.value
             guard loadToken == token else { return }
@@ -43,10 +51,10 @@ final class DiffStore {
 
     // MARK: - Git execution
 
-    private nonisolated static func runGit(repositoryPath: String) throws -> String {
+    private nonisolated static func runGit(repositoryPath: String, mode: DiffMode) throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["diff", "--cached"]
+        process.arguments = mode == .staged ? ["diff", "--cached"] : ["diff"]
         process.currentDirectoryURL = URL(fileURLWithPath: repositoryPath)
 
         let stdout = Pipe()

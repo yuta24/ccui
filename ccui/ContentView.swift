@@ -125,7 +125,7 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(wtStore.worktrees) { wt in
-                    worktreeRow(wt)
+                    worktreeRow(wt, in: wtStore)
                         .tag(wt)
                         .contextMenu {
                             if !wt.isMain {
@@ -171,13 +171,31 @@ struct ContentView: View {
         }
     }
 
-    private func worktreeRow(_ wt: Worktree) -> some View {
-        Label {
-            Text(wt.displayName)
-                .lineLimit(1)
-        } icon: {
-            Image(systemName: wt.isMain ? "house" : "arrow.triangle.branch")
-                .foregroundStyle(wt.isMain ? .blue : .secondary)
+    private func worktreeRow(_ wt: Worktree, in store: WorktreeStore) -> some View {
+        HStack {
+            Label {
+                Text(wt.displayName)
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: wt.isMain ? "house" : "arrow.triangle.branch")
+                    .foregroundStyle(wt.isMain ? .blue : .secondary)
+            }
+            Spacer()
+            if let count = store.statusCounts[wt.path] {
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.secondary.opacity(0.2))
+                        .clipShape(Capsule())
+                } else {
+                    Image(systemName: "checkmark")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                }
+            }
         }
     }
 

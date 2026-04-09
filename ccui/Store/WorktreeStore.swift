@@ -7,6 +7,7 @@ final class WorktreeStore: Identifiable {
     private(set) var worktrees: [Worktree] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
+    private(set) var statusCounts: [String: Int] = [:]
 
     private let repository: Repository
     private var loadToken = UUID()
@@ -18,7 +19,9 @@ final class WorktreeStore: Identifiable {
 
     func load() async {
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
+        statusCounts = [:]
         let token = UUID()
         loadToken = token
 
@@ -37,7 +40,29 @@ final class WorktreeStore: Identifiable {
             errorMessage = error.localizedDescription
         }
 
-        isLoading = false
+        await loadStatus()
+    }
+
+    private func loadStatus() async {
+        let token = loadToken
+        let currentWorktrees = worktrees
+        var results: [String: Int] = [:]
+        await withTaskGroup(of: (String, Int?).self) { group in
+            for wt in currentWorktrees {
+                let wtPath = wt.path
+                group.addTask {
+                    let count = try? Self.runGitStatus(worktreePath: wtPath)
+                    return (wtPath, count)
+                }
+            }
+            for await (path, count) in group {
+                if let count {
+                    results[path] = count
+                }
+            }
+        }
+        guard loadToken == token else { return }
+        statusCounts = results
     }
 
     func add(branch: String, path: String, createBranch: Bool) async throws {
@@ -92,6 +117,11 @@ final class WorktreeStore: Identifiable {
         }
 
         return String(data: outData, encoding: .utf8) ?? ""
+    }
+
+    nonisolated private static func runGitStatus(worktreePath: String) throws -> Int {
+        let output = try runGit(args: ["status", "--porcelain"], repositoryPath: worktreePath)
+        return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
     }
 
     // MARK: - Porcelain parsing

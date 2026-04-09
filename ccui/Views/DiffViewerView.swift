@@ -8,17 +8,25 @@ struct DiffViewerView: View {
         VStack(spacing: 0) {
             switch store.state {
             case .idle:
+                modePicker
+                Divider()
                 idleView
             case .loading:
+                modePicker
+                Divider()
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .loaded(let entries):
+                modePicker
+                Divider()
                 if entries.isEmpty {
-                    placeholderView(icon: "tray", message: "No staged changes")
+                    placeholderView(icon: "tray", message: store.mode == .staged ? "No staged changes" : "No unstaged changes")
                 } else {
-                    diffContentView(entries: entries)
+                    diffSplitView(entries: entries)
                 }
             case .error(let message):
+                modePicker
+                Divider()
                 placeholderView(icon: "exclamationmark.triangle", message: message)
             }
         }
@@ -29,14 +37,32 @@ struct DiffViewerView: View {
             Image(systemName: "arrow.left.arrow.right")
                 .font(.largeTitle)
                 .foregroundStyle(.tertiary)
-            Text("Switch to this tab to load staged changes")
+            Text("Switch to this tab to load diff")
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func diffContentView(entries: [DiffFileEntry]) -> some View {
+    private var modePicker: some View {
+        Picker("Mode", selection: Binding(
+            get: { store.mode },
+            set: { newMode in
+                Task { await store.load(repositoryPath: repositoryPath, mode: newMode) }
+            }
+        )) {
+            ForEach(DiffStore.DiffMode.allCases, id: \.self) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 200)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private func diffSplitView(entries: [DiffFileEntry]) -> some View {
         HSplitView {
             fileList(entries: entries)
                 .frame(minWidth: 180, idealWidth: 240, maxWidth: 350)
