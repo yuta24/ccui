@@ -12,6 +12,7 @@ final class SwiftTermSession: TerminalSession {
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         terminalView.startProcess(
             executable: shell,
+            args: ["-l"],
             currentDirectory: workingDirectory
         )
     }
