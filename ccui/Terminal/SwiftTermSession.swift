@@ -4,8 +4,10 @@ import AppKit
 @MainActor
 final class SwiftTermSession: TerminalSession {
     private let terminalView: LocalProcessTerminalView
+    let label: String
 
-    init(workingDirectory: String) {
+    init(workingDirectory: String, label: String) {
+        self.label = label
         terminalView = LocalProcessTerminalView(frame: .zero)
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         terminalView.startProcess(
@@ -15,4 +17,8 @@ final class SwiftTermSession: TerminalSession {
     }
 
     var nsView: NSView { terminalView }
+
+    func terminate() {
+        terminalView.terminate()
+    }
 }
