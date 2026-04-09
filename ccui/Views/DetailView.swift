@@ -20,6 +20,7 @@ struct DetailView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var selectedTab: DetailTab = .terminal
     @State private var codeViewerStore = CodeViewerStore()
+    @State private var diffStore = DiffStore()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,9 +57,9 @@ struct DetailView: View {
                 CodeViewerView(store: codeViewerStore)
                     .opacity(selectedTab == .code ? 1 : 0)
                     .allowsHitTesting(selectedTab == .code)
-                if selectedTab == .diff {
-                    DiffViewerPlaceholderView()
-                }
+                DiffViewerView(store: diffStore, repositoryPath: repository.path)
+                    .opacity(selectedTab == .diff ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .diff)
             }
         }
         .navigationTitle(repository.name)
@@ -69,6 +70,15 @@ struct DetailView: View {
         }
         .onChange(of: repository) { _, _ in
             codeViewerStore.reset()
+            diffStore.reset()
+            if selectedTab == .diff {
+                Task { await diffStore.load(repositoryPath: repository.path) }
+            }
+        }
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == .diff, case .idle = diffStore.state {
+                Task { await diffStore.load(repositoryPath: repository.path) }
+            }
         }
     }
 }
