@@ -9,11 +9,13 @@ final class WorktreeStore: Identifiable {
     private(set) var errorMessage: String?
     private(set) var statusCounts: [String: Int] = [:]
 
+    let repositoryPath: String
     private let repository: Repository
     private var loadToken = UUID()
 
     init(repository: Repository) {
         self.id = repository.id
+        self.repositoryPath = repository.path
         self.repository = repository
     }
 

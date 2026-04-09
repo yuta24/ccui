@@ -38,7 +38,7 @@ struct ContentView: View {
             syncWorktreeStores(with: newValue)
         }
         .sheet(item: $showingAddWorktree) { wtStore in
-            AddWorktreeView(worktreeStore: wtStore)
+            AddWorktreeView(worktreeStore: wtStore, repositoryPath: wtStore.repositoryPath)
         }
         .onAppear {
             for repo in store.repositories where worktreeStores[repo.id] == nil {

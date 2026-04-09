@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AddWorktreeView: View {
     let worktreeStore: WorktreeStore
+    let repositoryPath: String
     @Environment(\.dismiss) private var dismiss
 
     @State private var branch = ""
@@ -52,6 +53,10 @@ struct AddWorktreeView: View {
         }
         .padding()
         .frame(width: 400)
+        .onChange(of: branch) {
+            let defaultDir = (repositoryPath as NSString).appendingPathComponent(".claude/worktrees")
+            destinationPath = (defaultDir as NSString).appendingPathComponent(branch)
+        }
     }
 
     private func addWorktree() {
