@@ -24,14 +24,14 @@ struct DetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            tabBar
-            Divider()
+            // Top bar with tabs and terminal sub-tabs
+            topBar
 
-            if selectedTab == .terminal {
-                terminalTabBar
-                Divider()
-            }
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
 
+            // Content
             ZStack {
                 terminalContent
                     .opacity(selectedTab == .terminal ? 1 : 0)
@@ -46,7 +46,6 @@ struct DetailView: View {
                     .allowsHitTesting(selectedTab == .diff)
             }
         }
-        .navigationTitle(worktree.displayName)
         .onAppear {
             terminalSessionStore.ensureSession(for: worktree)
         }
@@ -70,29 +69,131 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - Tab Bar
+    // MARK: - Top Bar
 
-    private var tabBar: some View {
+    private var topBar: some View {
         HStack(spacing: 0) {
-            ForEach(DetailTab.allCases, id: \.self) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    Label(tab.rawValue, systemImage: tab.icon)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+            // Main tabs
+            HStack(spacing: 2) {
+                ForEach(DetailTab.allCases, id: \.self) { tab in
+                    tabButton(tab)
                 }
-                .buttonStyle(.plain)
-                .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
-                .cornerRadius(6)
             }
+            .padding(.leading, 12)
+
+            // Separator
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(width: 1, height: 16)
+                .padding(.horizontal, 8)
+
+            // Terminal sub-tabs (only shown when terminal is selected)
+            if selectedTab == .terminal {
+                terminalTabs
+            }
+
             Spacer()
+
+            // Worktree name
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 9, weight: .medium))
+                Text(worktree.displayName)
+                    .font(.uiCaption)
+            }
+            .foregroundStyle(Color.textTertiary)
+            .padding(.trailing, 14)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .frame(height: 36)
+        .background(Color.surfaceBase)
     }
 
-    // MARK: - Code Content (with file tree)
+    private func tabButton(_ tab: DetailTab) -> some View {
+        let isSelected = selectedTab == tab
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedTab = tab
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 10, weight: .medium))
+                Text(tab.rawValue)
+                    .font(.uiLabel)
+            }
+            .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(isSelected ? Color.accentSubtle : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Terminal Tabs
+
+    private var terminalTabs: some View {
+        let sessionList = terminalSessionStore.sessions(for: worktree)
+        let selectedIndex = terminalSessionStore.selectedIndex(for: worktree)
+
+        return HStack(spacing: 2) {
+            ForEach(Array(sessionList.enumerated()), id: \.element.id) { index, session in
+                terminalTabButton(
+                    index: index,
+                    label: session.label,
+                    isSelected: index == selectedIndex,
+                    canClose: sessionList.count > 1
+                )
+            }
+
+            Button {
+                terminalSessionStore.addSession(for: worktree)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.plain)
+            .help("New terminal")
+        }
+    }
+
+    private func terminalTabButton(index: Int, label: String, isSelected: Bool, canClose: Bool) -> some View {
+        HStack(spacing: 3) {
+            Button {
+                terminalSessionStore.selectSession(at: index, for: worktree)
+            } label: {
+                Text(label)
+                    .font(.uiCaptionMono)
+                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textTertiary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+            }
+            .buttonStyle(.plain)
+
+            if canClose {
+                Button {
+                    terminalSessionStore.removeSession(at: index, for: worktree)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 2)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isSelected ? Color.surfaceElevated : Color.clear)
+        )
+    }
+
+    // MARK: - Code Content
 
     private var codeContent: some View {
         HSplitView {
@@ -102,63 +203,6 @@ struct DetailView: View {
             }
             CodeViewerView(store: codeViewerStore)
         }
-    }
-
-    // MARK: - Terminal Sub-Tab Bar
-
-    private var terminalTabBar: some View {
-        let sessionList = terminalSessionStore.sessions(for: worktree)
-        let selectedIndex = terminalSessionStore.selectedIndex(for: worktree)
-
-        return HStack(spacing: 0) {
-            ForEach(Array(sessionList.enumerated()), id: \.element.id) { index, session in
-                terminalTab(index: index, label: session.label, isSelected: index == selectedIndex, canClose: sessionList.count > 1)
-            }
-
-            Button {
-                terminalSessionStore.addSession(for: worktree)
-            } label: {
-                Image(systemName: "plus")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
-            .help("New terminal")
-
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-    }
-
-    private func terminalTab(index: Int, label: String, isSelected: Bool, canClose: Bool) -> some View {
-        HStack(spacing: 4) {
-            Button {
-                terminalSessionStore.selectSession(at: index, for: worktree)
-            } label: {
-                Text(label)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
-
-            if canClose {
-                Button {
-                    terminalSessionStore.removeSession(at: index, for: worktree)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
-        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .cornerRadius(4)
     }
 
     // MARK: - Terminal Content

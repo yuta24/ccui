@@ -12,7 +12,9 @@ struct ccuiApp: App {
             ContentView()
                 .environment(repositoryStore)
                 .environment(terminalSessionStore)
+                .preferredColorScheme(.dark)
         }
-        .defaultSize(width: 1200, height: 800)
+        .defaultSize(width: 1280, height: 860)
+        .windowStyle(.hiddenTitleBar)
     }
 }

@@ -12,47 +12,148 @@ struct AddWorktreeView: View {
     @State private var isAdding = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Worktree")
-                .font(.headline)
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("New Worktree")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
 
-            Form {
-                TextField("Branch name", text: $branch)
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
 
-                Toggle("Create new branch", isOn: $createNewBranch)
+            // Form
+            VStack(spacing: 14) {
+                // Branch name
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Branch")
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.textSecondary)
 
+                    TextField("feature/my-branch", text: $branch)
+                        .textFieldStyle(.plain)
+                        .font(.monoSmall)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(Color.surfaceElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(Color.borderDefault, lineWidth: 1)
+                        )
+                }
+
+                // Create new branch toggle
                 HStack {
-                    TextField("Destination path", text: $destinationPath)
-                    Button("Browse...") {
-                        selectDestination()
+                    Toggle(isOn: $createNewBranch) {
+                        Text("Create new branch")
+                            .font(.uiLabel)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .tint(Color.accent)
+                    Spacer()
+                }
+
+                // Destination path
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Destination")
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.textSecondary)
+
+                    HStack(spacing: 6) {
+                        TextField("/path/to/worktree", text: $destinationPath)
+                            .textFieldStyle(.plain)
+                            .font(.monoCaption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(Color.surfaceElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(Color.borderDefault, lineWidth: 1)
+                            )
+
+                        Button("Browse") {
+                            selectDestination()
+                        }
+                        .font(.uiLabel)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.accentSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
                     }
                 }
-            }
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                // Error
+                if let errorMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.system(size: 10))
+                        Text(errorMessage)
+                            .font(.uiCaption)
+                    }
+                    .foregroundStyle(Color.diffDeletion)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
 
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
+
+            // Actions
             HStack {
                 Button("Cancel") {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
+                .buttonStyle(.plain)
+                .font(.uiLabel)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Color.surfaceElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(Color.borderDefault, lineWidth: 1)
+                )
 
                 Spacer()
 
-                Button("Add") {
+                Button("Create") {
                     addWorktree()
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(branch.isEmpty || destinationPath.isEmpty || isAdding)
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(branch.isEmpty || destinationPath.isEmpty ? Color.textTertiary : Color.surfaceBase)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(
+                    branch.isEmpty || destinationPath.isEmpty ? Color.surfaceElevated : Color.accent
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
         }
-        .padding()
-        .frame(width: 400)
+        .frame(width: 440)
+        .background(Color.surfacePrimary)
+        .preferredColorScheme(.dark)
         .onChange(of: branch) {
             let defaultDir = (repositoryPath as NSString).appendingPathComponent(".claude/worktrees")
             destinationPath = (defaultDir as NSString).appendingPathComponent(branch)
@@ -63,17 +164,16 @@ struct AddWorktreeView: View {
         isAdding = true
         errorMessage = nil
         Task {
+            defer { isAdding = false }
             do {
                 try await worktreeStore.add(
                     branch: branch,
                     path: destinationPath,
                     createBranch: createNewBranch
                 )
-                isAdding = false
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription
-                isAdding = false
             }
         }
     }

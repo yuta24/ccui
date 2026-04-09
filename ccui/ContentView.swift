@@ -9,9 +9,12 @@ struct ContentView: View {
     @State private var showingAddWorktree: WorktreeStore?
     @State private var forceDeleteTarget: (Worktree, WorktreeStore)?
     @State private var showForceDeleteAlert = false
+    @State private var sidebarWidth: CGFloat = 240
+    @GestureState private var dragOffset: CGFloat = 0
 
     var body: some View {
-        NavigationSplitView {
+        HStack(spacing: 0) {
+            // Sidebar
             SidebarView(
                 selectedWorktree: $selectedWorktree,
                 worktreeStores: worktreeStores,
@@ -19,16 +22,41 @@ struct ContentView: View {
                 onShowAddWorktree: { showingAddWorktree = $0 },
                 onRemoveWorktree: removeWorktree
             )
-            .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 400)
-        } detail: {
+            .frame(width: max(180, min(400, sidebarWidth + dragOffset)))
+            .background(Color.surfaceBase)
+
+            // Resize handle
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(width: 1)
+                .contentShape(Rectangle().inset(by: -3))
+                .gesture(
+                    DragGesture()
+                        .updating($dragOffset) { value, state, _ in
+                            state = value.translation.width
+                        }
+                        .onEnded { value in
+                            sidebarWidth = max(180, min(400, sidebarWidth + value.translation.width))
+                        }
+                )
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.resizeLeftRight.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+
+            // Detail
             if let worktree = selectedWorktree {
                 DetailView(worktree: worktree, fileTreeStore: fileTreeStore)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.surfacePrimary)
             } else {
-                Text("Select a worktree")
-                    .font(.title2)
-                    .foregroundStyle(.tertiary)
+                emptyState
             }
         }
+        .background(Color.surfaceBase)
         .onChange(of: selectedWorktree) { _, newValue in
             if let wt = newValue {
                 fileTreeStore = FileTreeStore(rootPath: wt.path)
@@ -59,6 +87,20 @@ struct ContentView: View {
                 worktreeStores[repo.id] = WorktreeStore(repository: repo)
             }
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "arrow.triangle.branch")
+                .font(.system(size: 40, weight: .ultraLight))
+                .foregroundStyle(Color.textTertiary)
+
+            Text("Select a worktree")
+                .font(.uiLabel)
+                .foregroundStyle(Color.textTertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.surfacePrimary)
     }
 
     // MARK: - State Sync
