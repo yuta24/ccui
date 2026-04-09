@@ -60,12 +60,19 @@ final class WorktreeStore: Identifiable {
         await load()
     }
 
-    func remove(_ worktree: Worktree) async throws {
+    func remove(_ worktree: Worktree, force: Bool = false) async throws {
         let repoPath = repository.path
         let wtPath = worktree.path
+        let branch = worktree.branch
 
         try await Task.detached(priority: .userInitiated) {
-            try GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath)
+            if !force {
+                let count = try GitClient.statusCount(worktreePath: wtPath)
+                if count > 0 {
+                    throw GitError.worktreeDirty(wtPath)
+                }
+            }
+            try GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: force)
         }.value
 
         await load()

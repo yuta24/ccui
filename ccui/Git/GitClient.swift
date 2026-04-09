@@ -12,9 +12,13 @@ enum GitClient {
         _ = try run(["worktree", "add"] + args, at: repositoryPath)
     }
 
-    nonisolated static func removeWorktree(path: String, repositoryPath: String) throws {
-        _ = try run(["worktree", "remove", path], at: repositoryPath)
+    nonisolated static func removeWorktree(path: String, repositoryPath: String, force: Bool = false) throws {
+        var args = ["worktree", "remove"]
+        if force { args.append("--force") }
+        args.append(path)
+        _ = try run(args, at: repositoryPath)
     }
+
 
     // MARK: - Status
 
