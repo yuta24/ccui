@@ -42,35 +42,38 @@ struct CodeViewerView: View {
     private func codeView(lines: [String]) -> some View {
         let gutterWidth = lineNumberWidth(totalLines: lines.count)
 
-        return ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
-                    HStack(alignment: .top, spacing: 0) {
-                        // Line number gutter
-                        Text("\(index + 1)")
-                            .font(.monoSmall)
-                            .foregroundStyle(Color.gutterText)
-                            .frame(width: gutterWidth, alignment: .trailing)
-                            .padding(.trailing, 16)
+        return GeometryReader { proxy in
+            ScrollView([.horizontal, .vertical]) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
+                        HStack(alignment: .top, spacing: 0) {
+                            // Line number gutter
+                            Text("\(index + 1)")
+                                .font(.monoSmall)
+                                .foregroundStyle(Color.gutterText)
+                                .frame(width: gutterWidth, alignment: .trailing)
+                                .padding(.trailing, 16)
 
-                        // Gutter separator
-                        Rectangle()
-                            .fill(Color.borderSubtle)
-                            .frame(width: 1)
-                            .padding(.trailing, 12)
+                            // Gutter separator
+                            Rectangle()
+                                .fill(Color.borderSubtle)
+                                .frame(width: 1)
+                                .padding(.trailing, 12)
 
-                        // Code content
-                        Text(line.isEmpty ? " " : line)
-                            .font(.monoSmall)
-                            .foregroundStyle(Color.textPrimary)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: true, vertical: false)
+                            // Code content
+                            Text(line.isEmpty ? " " : line)
+                                .font(.monoSmall)
+                                .foregroundStyle(Color.textPrimary)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .padding(.leading, 8)
+                        .padding(.vertical, 1)
                     }
-                    .padding(.leading, 8)
-                    .padding(.vertical, 1)
                 }
+                .padding(.vertical, 8)
+                .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .topLeading)
             }
-            .padding(.vertical, 8)
         }
         .background(Color.surfacePrimary)
     }

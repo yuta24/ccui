@@ -303,14 +303,17 @@ private struct DiffFileContentView: View {
         let maxNewLine = entry.hunks.flatMap(\.lines).compactMap(\.newLineNumber).max() ?? 0
         let gutterWidth = lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
 
-        return ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(entry.hunks) { hunk in
-                    hunkHeaderRow(hunk.header)
-                    ForEach(hunk.lines) { line in
-                        diffLineRow(line: line, gutterWidth: gutterWidth)
+        return GeometryReader { proxy in
+            ScrollView([.horizontal, .vertical]) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(entry.hunks) { hunk in
+                        hunkHeaderRow(hunk.header)
+                        ForEach(hunk.lines) { line in
+                            diffLineRow(line: line, gutterWidth: gutterWidth)
+                        }
                     }
                 }
+                .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .topLeading)
             }
         }
         .background(Color.surfacePrimary)
