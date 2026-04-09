@@ -95,7 +95,7 @@ struct DiffViewerView: View {
             Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: 36, weight: .ultraLight))
                 .foregroundStyle(Color.textTertiary)
-            Text("Switch to this tab to load diff")
+            Text("Open panel to load diff")
                 .font(.uiLabel)
                 .foregroundStyle(Color.textTertiary)
         }

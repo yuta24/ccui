@@ -1,71 +1,71 @@
 import SwiftUI
 
-enum DetailTab: String, CaseIterable {
-    case terminal = "Terminal"
-    case code = "Code"
-    case diff = "Diff"
-
-    var icon: String {
-        switch self {
-        case .terminal: "terminal.fill"
-        case .code: "doc.text"
-        case .diff: "arrow.left.arrow.right"
-        }
-    }
-}
-
 struct DetailView: View {
     let worktree: Worktree
     let fileTreeStore: FileTreeStore?
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
-    @State private var selectedTab: DetailTab = .terminal
+    @State private var bottomPanelStore = BottomPanelStore()
     @State private var codeViewerStore = CodeViewerStore()
     @State private var diffStore = DiffStore()
+    @GestureState private var panelDragOffset: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Top bar with tabs and terminal sub-tabs
-            topBar
+        GeometryReader { geometry in
+            let maxPanelHeight = geometry.size.height * BottomPanelStore.maxHeightFraction
+            let effectivePanelHeight = bottomPanelStore.isExpanded
+                ? clampedHeight(bottomPanelStore.panelHeight + panelDragOffset, max: maxPanelHeight)
+                : 0
 
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(height: 1)
+            VStack(spacing: 0) {
+                // Top bar
+                topBar
 
-            // Content
-            ZStack {
+                Rectangle()
+                    .fill(Color.borderSubtle)
+                    .frame(height: 1)
+
+                // Terminal (fills remaining space)
                 terminalContent
-                    .opacity(selectedTab == .terminal ? 1 : 0)
-                    .allowsHitTesting(selectedTab == .terminal)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                codeContent
-                    .opacity(selectedTab == .code ? 1 : 0)
-                    .allowsHitTesting(selectedTab == .code)
+                // Drag handle + bottom panel
+                if bottomPanelStore.isExpanded {
+                    dragHandle(maxPanelHeight: maxPanelHeight)
 
-                DiffViewerView(store: diffStore, repositoryPath: worktree.path)
-                    .opacity(selectedTab == .diff ? 1 : 0)
-                    .allowsHitTesting(selectedTab == .diff)
+                    bottomPanel
+                        .frame(height: effectivePanelHeight)
+                }
             }
         }
         .onAppear {
             terminalSessionStore.ensureSession(for: worktree)
+            startWatching()
+        }
+        .onDisappear {
+            diffStore.stopWatching()
         }
         .onChange(of: worktree) { _, newWorktree in
             terminalSessionStore.ensureSession(for: newWorktree)
             codeViewerStore.reset()
             diffStore.reset()
-            if selectedTab == .diff {
-                Task { await diffStore.load(repositoryPath: newWorktree.path) }
+            startWatching()
+        }
+        .onChange(of: bottomPanelStore.isExpanded) { _, isOpen in
+            if isOpen, diffStore.needsLoad {
+                Task { await diffStore.load(repositoryPath: worktree.path) }
             }
         }
         .onChange(of: fileTreeStore?.selectedNode) { _, newValue in
             guard let node = newValue, !node.isDirectory else { return }
-            selectedTab = .code
+            bottomPanelStore.selectedTab = .code
+            bottomPanelStore.expand()
             Task { await codeViewerStore.load(path: node.path) }
         }
-        .onChange(of: selectedTab) { _, newValue in
-            if newValue == .diff, case .idle = diffStore.state {
-                Task { await diffStore.load(repositoryPath: worktree.path) }
-            }
+    }
+
+    private func startWatching() {
+        diffStore.startWatching(repositoryPath: worktree.path) { [bottomPanelStore] in
+            bottomPanelStore.isExpanded && bottomPanelStore.selectedTab == .diff
         }
     }
 
@@ -73,24 +73,28 @@ struct DetailView: View {
 
     private var topBar: some View {
         HStack(spacing: 0) {
-            // Main tabs
-            HStack(spacing: 2) {
-                ForEach(DetailTab.allCases, id: \.self) { tab in
-                    tabButton(tab)
+            // Panel toggle
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    bottomPanelStore.toggle()
                 }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: bottomPanelStore.isExpanded ? "rectangle.bottomhalf.filled" : "rectangle.bottomhalf.inset.filled")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("Panel")
+                        .font(.uiLabel)
+                }
+                .foregroundStyle(bottomPanelStore.isExpanded ? Color.accent : Color.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(bottomPanelStore.isExpanded ? Color.accentSubtle : Color.clear)
+                )
             }
+            .buttonStyle(.plain)
             .padding(.leading, 12)
-
-            // Separator
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(width: 1, height: 16)
-                .padding(.horizontal, 8)
-
-            // Terminal sub-tabs (only shown when terminal is selected)
-            if selectedTab == .terminal {
-                terminalTabs
-            }
 
             Spacer()
 
@@ -108,18 +112,109 @@ struct DetailView: View {
         .background(Color.surfaceBase)
     }
 
-    private func tabButton(_ tab: DetailTab) -> some View {
-        let isSelected = selectedTab == tab
+    // MARK: - Terminal Content
+
+    private var terminalContent: some View {
+        Group {
+            if let session = terminalSessionStore.session(for: worktree) {
+                TerminalContainerView(session: session, isActive: true)
+            } else {
+                Color.surfacePrimary
+            }
+        }
+    }
+
+    // MARK: - Drag Handle
+
+    private func dragHandle(maxPanelHeight: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.borderSubtle)
+            .frame(height: 4)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .updating($panelDragOffset) { value, state, _ in
+                        state = -value.translation.height
+                    }
+                    .onEnded { value in
+                        let delta = -value.translation.height
+                        bottomPanelStore.panelHeight = clampedHeight(
+                            bottomPanelStore.panelHeight + delta,
+                            max: maxPanelHeight
+                        )
+                    }
+            )
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeUpDown.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+    }
+
+    // MARK: - Bottom Panel
+
+    private var bottomPanel: some View {
+        VStack(spacing: 0) {
+            panelTabBar
+
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
+
+            Group {
+                switch bottomPanelStore.selectedTab {
+                case .diff:
+                    DiffViewerView(store: diffStore, repositoryPath: worktree.path)
+                case .code:
+                    codeContent
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color.surfacePrimary)
+        .clipped()
+    }
+
+    private var panelTabBar: some View {
+        HStack(spacing: 2) {
+            panelTabButton(.diff, icon: "arrow.left.arrow.right", label: "Diff")
+            panelTabButton(.code, icon: "doc.text", label: "Code")
+
+            Spacer()
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    bottomPanelStore.collapse()
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .help("Close panel")
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 32)
+        .background(Color.surfaceBase)
+    }
+
+    private func panelTabButton(_ tab: BottomPanelStore.PanelTab, icon: String, label: String) -> some View {
+        let isSelected = bottomPanelStore.selectedTab == tab
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                selectedTab = tab
+            bottomPanelStore.selectedTab = tab
+            if tab == .diff, diffStore.needsLoad {
+                Task { await diffStore.load(repositoryPath: worktree.path) }
             }
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: tab.icon)
+                Image(systemName: icon)
                     .font(.system(size: 10, weight: .medium))
-                Text(tab.rawValue)
+                Text(label)
                     .font(.uiLabel)
             }
             .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
@@ -131,66 +226,6 @@ struct DetailView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Terminal Tabs
-
-    private var terminalTabs: some View {
-        let sessionList = terminalSessionStore.sessions(for: worktree)
-        let selectedIndex = terminalSessionStore.selectedIndex(for: worktree)
-
-        return HStack(spacing: 2) {
-            ForEach(Array(sessionList.enumerated()), id: \.element.id) { index, session in
-                terminalTabButton(
-                    index: index,
-                    label: session.label,
-                    isSelected: index == selectedIndex,
-                    canClose: sessionList.count > 1
-                )
-            }
-
-            Button {
-                terminalSessionStore.addSession(for: worktree)
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
-            .help("New terminal")
-        }
-    }
-
-    private func terminalTabButton(index: Int, label: String, isSelected: Bool, canClose: Bool) -> some View {
-        HStack(spacing: 3) {
-            Button {
-                terminalSessionStore.selectSession(at: index, for: worktree)
-            } label: {
-                Text(label)
-                    .font(.uiCaptionMono)
-                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textTertiary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-            }
-            .buttonStyle(.plain)
-
-            if canClose {
-                Button {
-                    terminalSessionStore.removeSession(at: index, for: worktree)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 7, weight: .bold))
-                        .foregroundStyle(Color.textTertiary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 2)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(isSelected ? Color.surfaceElevated : Color.clear)
-        )
     }
 
     // MARK: - Code Content
@@ -205,21 +240,9 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - Terminal Content
+    // MARK: - Helpers
 
-    private var terminalContent: some View {
-        let sessionList = terminalSessionStore.sessions(for: worktree)
-        let selectedIndex = terminalSessionStore.selectedIndex(for: worktree)
-
-        return ZStack {
-            ForEach(Array(sessionList.enumerated()), id: \.element.id) { index, session in
-                TerminalContainerView(
-                    session: session,
-                    isActive: selectedTab == .terminal && index == selectedIndex
-                )
-                .opacity(index == selectedIndex ? 1 : 0)
-                .allowsHitTesting(index == selectedIndex)
-            }
-        }
+    private func clampedHeight(_ height: CGFloat, max maxHeight: CGFloat) -> CGFloat {
+        min(maxHeight, max(BottomPanelStore.minHeight, height))
     }
 }

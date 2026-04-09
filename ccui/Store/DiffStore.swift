@@ -17,11 +17,15 @@ final class DiffStore {
 
     private(set) var state: State = .idle
     private(set) var selectedFileIndex: Int?
+    private(set) var isDirty: Bool = false
     var mode: DiffMode = .staged
     private var loadToken = UUID()
+    private var watcher: FileWatcherService?
+    private var currentRepositoryPath: String?
 
     func load(repositoryPath: String, mode newMode: DiffMode? = nil) async {
         if let newMode { mode = newMode }
+        isDirty = false
         state = .loading
         selectedFileIndex = nil
         let token = UUID()
@@ -43,13 +47,41 @@ final class DiffStore {
         }
     }
 
+    var needsLoad: Bool {
+        if isDirty { return true }
+        if case .idle = state { return true }
+        return false
+    }
+
     func selectFile(_ index: Int?) {
         selectedFileIndex = index
+    }
+
+    func startWatching(repositoryPath: String, panelIsOpen: @escaping @MainActor () -> Bool) {
+        stopWatching()
+        currentRepositoryPath = repositoryPath
+        let watcher = FileWatcherService()
+        self.watcher = watcher
+        watcher.start(path: repositoryPath) { [weak self] in
+            guard let self, let path = self.currentRepositoryPath else { return }
+            if panelIsOpen() {
+                Task { await self.load(repositoryPath: path) }
+            } else {
+                self.isDirty = true
+            }
+        }
+    }
+
+    func stopWatching() {
+        watcher?.stop()
+        watcher = nil
     }
 
     func reset() {
         state = .idle
         selectedFileIndex = nil
+        isDirty = false
         loadToken = UUID()
+        stopWatching()
     }
 }
