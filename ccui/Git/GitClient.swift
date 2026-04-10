@@ -20,6 +20,20 @@ enum GitClient {
     }
 
 
+    // MARK: - Branch
+
+    nonisolated static func listLocalBranches(repositoryPath: String) throws -> [String] {
+        let output = try run(["branch", "--format=%(refname:short)"], at: repositoryPath)
+        return output.components(separatedBy: "\n").filter { !$0.isEmpty }
+    }
+
+    nonisolated static func defaultBranch(repositoryPath: String) throws -> String? {
+        let output = try run(["symbolic-ref", "refs/remotes/origin/HEAD"], at: repositoryPath)
+        let ref = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard ref.hasPrefix("refs/remotes/origin/") else { return nil }
+        return String(ref.dropFirst("refs/remotes/origin/".count))
+    }
+
     // MARK: - Status
 
     nonisolated static func statusCount(worktreePath: String) throws -> Int {

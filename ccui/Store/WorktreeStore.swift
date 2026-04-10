@@ -9,9 +9,14 @@ final class WorktreeStore: Identifiable {
     private(set) var errorMessage: String?
     private(set) var statusCounts: [String: Int] = [:]
 
+    private(set) var branches: [String] = []
+    private(set) var defaultBranch: String?
+
     let repositoryPath: String
     private let repository: Repository
     private var loadToken = UUID()
+    nonisolated(unsafe) private var headWatchers: [DispatchSourceFileSystemObject] = []
+    private var reloadTask: Task<Void, Never>?
 
     init(repository: Repository) {
         self.id = repository.id
@@ -19,11 +24,16 @@ final class WorktreeStore: Identifiable {
         self.repository = repository
     }
 
+    deinit {
+        for watcher in headWatchers {
+            watcher.cancel()
+        }
+    }
+
     func load() async {
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
-        statusCounts = [:]
         let token = UUID()
         loadToken = token
 
@@ -44,11 +54,14 @@ final class WorktreeStore: Identifiable {
         await loadStatus()
     }
 
-    func add(branch: String, path: String, createBranch: Bool) async throws {
+    func add(branch: String, path: String, createBranch: Bool, startPoint: String? = nil) async throws {
         let repoPath = repository.path
         var args: [String] = []
         if createBranch {
             args = ["-b", branch, path]
+            if let startPoint, !startPoint.isEmpty {
+                args.append(startPoint)
+            }
         } else {
             args = [path, branch]
         }
@@ -58,6 +71,23 @@ final class WorktreeStore: Identifiable {
         }.value
 
         await load()
+        startWatching()
+    }
+
+    func loadBranches() async {
+        let repoPath = repository.path
+        do {
+            let result = try await Task.detached(priority: .userInitiated) {
+                let branches = try GitClient.listLocalBranches(repositoryPath: repoPath)
+                let defaultBranch = try? GitClient.defaultBranch(repositoryPath: repoPath)
+                return (branches, defaultBranch)
+            }.value
+            branches = result.0
+            defaultBranch = result.1
+        } catch {
+            branches = []
+            defaultBranch = nil
+        }
     }
 
     func remove(_ worktree: Worktree, force: Bool = false) async throws {
@@ -76,6 +106,75 @@ final class WorktreeStore: Identifiable {
         }.value
 
         await load()
+        startWatching()
+    }
+
+    // MARK: - File Watching
+
+    func startWatching() {
+        stopWatching()
+
+        let gitDir = (repositoryPath as NSString).appendingPathComponent(".git")
+
+        // Watch .git/ directory for main worktree HEAD changes (atomic rename)
+        var watchDirs = [gitDir]
+
+        // Watch .git/worktrees/ directory itself for new worktree additions
+        let worktreesDir = (gitDir as NSString).appendingPathComponent("worktrees")
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: worktreesDir, isDirectory: &isDir), isDir.boolValue {
+            watchDirs.append(worktreesDir)
+
+            // Watch each linked worktree directory for HEAD changes
+            if let entries = try? FileManager.default.contentsOfDirectory(atPath: worktreesDir) {
+                for entry in entries {
+                    let dir = (worktreesDir as NSString).appendingPathComponent(entry)
+                    var entryIsDir: ObjCBool = false
+                    if FileManager.default.fileExists(atPath: dir, isDirectory: &entryIsDir), entryIsDir.boolValue {
+                        watchDirs.append(dir)
+                    }
+                }
+            }
+        }
+
+        for dir in watchDirs {
+            let fd = open(dir, O_EVTONLY)
+            guard fd >= 0 else { continue }
+
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd,
+                eventMask: .write,
+                queue: .global(qos: .utility)
+            )
+            source.setEventHandler { [weak self] in
+                self?.scheduleReload()
+            }
+            source.setCancelHandler {
+                close(fd)
+            }
+            source.resume()
+            headWatchers.append(source)
+        }
+    }
+
+    private func stopWatching() {
+        for watcher in headWatchers {
+            watcher.cancel()
+        }
+        headWatchers.removeAll()
+    }
+
+    nonisolated private func scheduleReload() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.reloadTask?.cancel()
+            self.reloadTask = Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                await self.load()
+                self.startWatching()
+            }
+        }
     }
 
     // MARK: - Status

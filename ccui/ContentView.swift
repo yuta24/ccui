@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var worktreeStores: [Repository.ID: WorktreeStore] = [:]
     @State private var fileTreeStore: FileTreeStore?
     @State private var showingAddWorktree: WorktreeStore?
+    @State private var initialBaseBranch: String?
     @State private var forceDeleteTarget: (Worktree, WorktreeStore)?
     @State private var showForceDeleteAlert = false
     @State private var sidebarWidth: CGFloat = 240
@@ -19,7 +20,10 @@ struct ContentView: View {
                 selectedWorktree: $selectedWorktree,
                 worktreeStores: worktreeStores,
                 onAddRepository: addRepository,
-                onShowAddWorktree: { showingAddWorktree = $0 },
+                onShowAddWorktree: { wtStore, branch in
+                    initialBaseBranch = branch
+                    showingAddWorktree = wtStore
+                },
                 onRemoveWorktree: removeWorktree
             )
             .frame(width: max(180, min(400, sidebarWidth + dragOffset)))
@@ -68,7 +72,11 @@ struct ContentView: View {
             syncWorktreeStores(with: newValue)
         }
         .sheet(item: $showingAddWorktree) { wtStore in
-            AddWorktreeView(worktreeStore: wtStore, repositoryPath: wtStore.repositoryPath)
+            AddWorktreeView(
+                worktreeStore: wtStore,
+                repositoryPath: wtStore.repositoryPath,
+                initialBaseBranch: initialBaseBranch
+            )
         }
         .alert("Uncommitted Changes", isPresented: $showForceDeleteAlert) {
             Button("Force Delete", role: .destructive) {

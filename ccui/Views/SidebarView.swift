@@ -5,7 +5,7 @@ struct SidebarView: View {
     @Binding var selectedWorktree: Worktree?
     let worktreeStores: [Repository.ID: WorktreeStore]
     let onAddRepository: () -> Void
-    let onShowAddWorktree: (WorktreeStore) -> Void
+    let onShowAddWorktree: (WorktreeStore, String?) -> Void
     let onRemoveWorktree: (Worktree, WorktreeStore) -> Void
 
     @State private var hoveredWorktree: Worktree?
@@ -129,7 +129,13 @@ struct SidebarView: View {
                     ForEach(wtStore.worktrees) { wt in
                         worktreeRow(wt, in: wtStore)
                             .contextMenu {
+                                if let branch = wt.branch {
+                                    Button("Add Worktree from \"\(branch)\"...") {
+                                        onShowAddWorktree(wtStore, branch)
+                                    }
+                                }
                                 if !wt.isMain {
+                                    Divider()
                                     Button("Remove Worktree", role: .destructive) {
                                         onRemoveWorktree(wt, wtStore)
                                     }
@@ -139,7 +145,7 @@ struct SidebarView: View {
 
                     // Add worktree button
                     Button {
-                        onShowAddWorktree(wtStore)
+                        onShowAddWorktree(wtStore, nil)
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "plus")
@@ -157,6 +163,7 @@ struct SidebarView: View {
             .task(id: repo.id) {
                 if wtStore.worktrees.isEmpty && !wtStore.isLoading {
                     await wtStore.load()
+                    wtStore.startWatching()
                 }
             }
 

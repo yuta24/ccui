@@ -3,13 +3,19 @@ import SwiftUI
 struct AddWorktreeView: View {
     let worktreeStore: WorktreeStore
     let repositoryPath: String
+    let initialBaseBranch: String?
     @Environment(\.dismiss) private var dismiss
 
     @State private var branch = ""
     @State private var destinationPath = ""
     @State private var createNewBranch = true
+    @State private var baseBranch = ""
     @State private var errorMessage: String?
     @State private var isAdding = false
+
+    private var isCreateDisabled: Bool {
+        branch.isEmpty || destinationPath.isEmpty || isAdding || (createNewBranch && baseBranch.isEmpty)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,6 +66,25 @@ struct AddWorktreeView: View {
                     .controlSize(.small)
                     .tint(Color.accent)
                     Spacer()
+                }
+
+                // Base branch picker (only for new branch)
+                if createNewBranch {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Base Branch")
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.textSecondary)
+
+                        Picker("", selection: $baseBranch) {
+                            ForEach(worktreeStore.branches, id: \.self) { branch in
+                                Text(branch)
+                                    .font(.monoSmall)
+                                    .tag(branch)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
 
                 // Destination path
@@ -137,15 +162,13 @@ struct AddWorktreeView: View {
                     addWorktree()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(branch.isEmpty || destinationPath.isEmpty || isAdding)
+                .disabled(isCreateDisabled)
                 .buttonStyle(.plain)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(branch.isEmpty || destinationPath.isEmpty ? Color.textTertiary : Color.surfaceBase)
+                .foregroundStyle(isCreateDisabled ? Color.textTertiary : Color.surfaceBase)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(
-                    branch.isEmpty || destinationPath.isEmpty ? Color.surfaceElevated : Color.accent
-                )
+                .background(isCreateDisabled ? Color.surfaceElevated : Color.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
             }
             .padding(.horizontal, 20)
@@ -154,6 +177,18 @@ struct AddWorktreeView: View {
         .frame(width: 440)
         .background(Color.surfacePrimary)
         .preferredColorScheme(.dark)
+        .task {
+            await worktreeStore.loadBranches()
+            if let initial = initialBaseBranch,
+               worktreeStore.branches.contains(initial) {
+                baseBranch = initial
+            } else if let defaultBranch = worktreeStore.defaultBranch,
+                      worktreeStore.branches.contains(defaultBranch) {
+                baseBranch = defaultBranch
+            } else if let first = worktreeStore.branches.first {
+                baseBranch = first
+            }
+        }
         .onChange(of: branch) {
             let defaultDir = (repositoryPath as NSString).appendingPathComponent(".claude/worktrees")
             destinationPath = (defaultDir as NSString).appendingPathComponent(branch)
@@ -169,7 +204,8 @@ struct AddWorktreeView: View {
                 try await worktreeStore.add(
                     branch: branch,
                     path: destinationPath,
-                    createBranch: createNewBranch
+                    createBranch: createNewBranch,
+                    startPoint: createNewBranch ? baseBranch : nil
                 )
                 dismiss()
             } catch {
