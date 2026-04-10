@@ -1,11 +1,20 @@
 import SwiftUI
 
+// MARK: - NSColor Tokens
+
+extension NSColor {
+    static let surfacePrimaryColor = NSColor(red: 0.098, green: 0.098, blue: 0.098, alpha: 1)
+    static let textPrimaryColor = NSColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1)
+    static let accentAmberColor = NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1)
+    static let accentMutedColor = NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 0.25)
+}
+
 // MARK: - Color Tokens
 
 extension Color {
     // Backgrounds
     static let surfaceBase = Color(nsColor: NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1))
-    static let surfacePrimary = Color(nsColor: NSColor(red: 0.098, green: 0.098, blue: 0.098, alpha: 1))
+    static let surfacePrimary = Color(nsColor: .surfacePrimaryColor)
     static let surfaceElevated = Color(nsColor: NSColor(red: 0.133, green: 0.133, blue: 0.133, alpha: 1))
     static let surfaceHover = Color(nsColor: NSColor(red: 0.16, green: 0.16, blue: 0.16, alpha: 1))
 
@@ -15,14 +24,14 @@ extension Color {
     static let borderStrong = Color.white.opacity(0.16)
 
     // Text
-    static let textPrimary = Color(nsColor: NSColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1))
+    static let textPrimary = Color(nsColor: .textPrimaryColor)
     static let textSecondary = Color(nsColor: NSColor(red: 0.53, green: 0.53, blue: 0.53, alpha: 1))
     static let textTertiary = Color(nsColor: NSColor(red: 0.33, green: 0.33, blue: 0.33, alpha: 1))
 
     // Accent - Amber
-    static let accent = Color(nsColor: NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1))
+    static let accent = Color(nsColor: .accentAmberColor)
     static let accentSubtle = Color(nsColor: NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 0.12))
-    static let accentMuted = Color(nsColor: NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 0.25))
+    static let accentMuted = Color(nsColor: .accentMutedColor)
 
     // Semantic
     static let diffAddition = Color(nsColor: NSColor(red: 0.30, green: 0.69, blue: 0.31, alpha: 1))

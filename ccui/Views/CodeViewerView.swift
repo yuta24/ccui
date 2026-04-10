@@ -1,25 +1,66 @@
 import SwiftUI
+import CodeEditSourceEditor
+import CodeEditLanguages
 
 struct CodeViewerView: View {
     let store: CodeViewerStore
 
+    @State private var editorState = SourceEditorState()
+
     var body: some View {
-        switch store.state {
-        case .idle:
-            idleView
-        case .loading:
-            ProgressView()
-                .controlSize(.small)
-                .tint(Color.accent)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.surfacePrimary)
-        case .loaded(_, let lines):
-            codeView(lines: lines)
-        case .binary:
-            placeholderView(icon: "doc.questionmark", message: "Binary file")
-        case .error(let message):
-            placeholderView(icon: "exclamationmark.triangle", message: message)
+        Group {
+            switch store.state {
+            case .idle:
+                idleView
+            case .loading:
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(Color.accent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.surfacePrimary)
+            case .loaded(let content, let path):
+                editorView(content: content, path: path)
+            case .binary:
+                placeholderView(icon: "doc.questionmark", message: "Binary file")
+            case .error(let message):
+                placeholderView(icon: "exclamationmark.triangle", message: message)
+            }
         }
+        .id(store.loadedPath)
+    }
+
+    // MARK: - Editor View
+
+    private func editorView(content: String, path: String) -> some View {
+        let binding = Binding<String>(
+            get: { content },
+            set: { _ in }
+        )
+        let language = CodeLanguage.detectLanguageFrom(url: URL(fileURLWithPath: path))
+
+        return SourceEditor(
+            binding,
+            language: language,
+            configuration: SourceEditorConfiguration(
+                appearance: .init(
+                    theme: .monochromeDark,
+                    font: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                    lineHeightMultiple: 1.4,
+                    wrapLines: false,
+                    bracketPairEmphasis: nil
+                ),
+                behavior: .init(
+                    isEditable: false,
+                    isSelectable: true
+                ),
+                peripherals: .init(
+                    showGutter: true,
+                    showMinimap: false,
+                    showFoldingRibbon: false
+                )
+            ),
+            state: $editorState
+        )
     }
 
     // MARK: - Idle
@@ -35,52 +76,6 @@ struct CodeViewerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.surfacePrimary)
-    }
-
-    // MARK: - Code View
-
-    private func codeView(lines: [String]) -> some View {
-        let gutterWidth = lineNumberWidth(totalLines: lines.count)
-
-        return GeometryReader { proxy in
-            ScrollView([.horizontal, .vertical]) {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
-                        HStack(alignment: .top, spacing: 0) {
-                            // Line number gutter
-                            Text("\(index + 1)")
-                                .font(.monoSmall)
-                                .foregroundStyle(Color.gutterText)
-                                .frame(width: gutterWidth, alignment: .trailing)
-                                .padding(.trailing, 16)
-
-                            // Gutter separator
-                            Rectangle()
-                                .fill(Color.borderSubtle)
-                                .frame(width: 1)
-                                .padding(.trailing, 12)
-
-                            // Code content
-                            Text(line.isEmpty ? " " : line)
-                                .font(.monoSmall)
-                                .foregroundStyle(Color.textPrimary)
-                                .textSelection(.enabled)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .padding(.leading, 8)
-                        .padding(.vertical, 1)
-                    }
-                }
-                .padding(.vertical, 8)
-                .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .topLeading)
-            }
-        }
-        .background(Color.surfacePrimary)
-    }
-
-    private func lineNumberWidth(totalLines: Int) -> CGFloat {
-        let digits = max(String(totalLines).count, 3)
-        return CGFloat(digits) * 8 + 4
     }
 
     // MARK: - Placeholder

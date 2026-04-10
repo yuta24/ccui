@@ -6,7 +6,7 @@ final class CodeViewerStore {
     enum State {
         case idle
         case loading
-        case loaded(content: String, lines: [String])
+        case loaded(content: String, path: String)
         case binary
         case error(String)
     }
@@ -50,7 +50,6 @@ final class CodeViewerStore {
             return .binary
         }
 
-        let lines = content.components(separatedBy: "\n")
-        return .loaded(content: content, lines: lines)
+        return .loaded(content: content, path: path)
     }
 }
