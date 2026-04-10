@@ -1,0 +1,101 @@
+import SwiftUI
+
+struct DiffFileRowView: View {
+    let entry: DiffFileEntry
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    private var displayPath: String {
+        switch entry.status {
+        case .deleted:
+            entry.oldPath
+        case .renamed:
+            "\(entry.oldPath) → \(entry.newPath)"
+        case .added, .modified:
+            entry.newPath
+        }
+    }
+
+    var body: some View {
+        Button {
+            onSelect()
+        } label: {
+            HStack(spacing: 8) {
+                statusBadge
+
+                Text(displayPath)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .font(.monoCaption)
+                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+
+                Spacer()
+
+                if !entry.isBinary && !entry.hunks.isEmpty {
+                    statsView
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(isSelected ? Color.surfaceElevated : (isHovered ? Color.surfaceHover : Color.clear))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(isSelected ? Color.borderDefault : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+
+    private var statusBadge: some View {
+        Text(statusLetter)
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .foregroundStyle(statusColor)
+            .frame(width: 16, height: 16)
+            .background(statusColor.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
+
+    private var statusLetter: String {
+        switch entry.status {
+        case .added: "A"
+        case .modified: "M"
+        case .deleted: "D"
+        case .renamed: "R"
+        }
+    }
+
+    private var statusColor: Color {
+        switch entry.status {
+        case .added: .diffAddition
+        case .modified: .accent
+        case .deleted: .diffDeletion
+        case .renamed: .statusRenamed
+        }
+    }
+
+    private var statsView: some View {
+        let additions = entry.hunks.flatMap(\.lines).filter { $0.kind == .addition }.count
+        let deletions = entry.hunks.flatMap(\.lines).filter { $0.kind == .deletion }.count
+
+        return HStack(spacing: 4) {
+            if additions > 0 {
+                Text("+\(additions)")
+                    .font(.uiCaptionMono)
+                    .foregroundStyle(Color.diffAddition)
+            }
+            if deletions > 0 {
+                Text("-\(deletions)")
+                    .font(.uiCaptionMono)
+                    .foregroundStyle(Color.diffDeletion)
+            }
+        }
+    }
+}

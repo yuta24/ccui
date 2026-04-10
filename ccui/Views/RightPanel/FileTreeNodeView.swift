@@ -1,51 +1,6 @@
 import SwiftUI
 
-struct FileTreeView: View {
-    let store: FileTreeStore
-    var changedFiles: [String: DiffFileEntry.Status] = [:]
-
-    @State private var hoveredNode: FileNode.ID?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if store.isLoading && store.nodes.isEmpty {
-                Spacer()
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(Color.accent)
-                Spacer()
-            } else if let errorMessage = store.errorMessage, store.nodes.isEmpty {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 20, weight: .ultraLight))
-                        .foregroundStyle(Color.textTertiary)
-                    Text(errorMessage)
-                        .font(.uiCaption)
-                        .foregroundStyle(Color.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                Spacer()
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        FileTreeNodeList(nodes: store.nodes, store: store, hoveredNode: $hoveredNode, changedFiles: changedFiles, depth: 0)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .background(Color.surfaceBase)
-        .task {
-            if store.nodes.isEmpty && !store.isLoading {
-                await store.load()
-            }
-        }
-    }
-}
-
-private struct FileTreeNodeList: View {
+struct FileTreeNodeList: View {
     let nodes: [FileNode]
     let store: FileTreeStore
     @Binding var hoveredNode: FileNode.ID?
@@ -61,6 +16,8 @@ private struct FileTreeNodeList: View {
             }
         }
     }
+
+    // MARK: - Directory Row
 
     private func directoryRow(_ node: FileNode) -> some View {
         let isExpanded = store.expandedIDs.contains(node.id)
@@ -118,6 +75,8 @@ private struct FileTreeNodeList: View {
         }
     }
 
+    // MARK: - File Row
+
     private func fileRow(_ node: FileNode) -> some View {
         let isSelected = store.selectedNode?.id == node.id
         let changeStatus = changedFiles[node.path]
@@ -129,23 +88,23 @@ private struct FileTreeNodeList: View {
                 Color.clear
                     .frame(width: 12)
 
-                Image(systemName: fileIcon(for: node.name))
+                Image(systemName: FileTreeHelpers.fileIcon(for: node.name))
                     .font(.system(size: 11))
-                    .foregroundStyle(isSelected ? Color.accent : (changeStatus != nil ? statusColor(changeStatus!) : Color.textTertiary))
+                    .foregroundStyle(isSelected ? Color.accent : (changeStatus != nil ? FileTreeHelpers.statusColor(changeStatus!) : Color.textTertiary))
 
                 Text(node.name)
                     .font(.uiLabel)
-                    .foregroundStyle(isSelected ? Color.textPrimary : (changeStatus != nil ? statusColor(changeStatus!) : Color.textSecondary))
+                    .foregroundStyle(isSelected ? Color.textPrimary : (changeStatus != nil ? FileTreeHelpers.statusColor(changeStatus!) : Color.textSecondary))
                     .lineLimit(1)
 
                 Spacer()
 
                 if let status = changeStatus {
-                    Text(statusLetter(status))
+                    Text(FileTreeHelpers.statusLetter(status))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(statusColor(status))
+                        .foregroundStyle(FileTreeHelpers.statusColor(status))
                         .frame(width: 16, height: 16)
-                        .background(statusColor(status).opacity(0.12))
+                        .background(FileTreeHelpers.statusColor(status).opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
             }
@@ -161,46 +120,6 @@ private struct FileTreeNodeList: View {
         .buttonStyle(.plain)
         .onHover { hovering in
             hoveredNode = hovering ? node.id : nil
-        }
-    }
-
-    private func statusLetter(_ status: DiffFileEntry.Status) -> String {
-        switch status {
-        case .added: "A"
-        case .modified: "M"
-        case .deleted: "D"
-        case .renamed: "R"
-        }
-    }
-
-    private func statusColor(_ status: DiffFileEntry.Status) -> Color {
-        switch status {
-        case .added: .diffAddition
-        case .modified: .accent
-        case .deleted: .diffDeletion
-        case .renamed: .statusRenamed
-        }
-    }
-
-    private func fileIcon(for name: String) -> String {
-        let ext = (name as NSString).pathExtension.lowercased()
-        switch ext {
-        case "swift": return "swift"
-        case "js", "jsx", "ts", "tsx": return "chevron.left.forwardslash.chevron.right"
-        case "json": return "curlybraces"
-        case "md", "txt": return "doc.plaintext"
-        case "yml", "yaml", "toml": return "gearshape"
-        case "png", "jpg", "jpeg", "gif", "svg", "ico": return "photo"
-        case "sh", "zsh", "bash": return "terminal"
-        case "css", "scss": return "paintbrush"
-        case "html": return "globe"
-        case "py": return "chevron.left.forwardslash.chevron.right"
-        case "rb": return "diamond"
-        case "go": return "chevron.left.forwardslash.chevron.right"
-        case "rs": return "gearshape.2"
-        case "lock": return "lock"
-        case "gitignore", "gitmodules", "gitattributes": return "arrow.triangle.branch"
-        default: return "doc"
         }
     }
 }

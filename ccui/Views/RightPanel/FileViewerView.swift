@@ -54,38 +54,14 @@ struct FileViewerView: View {
 
     private var diffModeToolbar: some View {
         HStack(spacing: 8) {
-            HStack(spacing: 0) {
-                modeButton(.staged)
-                modeButton(.unstaged)
+            DiffModeToggle(currentMode: diffStore.mode) { mode in
+                Task { await diffStore.load(repositoryPath: repositoryPath, mode: mode) }
             }
-            .background(Color.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(Color.borderSubtle, lineWidth: 1)
-            )
-
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color.surfaceBase)
-    }
-
-    private func modeButton(_ mode: DiffStore.DiffMode) -> some View {
-        let isSelected = diffStore.mode == mode
-
-        return Button {
-            Task { await diffStore.load(repositoryPath: repositoryPath, mode: mode) }
-        } label: {
-            Text(mode.rawValue)
-                .font(.uiLabel)
-                .foregroundStyle(isSelected ? Color.textPrimary : Color.textTertiary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .background(isSelected ? Color.surfaceHover : Color.clear)
-        }
-        .buttonStyle(.plain)
     }
 
     private func relativePath(for fullPath: String) -> String {

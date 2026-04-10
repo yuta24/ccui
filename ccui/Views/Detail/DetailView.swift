@@ -17,9 +17,8 @@ struct DetailView: View {
                 : 0
 
             HStack(spacing: 0) {
-                // Main content
                 VStack(spacing: 0) {
-                    topBar
+                    DetailTopBar(worktree: worktree, rightPanelStore: rightPanelStore)
                     Rectangle()
                         .fill(Color.borderSubtle)
                         .frame(height: 1)
@@ -28,9 +27,8 @@ struct DetailView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Right panel
                 if rightPanelStore.isExpanded {
-                    resizeHandle(maxPanelWidth: maxPanelWidth)
+                    panelResizeHandle(maxPanelWidth: maxPanelWidth)
 
                     RightPanelView(
                         store: rightPanelStore,
@@ -81,50 +79,6 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - Top Bar
-
-    private var topBar: some View {
-        HStack(spacing: 0) {
-            Spacer()
-
-            // Worktree name
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.triangle.branch")
-                    .font(.system(size: 9, weight: .medium))
-                Text(worktree.displayName)
-                    .font(.uiCaption)
-            }
-            .foregroundStyle(Color.textTertiary)
-
-            Spacer()
-
-            // Panel toggle
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    rightPanelStore.toggle()
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "sidebar.right")
-                        .font(.system(size: 10, weight: .medium))
-                    Text("Panel")
-                        .font(.uiLabel)
-                }
-                .foregroundStyle(rightPanelStore.isExpanded ? Color.accent : Color.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(rightPanelStore.isExpanded ? Color.accentSubtle : Color.clear)
-                )
-            }
-            .buttonStyle(.plain)
-            .padding(.trailing, 12)
-        }
-        .frame(height: 36)
-        .background(Color.surfaceBase)
-    }
-
     // MARK: - Terminal Content
 
     private var terminalContent: some View {
@@ -139,7 +93,7 @@ struct DetailView: View {
 
     // MARK: - Resize Handle
 
-    private func resizeHandle(maxPanelWidth: CGFloat) -> some View {
+    private func panelResizeHandle(maxPanelWidth: CGFloat) -> some View {
         Rectangle()
             .fill(Color.borderSubtle)
             .frame(width: 4)
@@ -165,8 +119,6 @@ struct DetailView: View {
                 }
             }
     }
-
-    // MARK: - Helpers
 
     private func clampedWidth(_ width: CGFloat, max maxWidth: CGFloat) -> CGFloat {
         min(maxWidth, max(RightPanelStore.minWidth, width))

@@ -18,8 +18,13 @@ final class WorktreeStore: Identifiable {
     let repositoryPath: String
     private let repository: Repository
     private var loadToken = UUID()
-    nonisolated(unsafe) private var headWatchers: [DispatchSourceFileSystemObject] = []
-    private var reloadTask: Task<Void, Never>?
+    private let watcher = GitDirectoryWatcher()
+    // Accessed from deinit (nonisolated). Task.cancel() is thread-safe.
+    nonisolated(unsafe) private var _reloadTask: Task<Void, Never>?
+    private var reloadTask: Task<Void, Never>? {
+        get { _reloadTask }
+        set { _reloadTask = newValue }
+    }
 
     init(repository: Repository) {
         self.id = repository.id
@@ -28,9 +33,7 @@ final class WorktreeStore: Identifiable {
     }
 
     deinit {
-        for watcher in headWatchers {
-            watcher.cancel()
-        }
+        _reloadTask?.cancel()
     }
 
     func load() async {
@@ -123,56 +126,13 @@ final class WorktreeStore: Identifiable {
     // MARK: - File Watching
 
     func startWatching() {
-        stopWatching()
-
-        let gitDir = (repositoryPath as NSString).appendingPathComponent(".git")
-
-        // Watch .git/ directory for main worktree HEAD changes (atomic rename)
-        var watchDirs = [gitDir]
-
-        // Watch .git/worktrees/ directory itself for new worktree additions
-        let worktreesDir = (gitDir as NSString).appendingPathComponent("worktrees")
-        var isDir: ObjCBool = false
-        if FileManager.default.fileExists(atPath: worktreesDir, isDirectory: &isDir), isDir.boolValue {
-            watchDirs.append(worktreesDir)
-
-            // Watch each linked worktree directory for HEAD changes
-            if let entries = try? FileManager.default.contentsOfDirectory(atPath: worktreesDir) {
-                for entry in entries {
-                    let dir = (worktreesDir as NSString).appendingPathComponent(entry)
-                    var entryIsDir: ObjCBool = false
-                    if FileManager.default.fileExists(atPath: dir, isDirectory: &entryIsDir), entryIsDir.boolValue {
-                        watchDirs.append(dir)
-                    }
-                }
-            }
-        }
-
-        for dir in watchDirs {
-            let fd = open(dir, O_EVTONLY)
-            guard fd >= 0 else { continue }
-
-            let source = DispatchSource.makeFileSystemObjectSource(
-                fileDescriptor: fd,
-                eventMask: .write,
-                queue: .global(qos: .utility)
-            )
-            source.setEventHandler { [weak self] in
-                self?.scheduleReload()
-            }
-            source.setCancelHandler {
-                close(fd)
-            }
-            source.resume()
-            headWatchers.append(source)
+        watcher.start(repositoryPath: repositoryPath) { [weak self] in
+            self?.scheduleReload()
         }
     }
 
-    private func stopWatching() {
-        for watcher in headWatchers {
-            watcher.cancel()
-        }
-        headWatchers.removeAll()
+    func stopWatching() {
+        watcher.stop()
     }
 
     nonisolated private func scheduleReload() {

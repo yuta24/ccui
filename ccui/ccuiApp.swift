@@ -7,6 +7,7 @@ struct ccuiApp: App {
     )
     @State private var terminalSessionStore = TerminalSessionStore()
     @State private var claudeEventStore = ClaudeEventStore()
+    @State private var appCoordinator = AppCoordinator()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -15,6 +16,7 @@ struct ccuiApp: App {
                 .environment(repositoryStore)
                 .environment(terminalSessionStore)
                 .environment(claudeEventStore)
+                .environment(appCoordinator)
                 .preferredColorScheme(.dark)
                 .task { claudeEventStore.start() }
         }
