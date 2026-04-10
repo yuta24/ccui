@@ -51,12 +51,12 @@ extension Color {
 extension Font {
     static let monoBody = Font.system(.body, design: .monospaced)
     static let monoSmall = Font.system(.callout, design: .monospaced)
-    static let monoCaption = Font.system(.caption, design: .monospaced)
+    static let monoCaption = Font.system(.subheadline, design: .monospaced)
 
-    static let uiTitle = Font.system(size: 11, weight: .semibold).leading(.tight)
-    static let uiLabel = Font.system(size: 11, weight: .medium)
-    static let uiCaption = Font.system(size: 10, weight: .medium)
-    static let uiCaptionMono = Font.system(size: 10, weight: .medium, design: .monospaced)
+    static let uiTitle = Font.headline
+    static let uiLabel = Font.body
+    static let uiCaption = Font.subheadline
+    static let uiCaptionMono = Font.system(.subheadline, design: .monospaced)
 }
 
 // MARK: - View Modifiers
