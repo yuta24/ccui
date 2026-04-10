@@ -2,35 +2,12 @@ import SwiftUI
 
 struct FileTreeView: View {
     let store: FileTreeStore
+    var changedFiles: [String: DiffFileEntry.Status] = [:]
 
     @State private var hoveredNode: FileNode.ID?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Explorer")
-                    .sectionHeader()
-                Spacer()
-                Button {
-                    Task { await store.load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .help("Reload file tree")
-                .disabled(store.isLoading)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(height: 1)
-
-            // Content
             if store.isLoading && store.nodes.isEmpty {
                 Spacer()
                 ProgressView()
@@ -53,7 +30,7 @@ struct FileTreeView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        FileTreeNodeList(nodes: store.nodes, store: store, hoveredNode: $hoveredNode, depth: 0)
+                        FileTreeNodeList(nodes: store.nodes, store: store, hoveredNode: $hoveredNode, changedFiles: changedFiles, depth: 0)
                     }
                     .padding(.vertical, 4)
                 }
@@ -72,6 +49,7 @@ private struct FileTreeNodeList: View {
     let nodes: [FileNode]
     let store: FileTreeStore
     @Binding var hoveredNode: FileNode.ID?
+    let changedFiles: [String: DiffFileEntry.Status]
     let depth: Int
 
     var body: some View {
@@ -134,7 +112,7 @@ private struct FileTreeNodeList: View {
                     .padding(.leading, CGFloat(depth + 1) * 14 + 24)
                     .padding(.vertical, 4)
                 } else {
-                    FileTreeNodeList(nodes: node.children, store: store, hoveredNode: $hoveredNode, depth: depth + 1)
+                    FileTreeNodeList(nodes: node.children, store: store, hoveredNode: $hoveredNode, changedFiles: changedFiles, depth: depth + 1)
                 }
             }
         }
@@ -142,6 +120,7 @@ private struct FileTreeNodeList: View {
 
     private func fileRow(_ node: FileNode) -> some View {
         let isSelected = store.selectedNode?.id == node.id
+        let changeStatus = changedFiles[node.path]
 
         return Button {
             store.selectNode(node)
@@ -152,14 +131,23 @@ private struct FileTreeNodeList: View {
 
                 Image(systemName: fileIcon(for: node.name))
                     .font(.system(size: 11))
-                    .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
+                    .foregroundStyle(isSelected ? Color.accent : (changeStatus != nil ? statusColor(changeStatus!) : Color.textTertiary))
 
                 Text(node.name)
                     .font(.uiLabel)
-                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                    .foregroundStyle(isSelected ? Color.textPrimary : (changeStatus != nil ? statusColor(changeStatus!) : Color.textSecondary))
                     .lineLimit(1)
 
                 Spacer()
+
+                if let status = changeStatus {
+                    Text(statusLetter(status))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(statusColor(status))
+                        .frame(width: 16, height: 16)
+                        .background(statusColor(status).opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
             }
             .padding(.leading, CGFloat(depth) * 14 + 8)
             .padding(.trailing, 8)
@@ -173,6 +161,24 @@ private struct FileTreeNodeList: View {
         .buttonStyle(.plain)
         .onHover { hovering in
             hoveredNode = hovering ? node.id : nil
+        }
+    }
+
+    private func statusLetter(_ status: DiffFileEntry.Status) -> String {
+        switch status {
+        case .added: "A"
+        case .modified: "M"
+        case .deleted: "D"
+        case .renamed: "R"
+        }
+    }
+
+    private func statusColor(_ status: DiffFileEntry.Status) -> Color {
+        switch status {
+        case .added: .diffAddition
+        case .modified: .accent
+        case .deleted: .diffDeletion
+        case .renamed: .statusRenamed
         }
     }
 

@@ -82,6 +82,7 @@ final class DiffStore {
         selectedFileIndex = nil
         isDirty = false
         loadToken = UUID()
+        currentRepositoryPath = nil
         stopWatching()
     }
 }

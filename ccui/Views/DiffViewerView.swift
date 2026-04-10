@@ -44,8 +44,8 @@ struct DiffViewerView: View {
         HStack(spacing: 8) {
             // Mode toggle
             HStack(spacing: 0) {
-                modeButton(.unstaged)
                 modeButton(.staged)
+                modeButton(.unstaged)
             }
             .background(Color.surfaceElevated)
             .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -267,7 +267,7 @@ private struct DiffFileRowView: View {
 
 // MARK: - Diff Content
 
-private struct DiffFileContentView: View {
+struct DiffFileContentView: View {
     let entry: DiffFileEntry
 
     var body: some View {

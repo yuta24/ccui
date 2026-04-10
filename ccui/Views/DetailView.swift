@@ -4,36 +4,42 @@ struct DetailView: View {
     let worktree: Worktree
     let fileTreeStore: FileTreeStore?
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
-    @State private var bottomPanelStore = BottomPanelStore()
+    @State private var rightPanelStore = RightPanelStore()
     @State private var codeViewerStore = CodeViewerStore()
     @State private var diffStore = DiffStore()
     @GestureState private var panelDragOffset: CGFloat = 0
 
     var body: some View {
         GeometryReader { geometry in
-            let maxPanelHeight = geometry.size.height * BottomPanelStore.maxHeightFraction
-            let effectivePanelHeight = bottomPanelStore.isExpanded
-                ? clampedHeight(bottomPanelStore.panelHeight + panelDragOffset, max: maxPanelHeight)
+            let maxPanelWidth = geometry.size.width * RightPanelStore.maxWidthFraction
+            let effectivePanelWidth = rightPanelStore.isExpanded
+                ? clampedWidth(rightPanelStore.panelWidth + panelDragOffset, max: maxPanelWidth)
                 : 0
 
-            VStack(spacing: 0) {
-                // Top bar
-                topBar
+            HStack(spacing: 0) {
+                // Main content
+                VStack(spacing: 0) {
+                    topBar
+                    Rectangle()
+                        .fill(Color.borderSubtle)
+                        .frame(height: 1)
+                    terminalContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Rectangle()
-                    .fill(Color.borderSubtle)
-                    .frame(height: 1)
+                // Right panel
+                if rightPanelStore.isExpanded {
+                    resizeHandle(maxPanelWidth: maxPanelWidth)
 
-                // Terminal (fills remaining space)
-                terminalContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                // Drag handle + bottom panel
-                if bottomPanelStore.isExpanded {
-                    dragHandle(maxPanelHeight: maxPanelHeight)
-
-                    bottomPanel
-                        .frame(height: effectivePanelHeight)
+                    RightPanelView(
+                        store: rightPanelStore,
+                        fileTreeStore: fileTreeStore,
+                        diffStore: diffStore,
+                        codeViewerStore: codeViewerStore,
+                        repositoryPath: worktree.path
+                    )
+                    .frame(width: effectivePanelWidth)
                 }
             }
         }
@@ -48,24 +54,30 @@ struct DetailView: View {
             terminalSessionStore.ensureSession(for: newWorktree)
             codeViewerStore.reset()
             diffStore.reset()
+            rightPanelStore.backToFileTree()
             startWatching()
+            if rightPanelStore.isExpanded {
+                Task { await diffStore.load(repositoryPath: newWorktree.path) }
+            }
         }
-        .onChange(of: bottomPanelStore.isExpanded) { _, isOpen in
+        .onChange(of: rightPanelStore.isExpanded) { _, isOpen in
             if isOpen, diffStore.needsLoad {
                 Task { await diffStore.load(repositoryPath: worktree.path) }
             }
         }
         .onChange(of: fileTreeStore?.selectedNode) { _, newValue in
             guard let node = newValue, !node.isDirectory else { return }
-            bottomPanelStore.selectedTab = .code
-            bottomPanelStore.expand()
-            Task { await codeViewerStore.load(path: node.path) }
+            rightPanelStore.selectFile(node)
+            rightPanelStore.expand()
+            if diffStore.needsLoad {
+                Task { await diffStore.load(repositoryPath: worktree.path) }
+            }
         }
     }
 
     private func startWatching() {
-        diffStore.startWatching(repositoryPath: worktree.path) { [bottomPanelStore] in
-            bottomPanelStore.isExpanded && bottomPanelStore.selectedTab == .diff
+        diffStore.startWatching(repositoryPath: worktree.path) { [rightPanelStore] in
+            rightPanelStore.isExpanded
         }
     }
 
@@ -73,29 +85,6 @@ struct DetailView: View {
 
     private var topBar: some View {
         HStack(spacing: 0) {
-            // Panel toggle
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    bottomPanelStore.toggle()
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: bottomPanelStore.isExpanded ? "rectangle.bottomhalf.filled" : "rectangle.bottomhalf.inset.filled")
-                        .font(.system(size: 10, weight: .medium))
-                    Text("Panel")
-                        .font(.uiLabel)
-                }
-                .foregroundStyle(bottomPanelStore.isExpanded ? Color.accent : Color.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(bottomPanelStore.isExpanded ? Color.accentSubtle : Color.clear)
-                )
-            }
-            .buttonStyle(.plain)
-            .padding(.leading, 12)
-
             Spacer()
 
             // Worktree name
@@ -106,7 +95,31 @@ struct DetailView: View {
                     .font(.uiCaption)
             }
             .foregroundStyle(Color.textTertiary)
-            .padding(.trailing, 14)
+
+            Spacer()
+
+            // Panel toggle
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    rightPanelStore.toggle()
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "sidebar.right")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("Panel")
+                        .font(.uiLabel)
+                }
+                .foregroundStyle(rightPanelStore.isExpanded ? Color.accent : Color.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(rightPanelStore.isExpanded ? Color.accentSubtle : Color.clear)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 12)
         }
         .frame(height: 36)
         .background(Color.surfaceBase)
@@ -124,125 +137,38 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - Drag Handle
+    // MARK: - Resize Handle
 
-    private func dragHandle(maxPanelHeight: CGFloat) -> some View {
+    private func resizeHandle(maxPanelWidth: CGFloat) -> some View {
         Rectangle()
             .fill(Color.borderSubtle)
-            .frame(height: 4)
+            .frame(width: 4)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture()
                     .updating($panelDragOffset) { value, state, _ in
-                        state = -value.translation.height
+                        state = -value.translation.width
                     }
                     .onEnded { value in
-                        let delta = -value.translation.height
-                        bottomPanelStore.panelHeight = clampedHeight(
-                            bottomPanelStore.panelHeight + delta,
-                            max: maxPanelHeight
+                        let delta = -value.translation.width
+                        rightPanelStore.panelWidth = clampedWidth(
+                            rightPanelStore.panelWidth + delta,
+                            max: maxPanelWidth
                         )
                     }
             )
             .onHover { hovering in
                 if hovering {
-                    NSCursor.resizeUpDown.push()
+                    NSCursor.resizeLeftRight.push()
                 } else {
                     NSCursor.pop()
                 }
             }
     }
 
-    // MARK: - Bottom Panel
-
-    private var bottomPanel: some View {
-        VStack(spacing: 0) {
-            panelTabBar
-
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(height: 1)
-
-            Group {
-                switch bottomPanelStore.selectedTab {
-                case .code:
-                    codeContent
-                case .diff:
-                    DiffViewerView(store: diffStore, repositoryPath: worktree.path)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .background(Color.surfacePrimary)
-        .clipped()
-    }
-
-    private var panelTabBar: some View {
-        HStack(spacing: 2) {
-            panelTabButton(.code, icon: "doc.text", label: "Code")
-            panelTabButton(.diff, icon: "arrow.left.arrow.right", label: "Diff")
-
-            Spacer()
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    bottomPanelStore.collapse()
-                }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .help("Close panel")
-        }
-        .padding(.horizontal, 8)
-        .frame(height: 32)
-        .background(Color.surfaceBase)
-    }
-
-    private func panelTabButton(_ tab: BottomPanelStore.PanelTab, icon: String, label: String) -> some View {
-        let isSelected = bottomPanelStore.selectedTab == tab
-
-        return Button {
-            bottomPanelStore.selectedTab = tab
-            if tab == .diff, diffStore.needsLoad {
-                Task { await diffStore.load(repositoryPath: worktree.path) }
-            }
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 10, weight: .medium))
-                Text(label)
-                    .font(.uiLabel)
-            }
-            .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(isSelected ? Color.accentSubtle : Color.clear)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Code Content
-
-    private var codeContent: some View {
-        HSplitView {
-            if let fileTreeStore {
-                FileTreeView(store: fileTreeStore)
-                    .frame(minWidth: 180, idealWidth: 220, maxWidth: 350)
-            }
-            CodeViewerView(store: codeViewerStore)
-        }
-    }
-
     // MARK: - Helpers
 
-    private func clampedHeight(_ height: CGFloat, max maxHeight: CGFloat) -> CGFloat {
-        min(maxHeight, max(BottomPanelStore.minHeight, height))
+    private func clampedWidth(_ width: CGFloat, max maxWidth: CGFloat) -> CGFloat {
+        min(maxWidth, max(RightPanelStore.minWidth, width))
     }
 }
