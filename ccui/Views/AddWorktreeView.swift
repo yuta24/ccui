@@ -8,8 +8,13 @@ struct AddWorktreeView: View {
 
     @State private var branch = ""
     @State private var destinationPath = ""
-    @State private var createNewBranch = true
+    @State private var mode: WorktreeMode = .newBranch
     @State private var baseBranch = ""
+
+    private enum WorktreeMode: String, CaseIterable {
+        case existingBranch = "Existing Branch"
+        case newBranch = "New Branch"
+    }
     @State private var existingBranch = ""
     @State private var errorMessage: String?
     @State private var isAdding = false
@@ -17,7 +22,7 @@ struct AddWorktreeView: View {
 
     private var isCreateDisabled: Bool {
         if isAdding || destinationPath.isEmpty { return true }
-        if createNewBranch {
+        if mode == .newBranch {
             return branch.isEmpty || baseBranch.isEmpty
         } else {
             return existingBranch.isEmpty
@@ -48,20 +53,16 @@ struct AddWorktreeView: View {
 
             // Form
             VStack(spacing: 14) {
-                // Mode toggle
-                HStack {
-                    Toggle(isOn: $createNewBranch) {
-                        Text("Create new branch")
-                            .font(.uiLabel)
-                            .foregroundStyle(Color.textSecondary)
+                // Mode picker
+                Picker("", selection: $mode) {
+                    ForEach(WorktreeMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
                     }
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .tint(Color.accent)
-                    Spacer()
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
 
-                if createNewBranch {
+                if mode == .newBranch {
                     // New branch name
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Branch Name")
@@ -240,12 +241,12 @@ struct AddWorktreeView: View {
             updateDestinationPath(from: branch)
         }
         .onChange(of: existingBranch) {
-            if !createNewBranch {
+            if mode == .existingBranch {
                 updateDestinationPath(from: existingBranch)
             }
         }
-        .onChange(of: createNewBranch) {
-            if createNewBranch {
+        .onChange(of: mode) {
+            if mode == .newBranch {
                 updateDestinationPath(from: branch)
             } else {
                 updateDestinationPath(from: existingBranch)
@@ -310,7 +311,7 @@ struct AddWorktreeView: View {
         Task {
             defer { isAdding = false }
             do {
-                if createNewBranch {
+                if mode == .newBranch {
                     try await worktreeStore.add(
                         branch: branch,
                         path: destinationPath,
