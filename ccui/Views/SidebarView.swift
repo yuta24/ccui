@@ -133,6 +133,20 @@ struct SidebarView: View {
                                     Button("Add Worktree from \"\(branch)\"...") {
                                         onShowAddWorktree(wtStore, branch)
                                     }
+                                    Divider()
+                                }
+                                Button("Reveal in Finder") {
+                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: wt.path)
+                                }
+                                let editors = ExternalEditor.installed
+                                if !editors.isEmpty {
+                                    Menu("Open with") {
+                                        ForEach(editors) { editor in
+                                            Button(editor.name) {
+                                                editor.open(path: wt.path)
+                                            }
+                                        }
+                                    }
                                 }
                                 if !wt.isMain {
                                     Divider()
