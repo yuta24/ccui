@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(RepositoryStore.self) private var store
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
+    @Environment(ClaudeEventStore.self) private var claudeEventStore
     @State private var selectedWorktree: Worktree?
     @State private var worktreeStores: [Repository.ID: WorktreeStore] = [:]
     @State private var fileTreeStore: FileTreeStore?
@@ -64,6 +65,7 @@ struct ContentView: View {
         .onChange(of: selectedWorktree) { _, newValue in
             if let wt = newValue {
                 fileTreeStore = FileTreeStore(rootPath: wt.path)
+                claudeEventStore.clearPending(for: wt.path)
             } else {
                 fileTreeStore = nil
             }
@@ -92,7 +94,7 @@ struct ContentView: View {
         }
         .onAppear {
             for repo in store.repositories where worktreeStores[repo.id] == nil {
-                worktreeStores[repo.id] = WorktreeStore(repository: repo)
+                worktreeStores[repo.id] = makeWorktreeStore(for: repo)
             }
         }
     }
@@ -113,11 +115,20 @@ struct ContentView: View {
 
     // MARK: - State Sync
 
+    private func makeWorktreeStore(for repo: Repository) -> WorktreeStore {
+        let wtStore = WorktreeStore(repository: repo)
+        wtStore.onWorktreesLoaded = { [weak claudeEventStore] worktrees in
+            let paths = Set(worktrees.map(\.path))
+            claudeEventStore?.addKnownPaths(paths)
+        }
+        return wtStore
+    }
+
     private func syncWorktreeStores(with repositories: [Repository]) {
         let validIDs = Set(repositories.map(\.id))
 
         for repo in repositories where worktreeStores[repo.id] == nil {
-            worktreeStores[repo.id] = WorktreeStore(repository: repo)
+            worktreeStores[repo.id] = makeWorktreeStore(for: repo)
         }
 
         for key in worktreeStores.keys where !validIDs.contains(key) {
@@ -126,6 +137,7 @@ struct ContentView: View {
 
         let allWorktreePaths = Set(worktreeStores.values.flatMap(\.worktrees).map(\.path))
         terminalSessionStore.removeExcept(paths: allWorktreePaths)
+        claudeEventStore.removeKnownPathsExcept(allWorktreePaths)
 
         if let selected = selectedWorktree, !validIDs.contains(selected.repositoryID) {
             selectedWorktree = nil

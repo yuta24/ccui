@@ -13,6 +13,8 @@ final class WorktreeStore: Identifiable {
     private(set) var defaultBranch: String?
     private(set) var isLoadingBranches = false
 
+    var onWorktreesLoaded: (([Worktree]) -> Void)?
+
     let repositoryPath: String
     private let repository: Repository
     private var loadToken = UUID()
@@ -53,6 +55,12 @@ final class WorktreeStore: Identifiable {
         }
 
         await loadStatus()
+
+        for wt in worktrees {
+            try? ClaudeHooksInstaller.install(worktreePath: wt.path)
+        }
+
+        onWorktreesLoaded?(worktrees)
     }
 
     func add(branch: String, path: String, createBranch: Bool, startPoint: String? = nil) async throws {

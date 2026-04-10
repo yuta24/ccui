@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(RepositoryStore.self) private var store
+    @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Binding var selectedWorktree: Worktree?
     let worktreeStores: [Repository.ID: WorktreeStore]
     let onAddRepository: () -> Void
@@ -206,6 +207,7 @@ struct SidebarView: View {
     private func worktreeRow(_ wt: Worktree, in wtStore: WorktreeStore) -> some View {
         let isSelected = selectedWorktree == wt
         let isHovered = hoveredWorktree == wt
+        let isHighlighted = claudeEventStore.pendingEvents[wt.path] != nil
 
         return Button {
             selectedWorktree = wt
@@ -213,16 +215,26 @@ struct SidebarView: View {
             HStack(spacing: 8) {
                 // Icon
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(wt.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5))
+                    .fill(
+                        isHighlighted ? Color.accent :
+                        wt.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5)
+                    )
                     .frame(width: 4, height: 16)
 
                 // Name
                 Text(wt.displayName)
                     .font(.uiLabel)
-                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                    .foregroundStyle(isSelected || isHighlighted ? Color.textPrimary : Color.textSecondary)
                     .lineLimit(1)
 
                 Spacer()
+
+                // Claude event badge
+                if let event = claudeEventStore.pendingEvents[wt.path] {
+                    Image(systemName: event.hookEventName == .stop ? "checkmark.circle.fill" : "bell.fill")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.accent)
+                }
 
                 // Status badge
                 if let count = wtStore.statusCounts[wt.path] {
@@ -245,11 +257,19 @@ struct SidebarView: View {
             .padding(.vertical, 5)
             .background(
                 RoundedRectangle(cornerRadius: 5)
-                    .fill(isSelected ? Color.surfaceElevated : (isHovered ? Color.surfaceHover : Color.clear))
+                    .fill(
+                        isSelected ? Color.surfaceElevated :
+                        isHighlighted ? Color.accentSubtle.opacity(0.3) :
+                        isHovered ? Color.surfaceHover : Color.clear
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(isSelected ? Color.borderDefault : Color.clear, lineWidth: 1)
+                    .strokeBorder(
+                        isSelected ? Color.borderDefault :
+                        isHighlighted ? Color.accent.opacity(0.3) : Color.clear,
+                        lineWidth: 1
+                    )
             )
         }
         .buttonStyle(.plain)
