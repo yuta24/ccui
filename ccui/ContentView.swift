@@ -15,59 +15,68 @@ struct ContentView: View {
     @GestureState private var dragOffset: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Sidebar
-            SidebarView(
-                selectedWorktree: $selectedWorktree,
-                worktreeStores: worktreeStores,
-                onAddRepository: addRepository,
-                onShowAddWorktree: { wtStore, branch in
-                    initialBaseBranch = branch
-                    showingAddWorktree = wtStore
-                },
-                onRemoveWorktree: removeWorktree
-            )
-            .frame(width: max(180, min(400, sidebarWidth + dragOffset)))
-            .background(Color.surfaceBase)
+        VStack(spacing: 0) {
+            AgentDashboardBar()
 
-            // Resize handle
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(width: 1)
-                .contentShape(Rectangle().inset(by: -3))
-                .gesture(
-                    DragGesture()
-                        .updating($dragOffset) { value, state, _ in
-                            state = value.translation.width
-                        }
-                        .onEnded { value in
-                            sidebarWidth = max(180, min(400, sidebarWidth + value.translation.width))
-                        }
+            HStack(spacing: 0) {
+                // Sidebar
+                SidebarView(
+                    selectedWorktree: $selectedWorktree,
+                    worktreeStores: worktreeStores,
+                    onAddRepository: addRepository,
+                    onShowAddWorktree: { wtStore, branch in
+                        initialBaseBranch = branch
+                        showingAddWorktree = wtStore
+                    },
+                    onRemoveWorktree: removeWorktree
                 )
-                .onHover { hovering in
-                    if hovering {
-                        NSCursor.resizeLeftRight.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
+                .frame(width: max(180, min(400, sidebarWidth + dragOffset)))
+                .background(Color.surfaceBase)
 
-            // Detail
-            if let worktree = selectedWorktree {
-                DetailView(worktree: worktree, fileTreeStore: fileTreeStore)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.surfacePrimary)
-            } else {
-                emptyState
+                // Resize handle
+                Rectangle()
+                    .fill(Color.borderSubtle)
+                    .frame(width: 1)
+                    .contentShape(Rectangle().inset(by: -3))
+                    .gesture(
+                        DragGesture()
+                            .updating($dragOffset) { value, state, _ in
+                                state = value.translation.width
+                            }
+                            .onEnded { value in
+                                sidebarWidth = max(180, min(400, sidebarWidth + value.translation.width))
+                            }
+                    )
+                    .onHover { hovering in
+                        if hovering {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+
+                // Detail
+                if let worktree = selectedWorktree {
+                    DetailView(worktree: worktree, fileTreeStore: fileTreeStore)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.surfacePrimary)
+                } else {
+                    emptyState
+                }
             }
         }
         .background(Color.surfaceBase)
         .onChange(of: selectedWorktree) { _, newValue in
             if let wt = newValue {
                 fileTreeStore = FileTreeStore(rootPath: wt.path)
-                claudeEventStore.clearPending(for: wt.path)
+                claudeEventStore.acknowledge(for: wt.path)
             } else {
                 fileTreeStore = nil
+            }
+        }
+        .onChange(of: claudeEventStore.eventHistory) { _, _ in
+            if let wt = selectedWorktree, claudeEventStore.hasUnacknowledged(for: wt.path) {
+                claudeEventStore.acknowledge(for: wt.path)
             }
         }
         .onChange(of: store.repositories) { _, newValue in

@@ -22,13 +22,13 @@ final class ClaudeHooksInstaller {
         ]
 
         var existingHooks = settings["hooks"] as? [String: Any] ?? [:]
-        for eventName in ["Stop", "Notification"] {
+        for eventName in ["Stop", "Notification", "PreToolUse", "PostToolUse", "SubagentStop"] {
             var entries = existingHooks[eventName] as? [[String: Any]] ?? []
             // 既存の ccui エントリを除去してから追加（冪等性）
             entries.removeAll { entry in
                 guard let hooks = entry["hooks"] as? [[String: Any]] else { return false }
                 return hooks.contains { hook in
-                    (hook["command"] as? String)?.contains("ccui.sock") == true
+                    (hook["command"] as? String) == hookCommand
                 }
             }
             entries.append(ccuiEntry)

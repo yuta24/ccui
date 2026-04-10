@@ -13,7 +13,7 @@ final class WorktreeStore: Identifiable {
     private(set) var defaultBranch: String?
     private(set) var isLoadingBranches = false
 
-    var onWorktreesLoaded: (([Worktree]) -> Void)?
+    var onWorktreesLoaded: (@MainActor ([Worktree]) -> Void)?
 
     let repositoryPath: String
     private let repository: Repository

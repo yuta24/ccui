@@ -207,7 +207,8 @@ struct SidebarView: View {
     private func worktreeRow(_ wt: Worktree, in wtStore: WorktreeStore) -> some View {
         let isSelected = selectedWorktree == wt
         let isHovered = hoveredWorktree == wt
-        let isHighlighted = claudeEventStore.pendingEvents[wt.path] != nil
+        let agentState = claudeEventStore.agentState(for: wt.path)
+        let isHighlighted = agentState.isActive || claudeEventStore.hasUnacknowledged(for: wt.path)
 
         return Button {
             selectedWorktree = wt
@@ -216,7 +217,7 @@ struct SidebarView: View {
                 // Icon
                 RoundedRectangle(cornerRadius: 3)
                     .fill(
-                        isHighlighted ? Color.accent :
+                        isHighlighted ? agentState.color :
                         wt.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5)
                     )
                     .frame(width: 4, height: 16)
@@ -229,12 +230,8 @@ struct SidebarView: View {
 
                 Spacer()
 
-                // Claude event badge
-                if let event = claudeEventStore.pendingEvents[wt.path] {
-                    Image(systemName: event.hookEventName == .stop ? "checkmark.circle.fill" : "bell.fill")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.accent)
-                }
+                // Agent status badge
+                AgentStatusBadge(state: agentState)
 
                 // Status badge
                 if let count = wtStore.statusCounts[wt.path] {
@@ -259,7 +256,7 @@ struct SidebarView: View {
                 RoundedRectangle(cornerRadius: 5)
                     .fill(
                         isSelected ? Color.surfaceElevated :
-                        isHighlighted ? Color.accentSubtle.opacity(0.3) :
+                        isHighlighted ? agentState.color.opacity(0.08) :
                         isHovered ? Color.surfaceHover : Color.clear
                     )
             )
@@ -267,7 +264,7 @@ struct SidebarView: View {
                 RoundedRectangle(cornerRadius: 5)
                     .strokeBorder(
                         isSelected ? Color.borderDefault :
-                        isHighlighted ? Color.accent.opacity(0.3) : Color.clear,
+                        isHighlighted ? agentState.color.opacity(0.3) : Color.clear,
                         lineWidth: 1
                     )
             )
