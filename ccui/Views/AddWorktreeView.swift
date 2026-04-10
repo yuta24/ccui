@@ -10,11 +10,23 @@ struct AddWorktreeView: View {
     @State private var destinationPath = ""
     @State private var createNewBranch = true
     @State private var baseBranch = ""
+    @State private var existingBranch = ""
     @State private var errorMessage: String?
     @State private var isAdding = false
+    @State private var showDestination = false
 
     private var isCreateDisabled: Bool {
-        branch.isEmpty || destinationPath.isEmpty || isAdding || (createNewBranch && baseBranch.isEmpty)
+        if isAdding || destinationPath.isEmpty { return true }
+        if createNewBranch {
+            return branch.isEmpty || baseBranch.isEmpty
+        } else {
+            return existingBranch.isEmpty
+        }
+    }
+
+    private var availableBranches: [String] {
+        let checkedOut = Set(worktreeStore.worktrees.compactMap(\.branch))
+        return worktreeStore.branches.filter { !checkedOut.contains($0) }
     }
 
     var body: some View {
@@ -36,26 +48,7 @@ struct AddWorktreeView: View {
 
             // Form
             VStack(spacing: 14) {
-                // Branch name
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Branch")
-                        .font(.uiCaption)
-                        .foregroundStyle(Color.textSecondary)
-
-                    TextField("feature/my-branch", text: $branch)
-                        .textFieldStyle(.plain)
-                        .font(.monoSmall)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(Color.surfaceElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(Color.borderDefault, lineWidth: 1)
-                        )
-                }
-
-                // Create new branch toggle
+                // Mode toggle
                 HStack {
                     Toggle(isOn: $createNewBranch) {
                         Text("Create new branch")
@@ -68,35 +61,16 @@ struct AddWorktreeView: View {
                     Spacer()
                 }
 
-                // Base branch picker (only for new branch)
                 if createNewBranch {
+                    // New branch name
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Base Branch")
+                        Text("Branch Name")
                             .font(.uiCaption)
                             .foregroundStyle(Color.textSecondary)
 
-                        Picker("", selection: $baseBranch) {
-                            ForEach(worktreeStore.branches, id: \.self) { branch in
-                                Text(branch)
-                                    .font(.monoSmall)
-                                    .tag(branch)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-
-                // Destination path
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Destination")
-                        .font(.uiCaption)
-                        .foregroundStyle(Color.textSecondary)
-
-                    HStack(spacing: 6) {
-                        TextField("/path/to/worktree", text: $destinationPath)
+                        TextField("feature/my-branch", text: $branch)
                             .textFieldStyle(.plain)
-                            .font(.monoCaption)
+                            .font(.monoSmall)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)
                             .background(Color.surfaceElevated)
@@ -105,27 +79,91 @@ struct AddWorktreeView: View {
                                 RoundedRectangle(cornerRadius: 5)
                                     .strokeBorder(Color.borderDefault, lineWidth: 1)
                             )
+                    }
 
-                        Button("Browse") {
-                            selectDestination()
+                    // Base branch picker
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Base Branch")
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.textSecondary)
+
+                        branchPicker(selection: $baseBranch)
+                    }
+                } else {
+                    // Existing branch picker (exclude already checked-out branches)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Branch")
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.textSecondary)
+
+                        branchPicker(selection: $existingBranch, branches: availableBranches)
+                    }
+                }
+
+                // Destination path (collapsible)
+                VStack(alignment: .leading, spacing: 5) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showDestination.toggle()
                         }
-                        .font(.uiLabel)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Color.accent)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.accentSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 8, weight: .semibold))
+                                .rotationEffect(.degrees(showDestination ? 90 : 0))
+                            Text("Destination")
+                                .font(.uiCaption)
+                            Spacer()
+                            if !showDestination {
+                                Text(abbreviatedPath(destinationPath))
+                                    .font(.monoCaption)
+                                    .foregroundStyle(Color.textTertiary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        .foregroundStyle(Color.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+
+                    if showDestination {
+                        HStack(spacing: 6) {
+                            TextField("/path/to/worktree", text: $destinationPath)
+                                .textFieldStyle(.plain)
+                                .font(.monoCaption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(Color.surfaceElevated)
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .strokeBorder(Color.borderDefault, lineWidth: 1)
+                                )
+
+                            Button("Browse") {
+                                selectDestination()
+                            }
+                            .font(.uiLabel)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.accentSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                        }
                     }
                 }
 
                 // Error
                 if let errorMessage {
-                    HStack(spacing: 6) {
+                    HStack(alignment: .top, spacing: 6) {
                         Image(systemName: "exclamationmark.circle.fill")
                             .font(.system(size: 10))
+                            .padding(.top, 2)
                         Text(errorMessage)
                             .font(.uiCaption)
+                            .lineLimit(4)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .foregroundStyle(Color.diffDeletion)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,6 +196,12 @@ struct AddWorktreeView: View {
 
                 Spacer()
 
+                if isAdding {
+                    ProgressView()
+                        .controlSize(.small)
+                        .padding(.trailing, 6)
+                }
+
                 Button("Create") {
                     addWorktree()
                 }
@@ -188,11 +232,76 @@ struct AddWorktreeView: View {
             } else if let first = worktreeStore.branches.first {
                 baseBranch = first
             }
+            if let first = availableBranches.first, existingBranch.isEmpty {
+                existingBranch = first
+            }
         }
         .onChange(of: branch) {
-            let defaultDir = (repositoryPath as NSString).appendingPathComponent(".claude/worktrees")
-            destinationPath = (defaultDir as NSString).appendingPathComponent(branch)
+            updateDestinationPath(from: branch)
         }
+        .onChange(of: existingBranch) {
+            if !createNewBranch {
+                updateDestinationPath(from: existingBranch)
+            }
+        }
+        .onChange(of: createNewBranch) {
+            if createNewBranch {
+                updateDestinationPath(from: branch)
+            } else {
+                updateDestinationPath(from: existingBranch)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func branchPicker(selection: Binding<String>, branches: [String]? = nil) -> some View {
+        let items = branches ?? worktreeStore.branches
+        let isFiltered = branches != nil
+        if worktreeStore.isLoadingBranches {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading branches…")
+                    .font(.uiCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.vertical, 4)
+        } else if items.isEmpty {
+            Text(isFiltered && !worktreeStore.branches.isEmpty
+                 ? "All branches are already checked out"
+                 : "No branches available")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textTertiary)
+                .padding(.vertical, 4)
+        } else {
+            Picker("", selection: selection) {
+                ForEach(items, id: \.self) { branch in
+                    Text(branch)
+                        .font(.monoSmall)
+                        .tag(branch)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func updateDestinationPath(from branchName: String) {
+        guard !branchName.isEmpty else {
+            destinationPath = ""
+            return
+        }
+        let defaultDir = (repositoryPath as NSString).appendingPathComponent(".claude/worktrees")
+        destinationPath = (defaultDir as NSString).appendingPathComponent(branchName)
+    }
+
+    private func abbreviatedPath(_ path: String) -> String {
+        guard !path.isEmpty else { return "" }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false)
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
     }
 
     private func addWorktree() {
@@ -201,12 +310,20 @@ struct AddWorktreeView: View {
         Task {
             defer { isAdding = false }
             do {
-                try await worktreeStore.add(
-                    branch: branch,
-                    path: destinationPath,
-                    createBranch: createNewBranch,
-                    startPoint: createNewBranch ? baseBranch : nil
-                )
+                if createNewBranch {
+                    try await worktreeStore.add(
+                        branch: branch,
+                        path: destinationPath,
+                        createBranch: true,
+                        startPoint: baseBranch
+                    )
+                } else {
+                    try await worktreeStore.add(
+                        branch: existingBranch,
+                        path: destinationPath,
+                        createBranch: false
+                    )
+                }
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

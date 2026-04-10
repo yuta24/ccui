@@ -11,6 +11,7 @@ final class WorktreeStore: Identifiable {
 
     private(set) var branches: [String] = []
     private(set) var defaultBranch: String?
+    private(set) var isLoadingBranches = false
 
     let repositoryPath: String
     private let repository: Repository
@@ -75,6 +76,8 @@ final class WorktreeStore: Identifiable {
     }
 
     func loadBranches() async {
+        isLoadingBranches = true
+        defer { isLoadingBranches = false }
         let repoPath = repository.path
         do {
             let result = try await Task.detached(priority: .userInitiated) {
