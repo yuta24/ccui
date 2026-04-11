@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DetailTopBar: View {
     let worktree: Worktree
-    let rightPanelStore: RightPanelStore
+    let fileOverlayStore: FileOverlayStore
 
     var body: some View {
         HStack(spacing: 0) {
@@ -19,22 +19,20 @@ struct DetailTopBar: View {
             Spacer()
 
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    rightPanelStore.toggle()
-                }
+                fileOverlayStore.toggle()
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: "sidebar.right")
+                    Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 10, weight: .medium))
-                    Text("Panel")
+                    Text("Files")
                         .font(.uiLabel)
                 }
-                .foregroundStyle(rightPanelStore.isExpanded ? Color.accent : Color.textSecondary)
+                .foregroundStyle(fileOverlayStore.isVisible ? Color.accent : Color.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(rightPanelStore.isExpanded ? Color.accentSubtle : Color.clear)
+                        .fill(fileOverlayStore.isVisible ? Color.accentSubtle : Color.clear)
                 )
             }
             .buttonStyle(.plain)

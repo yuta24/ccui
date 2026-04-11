@@ -15,7 +15,10 @@ final class DiffStore {
         case error(String)
     }
 
-    private(set) var state: State = .idle
+    private(set) var state: State = .idle {
+        didSet { stateVersion += 1 }
+    }
+    private(set) var stateVersion: Int = 0
     private(set) var selectedFileIndex: Int?
     private(set) var isDirty: Bool = false
     var mode: DiffMode = .staged
@@ -57,14 +60,14 @@ final class DiffStore {
         selectedFileIndex = index
     }
 
-    func startWatching(repositoryPath: String, panelIsOpen: @escaping @MainActor () -> Bool) {
+    func startWatching(repositoryPath: String, overlayIsVisible: @escaping @MainActor () -> Bool) {
         stopWatching()
         currentRepositoryPath = repositoryPath
         let watcher = FileWatcherService()
         self.watcher = watcher
         watcher.start(path: repositoryPath) { [weak self] in
             guard let self, let path = self.currentRepositoryPath else { return }
-            if panelIsOpen() {
+            if overlayIsVisible() {
                 Task { await self.load(repositoryPath: path) }
             } else {
                 self.isDirty = true
