@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var codeViewerStore = CodeViewerStore()
     @State private var diffStore = DiffStore()
     @State private var quickOpenStore = QuickOpenStore()
+    @State private var searchStore = SearchStore()
     @State private var escMonitor: Any?
 
     var body: some View {
@@ -73,6 +74,7 @@ struct ContentView: View {
                     fileTreeStore: coordinator.fileTreeStore,
                     diffStore: diffStore,
                     codeViewerStore: codeViewerStore,
+                    searchStore: searchStore,
                     repositoryPath: worktree.path
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -93,20 +95,20 @@ struct ContentView: View {
         .onChange(of: fileOverlayStore.isVisible) { _, newValue in
             if !newValue {
                 quickOpenStore.close()
+                searchStore.deactivate()
             }
-            updateKeyMonitor()
-        }
-        .onChange(of: quickOpenStore.isVisible) { _, _ in
-            updateKeyMonitor()
         }
         .onChange(of: coordinator.selectedWorktree) { _, newValue in
             fileOverlayStore.close()
             quickOpenStore.close()
+            searchStore.deactivate()
             if let wt = newValue {
                 claudeEventStore.acknowledge(for: wt.path)
                 quickOpenStore.buildIndex(rootPath: wt.path)
+                searchStore.buildIndex(rootPath: wt.path)
             } else {
                 quickOpenStore.clearIndex()
+                searchStore.clearIndex()
             }
         }
         .onChange(of: claudeEventStore.eventHistory) { _, _ in
@@ -145,8 +147,9 @@ struct ContentView: View {
             )
             if let wt = coordinator.selectedWorktree {
                 quickOpenStore.buildIndex(rootPath: wt.path)
+                searchStore.buildIndex(rootPath: wt.path)
             }
-            updateKeyMonitor()
+            installKeyMonitor()
         }
         .onDisappear {
             if let monitor = escMonitor {
@@ -156,30 +159,58 @@ struct ContentView: View {
         }
     }
 
-    private func updateKeyMonitor() {
+    private func installKeyMonitor() {
         if let existing = escMonitor {
             NSEvent.removeMonitor(existing)
             escMonitor = nil
         }
 
-        guard fileOverlayStore.isVisible else { return }
+        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore, quickOpenStore, searchStore, coordinator] event in
+            // Cmd+F → file search
+            if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift) && event.keyCode == 3 {
+                guard coordinator.selectedWorktree != nil else { return event }
+                quickOpenStore.close()
+                if !fileOverlayStore.isVisible {
+                    fileOverlayStore.open()
+                }
+                searchStore.activate(mode: .files)
+                return nil
+            }
 
-        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore, quickOpenStore] event in
-            if event.keyCode == 53 { // Esc
+            // Cmd+Shift+F → content search
+            if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) && event.keyCode == 3 {
+                guard coordinator.selectedWorktree != nil else { return event }
+                quickOpenStore.close()
+                if !fileOverlayStore.isVisible {
+                    fileOverlayStore.open()
+                }
+                searchStore.activate(mode: .content)
+                return nil
+            }
+
+            guard fileOverlayStore.isVisible else { return event }
+
+            // Esc
+            if event.keyCode == 53 {
                 if quickOpenStore.isVisible {
                     quickOpenStore.close()
+                } else if searchStore.isActive {
+                    searchStore.deactivate()
                 } else {
                     fileOverlayStore.close()
                 }
                 return nil
             }
+
             // Cmd+P
             if event.modifierFlags.contains(.command) && event.keyCode == 35 {
                 if !quickOpenStore.isVisible {
+                    searchStore.deactivate()
                     quickOpenStore.open()
                 }
                 return nil
             }
+
             return event
         }
     }

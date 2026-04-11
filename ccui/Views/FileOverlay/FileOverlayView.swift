@@ -5,6 +5,7 @@ struct FileOverlayView: View {
     let fileTreeStore: FileTreeStore?
     let diffStore: DiffStore
     let codeViewerStore: CodeViewerStore
+    let searchStore: SearchStore
     let repositoryPath: String
 
     var body: some View {
@@ -24,6 +25,7 @@ struct FileOverlayView: View {
                     fileTreeStore: fileTreeStore,
                     diffStore: diffStore,
                     codeViewerStore: codeViewerStore,
+                    searchStore: searchStore,
                     repositoryPath: repositoryPath
                 )
                 .frame(width: panelWidth, height: panelHeight)

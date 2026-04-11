@@ -5,6 +5,7 @@ struct FileExplorerContent: View {
     let fileTreeStore: FileTreeStore?
     let diffStore: DiffStore
     let codeViewerStore: CodeViewerStore
+    let searchStore: SearchStore
     let repositoryPath: String
 
     @GestureState private var splitDragOffset: CGFloat = 0
@@ -94,7 +95,14 @@ struct FileExplorerContent: View {
 
     @ViewBuilder
     private var treeSection: some View {
-        if let fileTreeStore {
+        if searchStore.isActive {
+            SearchPaneView(
+                searchStore: searchStore,
+                fileOverlayStore: store,
+                fileTreeStore: fileTreeStore,
+                repositoryPath: repositoryPath
+            )
+        } else if let fileTreeStore {
             FileTreeView(store: fileTreeStore, changedFiles: cachedChangedFiles)
         } else {
             Color.surfaceBase
