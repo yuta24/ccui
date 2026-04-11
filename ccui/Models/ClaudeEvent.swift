@@ -31,6 +31,7 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
 nonisolated struct ClaudeEvent: Identifiable, Hashable, Sendable {
     let id: UUID
     let worktreePath: String
+    let sessionId: String
     let hookEventName: ClaudeHookPayload.HookEventName
     let notificationType: String?
     let message: String?
@@ -48,6 +49,7 @@ nonisolated struct ClaudeEvent: Identifiable, Hashable, Sendable {
     init(worktreePath: String, payload: ClaudeHookPayload) {
         self.id = UUID()
         self.worktreePath = worktreePath
+        self.sessionId = payload.sessionId ?? "__anonymous__"
         self.hookEventName = payload.hookEventName
         self.notificationType = payload.notificationType
         self.message = payload.message

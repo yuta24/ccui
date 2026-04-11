@@ -110,7 +110,7 @@ struct ContentView: View {
                 searchStore.clearIndex()
             }
         }
-        .onChange(of: claudeEventStore.eventHistory) { _, _ in
+        .onChange(of: claudeEventStore.sessions) { _, _ in
             if let wt = coordinator.selectedWorktree, claudeEventStore.hasUnacknowledged(for: wt.path) {
                 claudeEventStore.acknowledge(for: wt.path)
             }

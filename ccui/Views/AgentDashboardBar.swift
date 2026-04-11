@@ -4,7 +4,7 @@ struct AgentDashboardBar: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
 
     var body: some View {
-        if !claudeEventStore.eventHistory.isEmpty {
+        if !claudeEventStore.sessions.isEmpty {
             let active = claudeEventStore.activeAgentCount
             let done = claudeEventStore.doneAgentCount
             let notified = claudeEventStore.notifiedAgentCount
