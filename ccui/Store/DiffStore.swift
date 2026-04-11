@@ -3,11 +3,6 @@ import Foundation
 @Observable
 @MainActor
 final class DiffStore {
-    enum DiffMode: String, CaseIterable {
-        case staged = "Staged"
-        case unstaged = "Unstaged"
-    }
-
     enum State {
         case idle
         case loading
@@ -21,13 +16,11 @@ final class DiffStore {
     private(set) var stateVersion: Int = 0
     private(set) var selectedFilePath: String?
     private(set) var isDirty: Bool = false
-    var mode: DiffMode = .staged
     private var loadToken = UUID()
     private var watcher: FileWatcherService?
     private var currentRepositoryPath: String?
 
-    func load(repositoryPath: String, mode newMode: DiffMode? = nil) async {
-        if let newMode { mode = newMode }
+    func load(repositoryPath: String) async {
         isDirty = false
         state = .loading
         selectedFilePath = nil
@@ -35,11 +28,24 @@ final class DiffStore {
         loadToken = token
 
         let repoPath = repositoryPath
-        let staged = mode == .staged
         do {
             let entries = try await Task.detached(priority: .userInitiated) {
-                let output = try await GitClient.diff(repositoryPath: repoPath, staged: staged)
-                return DiffParser.parse(output)
+                async let diffOutput = GitClient.diff(repositoryPath: repoPath)
+                async let untrackedPaths = GitClient.untrackedFiles(repositoryPath: repoPath)
+
+                var result = DiffParser.parse(try await diffOutput)
+                let trackedPaths = Set(result.map(\.newPath) + result.map(\.oldPath))
+                var nextID = result.count
+                for path in try await untrackedPaths where !trackedPaths.contains(path) {
+                    result.append(DiffFileEntry(
+                        id: nextID, status: .untracked,
+                        oldPath: "", newPath: path,
+                        isBinary: false, hunks: [],
+                        additions: 0, deletions: 0
+                    ))
+                    nextID += 1
+                }
+                return result
             }.value
             guard loadToken == token else { return }
             state = .loaded(entries)

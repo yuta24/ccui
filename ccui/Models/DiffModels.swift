@@ -22,7 +22,7 @@ nonisolated struct DiffHunk: Identifiable, Hashable, Sendable {
 
 nonisolated struct DiffFileEntry: Identifiable, Hashable, Sendable {
     nonisolated enum Status: Hashable, Sendable {
-        case added, modified, deleted, renamed
+        case added, modified, deleted, renamed, untracked
     }
 
     let id: Int

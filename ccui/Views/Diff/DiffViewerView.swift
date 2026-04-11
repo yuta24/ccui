@@ -25,7 +25,7 @@ struct DiffViewerView: View {
                 if entries.isEmpty {
                     placeholderView(
                         icon: "checkmark.circle",
-                        message: store.mode == .staged ? "No staged changes" : "No unstaged changes"
+                        message: "No changes"
                     )
                 } else {
                     diffSplitView(entries: entries)
@@ -40,9 +40,8 @@ struct DiffViewerView: View {
 
     private var toolbar: some View {
         HStack(spacing: 8) {
-            DiffModeToggle(currentMode: store.mode) { mode in
-                Task { await store.load(repositoryPath: repositoryPath, mode: mode) }
-            }
+            Text("Changes")
+                .sectionHeader()
 
             Spacer()
 

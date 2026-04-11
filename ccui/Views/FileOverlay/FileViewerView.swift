@@ -8,13 +8,6 @@ struct FileViewerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if diffEntry != nil {
-                diffModeToolbar
-                Rectangle()
-                    .fill(Color.borderSubtle)
-                    .frame(height: 1)
-            }
-
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -39,7 +32,8 @@ struct FileViewerView: View {
         guard case .loaded(let entries) = diffStore.state else { return nil }
         let relativePath = relativePath(for: node.path)
         return entries.first { entry in
-            entry.newPath == relativePath || entry.oldPath == relativePath
+            entry.status != .untracked
+                && (entry.newPath == relativePath || entry.oldPath == relativePath)
         }
     }
 
@@ -50,18 +44,6 @@ struct FileViewerView: View {
         } else {
             CodeViewerView(store: codeViewerStore)
         }
-    }
-
-    private var diffModeToolbar: some View {
-        HStack(spacing: 8) {
-            DiffModeToggle(currentMode: diffStore.mode) { mode in
-                Task { await diffStore.load(repositoryPath: repositoryPath, mode: mode) }
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.surfaceBase)
     }
 
     private func relativePath(for fullPath: String) -> String {

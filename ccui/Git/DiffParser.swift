@@ -53,8 +53,12 @@ enum DiffParser {
                 renamedNewPath = String(line.dropFirst("rename to ".count))
             } else if line.hasPrefix("--- a/") {
                 minusPath = String(line.dropFirst("--- a/".count))
+            } else if line == "--- /dev/null" {
+                minusPath = nil
             } else if line.hasPrefix("+++ b/") {
                 plusPath = String(line.dropFirst("+++ b/".count))
+            } else if line == "+++ /dev/null" {
+                plusPath = nil
             } else if line.contains("Binary files") && line.contains("differ") {
                 isBinary = true
             }
@@ -66,6 +70,12 @@ enum DiffParser {
         if status == .renamed {
             oldPath = renamedOldPath ?? minusPath ?? "unknown"
             newPath = renamedNewPath ?? plusPath ?? "unknown"
+        } else if status == .added {
+            oldPath = ""
+            newPath = plusPath ?? "unknown"
+        } else if status == .deleted {
+            oldPath = minusPath ?? "unknown"
+            newPath = ""
         } else {
             let resolvedPath = plusPath ?? minusPath ?? "unknown"
             oldPath = minusPath ?? resolvedPath

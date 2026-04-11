@@ -43,9 +43,21 @@ enum GitClient {
 
     // MARK: - Diff
 
-    nonisolated static func diff(repositoryPath: String, staged: Bool) async throws -> String {
-        let args = staged ? ["diff", "--cached", "--color=never"] : ["diff", "--color=never"]
-        return try await runAsync(args, at: repositoryPath)
+    nonisolated static func diff(repositoryPath: String) async throws -> String {
+        do {
+            return try await runAsync(["diff", "HEAD", "--color=never"], at: repositoryPath)
+        } catch let error as GitError {
+            // HEAD doesn't exist (empty repo with no commits)
+            if case .commandFailed(let msg) = error, msg.contains("unknown revision") {
+                return ""
+            }
+            throw error
+        }
+    }
+
+    nonisolated static func untrackedFiles(repositoryPath: String) async throws -> [String] {
+        let output = try await runAsync(["ls-files", "--others", "--exclude-standard"], at: repositoryPath)
+        return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
     // MARK: - Process

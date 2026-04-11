@@ -7,6 +7,7 @@ enum FileTreeHelpers {
         case .modified: "M"
         case .deleted: "D"
         case .renamed: "R"
+        case .untracked: "U"
         }
     }
 
@@ -16,6 +17,7 @@ enum FileTreeHelpers {
         case .modified: .accent
         case .deleted: .diffDeletion
         case .renamed: .statusRenamed
+        case .untracked: .diffAddition
         }
     }
 

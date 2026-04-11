@@ -4,7 +4,9 @@ struct DiffFileContentView: View {
     let entry: DiffFileEntry
 
     var body: some View {
-        if entry.isBinary {
+        if entry.status == .untracked {
+            placeholderView(icon: "doc.badge.plus", message: "Untracked file")
+        } else if entry.isBinary {
             placeholderView(icon: "doc.questionmark", message: "Binary file changed")
         } else if entry.hunks.isEmpty {
             placeholderView(icon: "checkmark.circle", message: "File mode or metadata changed")

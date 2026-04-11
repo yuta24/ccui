@@ -13,7 +13,7 @@ struct DiffFileRowView: View {
             entry.oldPath
         case .renamed:
             "\(entry.oldPath) → \(entry.newPath)"
-        case .added, .modified:
+        case .added, .modified, .untracked:
             entry.newPath
         }
     }
@@ -69,6 +69,7 @@ struct DiffFileRowView: View {
         case .modified: "M"
         case .deleted: "D"
         case .renamed: "R"
+        case .untracked: "U"
         }
     }
 
@@ -78,6 +79,7 @@ struct DiffFileRowView: View {
         case .modified: .accent
         case .deleted: .diffDeletion
         case .renamed: .statusRenamed
+        case .untracked: .diffAddition
         }
     }
 
