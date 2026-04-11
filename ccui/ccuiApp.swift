@@ -1,17 +1,24 @@
 import SwiftUI
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+}
+
 @main
 struct ccuiApp: App {
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+
     @State private var repositoryStore = RepositoryStore(
         persistence: JSONFileRepositoryPersistence()
     )
     @State private var terminalSessionStore = TerminalSessionStore()
     @State private var claudeEventStore = ClaudeEventStore()
     @State private var appCoordinator = AppCoordinator()
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
-        WindowGroup {
+        Window("ccui", id: "main") {
             ContentView()
                 .environment(repositoryStore)
                 .environment(terminalSessionStore)
@@ -29,11 +36,6 @@ struct ccuiApp: App {
         }
         .defaultSize(width: 1280, height: 860)
         .windowStyle(.hiddenTitleBar)
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background {
-                claudeEventStore.stop()
-            }
-        }
     }
 
     private func shutdown() {
