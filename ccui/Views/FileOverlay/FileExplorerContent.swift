@@ -21,18 +21,15 @@ struct FileExplorerContent: View {
 
             GeometryReader { geometry in
                 let totalWidth = geometry.size.width
-                let hasViewer = store.selectedFile != nil
 
                 HStack(spacing: 0) {
                     treeSection
-                        .frame(width: hasViewer ? treeWidth(totalWidth: totalWidth) : totalWidth)
+                        .frame(width: treeWidth(totalWidth: totalWidth))
 
-                    if hasViewer {
-                        splitResizeHandle(totalWidth: totalWidth)
+                    splitResizeHandle(totalWidth: totalWidth)
 
-                        viewerSection
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
+                    viewerSection
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .clipped()
@@ -123,7 +120,19 @@ struct FileExplorerContent: View {
                     repositoryPath: repositoryPath
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
             }
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 28, weight: .thin))
+                    .foregroundStyle(Color.textTertiary.opacity(0.5))
+                Text("Select a file to preview")
+                    .font(.uiCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.surfaceBase)
         }
     }
 
