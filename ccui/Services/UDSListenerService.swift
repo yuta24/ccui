@@ -2,10 +2,9 @@ import Foundation
 
 @MainActor
 final class UDSListenerService {
-    static let socketPath = "/tmp/ccui.sock"
+    nonisolated static let socketPath = "/tmp/ccui.sock"
 
-    nonisolated(unsafe) private var serverFd: Int32 = -1
-    nonisolated(unsafe) private var acceptSource: DispatchSourceRead?
+    private var state: ListenerState?
     private var onEvent: (@MainActor (ClaudeHookPayload) -> Void)?
 
     func start(onEvent: @escaping @MainActor (ClaudeHookPayload) -> Void) {
@@ -52,7 +51,7 @@ final class UDSListenerService {
             return
         }
 
-        serverFd = fd
+        let newState = ListenerState(serverFd: fd)
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
         source.setEventHandler { [weak self] in
@@ -61,26 +60,19 @@ final class UDSListenerService {
             }
         }
         source.resume()
-        acceptSource = source
+        newState.acceptSource = source
+
+        state = newState
     }
 
     func stop() {
-        acceptSource?.cancel()
-        acceptSource = nil
-        if serverFd >= 0 {
-            Darwin.close(serverFd)
-            serverFd = -1
-        }
-        Darwin.unlink(Self.socketPath)
+        state?.shutdown()
+        state = nil
         onEvent = nil
     }
 
     deinit {
-        acceptSource?.cancel()
-        if serverFd >= 0 {
-            Darwin.close(serverFd)
-        }
-        Darwin.unlink(Self.socketPath)
+        state?.shutdown()
     }
 
     // MARK: - Connection Handling
@@ -118,5 +110,28 @@ final class UDSListenerService {
                 }
             }
         }
+    }
+}
+
+// MARK: - Listener State
+
+/// Holds the server file descriptor and accept source in a sendable container
+/// so `deinit` can safely clean up from outside the MainActor.
+private final class ListenerState: @unchecked Sendable {
+    var serverFd: Int32
+    var acceptSource: DispatchSourceRead?
+
+    init(serverFd: Int32) {
+        self.serverFd = serverFd
+    }
+
+    func shutdown() {
+        acceptSource?.cancel()
+        acceptSource = nil
+        if serverFd >= 0 {
+            Darwin.close(serverFd)
+            serverFd = -1
+        }
+        Darwin.unlink(UDSListenerService.socketPath)
     }
 }

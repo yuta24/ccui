@@ -2,10 +2,7 @@ import Foundation
 
 @MainActor
 final class GitDirectoryWatcher {
-    // Accessed from deinit (off MainActor). Only deinit reads this without
-    // actor isolation; start/stop always run on MainActor.
-    // DispatchSource.cancel() is thread-safe, so the deinit cancel loop is safe.
-    nonisolated(unsafe) private var sources: [DispatchSourceFileSystemObject] = []
+    private var state: WatcherState?
 
     func start(repositoryPath: String, onChange: @escaping @Sendable () -> Void) {
         stop()
@@ -29,6 +26,7 @@ final class GitDirectoryWatcher {
             }
         }
 
+        let newState = WatcherState()
         for dir in watchDirs {
             let fd = open(dir, O_EVTONLY)
             guard fd >= 0 else { continue }
@@ -45,20 +43,33 @@ final class GitDirectoryWatcher {
                 close(fd)
             }
             source.resume()
-            sources.append(source)
+            newState.sources.append(source)
         }
+        state = newState
     }
 
     func stop() {
+        state?.cancelAll()
+        state = nil
+    }
+
+    deinit {
+        state?.cancelAll()
+    }
+}
+
+// MARK: - Watcher State
+
+/// Holds dispatch sources in a sendable container so `deinit` can safely
+/// cancel them from outside the MainActor.
+/// `DispatchSource.cancel()` is thread-safe, so calling it from `deinit` is safe.
+private final class WatcherState: @unchecked Sendable {
+    var sources: [DispatchSourceFileSystemObject] = []
+
+    func cancelAll() {
         for source in sources {
             source.cancel()
         }
         sources.removeAll()
-    }
-
-    deinit {
-        for source in sources {
-            source.cancel()
-        }
     }
 }

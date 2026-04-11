@@ -26,4 +26,11 @@ final class TerminalSessionStore {
             sessions.removeValue(forKey: key)
         }
     }
+
+    func terminateAll() {
+        for session in sessions.values {
+            session.terminate()
+        }
+        sessions.removeAll()
+    }
 }

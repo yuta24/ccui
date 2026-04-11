@@ -1,21 +1,18 @@
 import Foundation
 import CoreServices
+import os
 
 @MainActor
 final class FileWatcherService {
-    nonisolated(unsafe) private var stream: FSEventStreamRef?
-    nonisolated(unsafe) private var debounceTask: Task<Void, Never>?
-    nonisolated(unsafe) private var onChange: (@MainActor () -> Void)?
-    nonisolated(unsafe) private var retainedSelf: Unmanaged<FileWatcherService>?
+    private var context: StreamContext?
 
     func start(path: String, onChange: @escaping @MainActor () -> Void) {
         stop()
-        self.onChange = onChange
 
-        let retained = Unmanaged.passRetained(self)
-        retainedSelf = retained
+        let ctx = StreamContext(onChange: onChange)
+        let retained = Unmanaged.passRetained(ctx)
 
-        var context = FSEventStreamContext(
+        var fsContext = FSEventStreamContext(
             version: 0,
             info: retained.toOpaque(),
             retain: nil,
@@ -33,23 +30,58 @@ final class FileWatcherService {
         guard let stream = FSEventStreamCreate(
             nil,
             fsEventCallback,
-            &context,
+            &fsContext,
             paths,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             1.0,
             FSEventStreamCreateFlags(flags)
         ) else {
             retained.release()
-            retainedSelf = nil
             return
         }
 
-        self.stream = stream
+        ctx.stream = stream
+        self.context = ctx
+
         FSEventStreamSetDispatchQueue(stream, .main)
         FSEventStreamStart(stream)
     }
 
     func stop() {
+        context?.invalidate()
+        context = nil
+    }
+
+    deinit {
+        context?.invalidate()
+    }
+}
+
+// MARK: - Stream Context
+
+/// Separate `@unchecked Sendable` context passed to the C callback.
+/// Avoids retaining `FileWatcherService` itself via `Unmanaged`, eliminating
+/// the self-retain cycle that previously required manual `release()` calls.
+private final class StreamContext: @unchecked Sendable {
+    let onChange: @MainActor () -> Void
+    var stream: FSEventStreamRef?
+    var debounceTask: Task<Void, Never>?
+    private let released = OSAllocatedUnfairLock(initialState: false)
+
+    init(onChange: @escaping @MainActor () -> Void) {
+        self.onChange = onChange
+    }
+
+    func handleEvent() {
+        debounceTask?.cancel()
+        debounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            self?.onChange()
+        }
+    }
+
+    func invalidate() {
         debounceTask?.cancel()
         debounceTask = nil
 
@@ -60,41 +92,23 @@ final class FileWatcherService {
             self.stream = nil
         }
 
-        if let retainedSelf {
-            retainedSelf.release()
-            self.retainedSelf = nil
+        let alreadyReleased = released.withLock { value in
+            let was = value
+            value = true
+            return was
         }
-
-        onChange = nil
-    }
-
-    fileprivate func handleEvent() {
-        debounceTask?.cancel()
-        debounceTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            self?.onChange?()
-        }
-    }
-
-    deinit {
-        // Safety net: callers should call stop() explicitly before releasing.
-        // Direct cleanup here since deinit is nonisolated.
-        debounceTask?.cancel()
-        if let stream {
-            FSEventStreamStop(stream)
-            FSEventStreamInvalidate(stream)
-            FSEventStreamRelease(stream)
-        }
-        retainedSelf?.release()
+        guard !alreadyReleased else { return }
+        Unmanaged.passUnretained(self).release()
     }
 }
+
+// MARK: - C Callback
 
 private nonisolated let fsEventCallback: FSEventStreamCallback = {
     _, clientCallBackInfo, _, _, _, _ in
     guard let info = clientCallBackInfo else { return }
-    let service = Unmanaged<FileWatcherService>.fromOpaque(info).takeUnretainedValue()
+    let ctx = Unmanaged<StreamContext>.fromOpaque(info).takeUnretainedValue()
     MainActor.assumeIsolated {
-        service.handleEvent()
+        ctx.handleEvent()
     }
 }

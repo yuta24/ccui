@@ -19,6 +19,13 @@ struct ccuiApp: App {
                 .environment(appCoordinator)
                 .preferredColorScheme(.dark)
                 .task { claudeEventStore.start() }
+                .onReceive(
+                    NotificationCenter.default.publisher(
+                        for: NSApplication.willTerminateNotification
+                    )
+                ) { _ in
+                    shutdown()
+                }
         }
         .defaultSize(width: 1280, height: 860)
         .windowStyle(.hiddenTitleBar)
@@ -27,5 +34,10 @@ struct ccuiApp: App {
                 claudeEventStore.stop()
             }
         }
+    }
+
+    private func shutdown() {
+        terminalSessionStore.terminateAll()
+        claudeEventStore.stop()
     }
 }
