@@ -27,6 +27,9 @@ struct CodeViewerView: View {
             }
         }
         .id(store.loadedPath)
+        .onChange(of: store.loadedPath) {
+            editorState = SourceEditorState()
+        }
     }
 
     // MARK: - Editor View
