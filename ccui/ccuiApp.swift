@@ -15,6 +15,7 @@ struct ccuiApp: App {
     )
     @State private var terminalSessionStore = TerminalSessionStore()
     @State private var claudeEventStore = ClaudeEventStore()
+    @State private var worktreeSessionStore = WorktreeSessionStore()
     @State private var appCoordinator = AppCoordinator()
 
     var body: some Scene {
@@ -23,9 +24,13 @@ struct ccuiApp: App {
                 .environment(repositoryStore)
                 .environment(terminalSessionStore)
                 .environment(claudeEventStore)
+                .environment(worktreeSessionStore)
                 .environment(appCoordinator)
                 .preferredColorScheme(.dark)
-                .task { claudeEventStore.start() }
+                .task {
+                    claudeEventStore.start()
+                    terminalSessionStore.startResolvingClaudePath()
+                }
                 .onReceive(
                     NotificationCenter.default.publisher(
                         for: NSApplication.willTerminateNotification
@@ -41,5 +46,6 @@ struct ccuiApp: App {
     private func shutdown() {
         terminalSessionStore.terminateAll()
         claudeEventStore.stop()
+        worktreeSessionStore.save()
     }
 }
