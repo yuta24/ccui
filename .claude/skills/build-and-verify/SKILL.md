@@ -18,25 +18,15 @@ pkill -x ccui 2>/dev/null || true
 ### Step 2: ビルド
 
 ```bash
-xcodebuild build \
-  -project /Users/nova/ghq/github.com/yuta24/ccui/ccui.xcodeproj \
-  -scheme ccui \
-  -destination 'platform=macOS' \
-  2>&1 | tail -5
+/Users/nova/ghq/github.com/yuta24/ccui/scripts/build.sh
 ```
 
-ビルドが失敗した場合はエラーを表示して停止する。全ログは不要で末尾5行程度で十分。
+ビルドが失敗した場合はエラーを表示して停止する。成功時はアプリパスが最終行に表示される。
 
 ### Step 3: アプリの起動
 
 ```bash
-open /Users/nova/Library/Developer/Xcode/DerivedData/ccui-evhrufvbjlfbmygeubykhynknfxa/Build/Products/Debug/ccui.app
-```
-
-アプリパスが見つからない場合は以下で取得する:
-
-```bash
-xcodebuildmcp macos get-app-path --project-path /Users/nova/ghq/github.com/yuta24/ccui/ccui.xcodeproj --scheme ccui
+open /Users/nova/ghq/github.com/yuta24/ccui/.build/Build/Products/Debug/ccui.app
 ```
 
 ### Step 4: スクリーンショット撮影
@@ -95,5 +85,5 @@ end tell
 
 - screencapture にはシステム設定の「画面収録」権限が必要
 - AppleScript の UI 操作にはアクセシビリティ権限が必要
-- ビルドに `xcodebuildmcp` は不要。直接 `xcodebuild` を使う方がオプションの制御が容易
+- ビルドには `scripts/build.sh` を使う。出力先は `.build/` ディレクトリ
 - スクリーンショットのパスは毎回上書きされる。比較が必要なら `/tmp/ccui-screenshot-<suffix>.png` のようにサフィックスをつける
