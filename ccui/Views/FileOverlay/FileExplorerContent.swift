@@ -3,10 +3,10 @@ import SwiftUI
 struct FileExplorerContent: View {
     let store: FileOverlayStore
     let fileTreeStore: FileTreeStore?
-    let diffStore: DiffStore
     let codeViewerStore: CodeViewerStore
     let searchStore: SearchStore
     let repositoryPath: String
+    @Environment(DiffStore.self) private var diffStore
 
     @GestureState private var splitDragOffset: CGFloat = 0
     @State private var isCursorPushed = false
@@ -123,7 +123,6 @@ struct FileExplorerContent: View {
 
                 FileViewerView(
                     node: node,
-                    diffStore: diffStore,
                     codeViewerStore: codeViewerStore,
                     repositoryPath: repositoryPath
                 )

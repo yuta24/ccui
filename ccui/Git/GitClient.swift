@@ -43,9 +43,9 @@ enum GitClient {
 
     // MARK: - Diff
 
-    nonisolated static func diff(repositoryPath: String, staged: Bool) throws -> String {
-        let args = staged ? ["diff", "--cached"] : ["diff"]
-        return try run(args, at: repositoryPath)
+    nonisolated static func diff(repositoryPath: String, staged: Bool) async throws -> String {
+        let args = staged ? ["diff", "--cached", "--color=never"] : ["diff", "--color=never"]
+        return try await runAsync(args, at: repositoryPath)
     }
 
     // MARK: - Process
@@ -73,5 +73,38 @@ enum GitClient {
         }
 
         return String(data: outData, encoding: .utf8) ?? ""
+    }
+
+    nonisolated private static func runAsync(_ args: [String], at directoryPath: String) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = args
+            process.currentDirectoryURL = URL(fileURLWithPath: directoryPath)
+
+            let stdout = Pipe()
+            let stderr = Pipe()
+            process.standardOutput = stdout
+            process.standardError = stderr
+
+            process.terminationHandler = { terminatedProcess in
+                let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+                let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+
+                if terminatedProcess.terminationStatus != 0 {
+                    let errString = String(data: errData, encoding: .utf8) ?? "git command failed"
+                    continuation.resume(throwing: GitError.commandFailed(errString.trimmingCharacters(in: .whitespacesAndNewlines)))
+                } else {
+                    continuation.resume(returning: String(data: outData, encoding: .utf8) ?? "")
+                }
+            }
+
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                continuation.resume(throwing: error)
+            }
+        }
     }
 }

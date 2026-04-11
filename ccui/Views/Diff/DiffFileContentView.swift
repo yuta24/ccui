@@ -26,17 +26,43 @@ struct DiffFileContentView: View {
         .background(Color.surfacePrimary)
     }
 
+    private enum DisplayItem: Identifiable {
+        case header(id: Int, text: String)
+        case line(DiffLine)
+
+        var id: Int {
+            switch self {
+            case .header(let id, _): id
+            case .line(let line): line.id
+            }
+        }
+    }
+
+    private var displayItems: [DisplayItem] {
+        var items: [DisplayItem] = []
+        for hunk in entry.hunks {
+            items.append(.header(id: -hunk.id - 1, text: hunk.header))
+            for line in hunk.lines {
+                items.append(.line(line))
+            }
+        }
+        return items
+    }
+
     private var diffLines: some View {
         let maxOldLine = entry.hunks.flatMap(\.lines).compactMap(\.oldLineNumber).max() ?? 0
         let maxNewLine = entry.hunks.flatMap(\.lines).compactMap(\.newLineNumber).max() ?? 0
         let gutterWidth = lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
+        let items = displayItems
 
         return GeometryReader { proxy in
             ScrollView([.horizontal, .vertical]) {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(entry.hunks) { hunk in
-                        hunkHeaderRow(hunk.header)
-                        ForEach(hunk.lines) { line in
+                    ForEach(items) { item in
+                        switch item {
+                        case .header(_, let text):
+                            hunkHeaderRow(text)
+                        case .line(let line):
                             diffLineRow(line: line, gutterWidth: gutterWidth)
                         }
                     }
@@ -97,7 +123,7 @@ struct DiffFileContentView: View {
         switch kind {
         case .addition: "+"
         case .deletion: "-"
-        case .context, .hunkHeader: " "
+        case .context: " "
         }
     }
 
@@ -105,7 +131,7 @@ struct DiffFileContentView: View {
         switch kind {
         case .addition: .diffAddition
         case .deletion: .diffDeletion
-        case .context, .hunkHeader: .textTertiary
+        case .context: .textTertiary
         }
     }
 
@@ -114,7 +140,6 @@ struct DiffFileContentView: View {
         case .addition: .diffAddition.opacity(0.9)
         case .deletion: .diffDeletion.opacity(0.9)
         case .context: .textSecondary
-        case .hunkHeader: .textTertiary
         }
     }
 
@@ -122,7 +147,7 @@ struct DiffFileContentView: View {
         switch kind {
         case .addition: .diffAdditionBg
         case .deletion: .diffDeletionBg
-        case .context, .hunkHeader: .clear
+        case .context: .clear
         }
     }
 

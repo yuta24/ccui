@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DiffViewerView: View {
-    let store: DiffStore
+    @Environment(DiffStore.self) private var store
     let repositoryPath: String
 
     var body: some View {
@@ -98,8 +98,9 @@ struct DiffViewerView: View {
             fileList(entries: entries)
                 .frame(minWidth: 180, idealWidth: 240, maxWidth: 350)
 
-            if let index = store.selectedFileIndex, entries.indices.contains(index) {
-                DiffFileContentView(entry: entries[index])
+            if let path = store.selectedFilePath,
+               let entry = entries.first(where: { $0.newPath == path || $0.oldPath == path }) {
+                DiffFileContentView(entry: entry)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "doc.text")
@@ -118,11 +119,11 @@ struct DiffViewerView: View {
     private func fileList(entries: [DiffFileEntry]) -> some View {
         ScrollView {
             LazyVStack(spacing: 1) {
-                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                ForEach(entries) { entry in
                     DiffFileRowView(
                         entry: entry,
-                        isSelected: store.selectedFileIndex == index,
-                        onSelect: { store.selectFile(index) }
+                        isSelected: store.selectedFilePath == entry.newPath,
+                        onSelect: { store.selectFile(entry.newPath) }
                     )
                 }
             }

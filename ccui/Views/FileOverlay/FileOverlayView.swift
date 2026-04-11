@@ -3,10 +3,10 @@ import SwiftUI
 struct FileOverlayView: View {
     let store: FileOverlayStore
     let fileTreeStore: FileTreeStore?
-    let diffStore: DiffStore
     let codeViewerStore: CodeViewerStore
     let searchStore: SearchStore
     let repositoryPath: String
+    @Environment(DiffStore.self) private var diffStore
 
     var body: some View {
         ZStack {
@@ -23,7 +23,6 @@ struct FileOverlayView: View {
                 FileExplorerContent(
                     store: store,
                     fileTreeStore: fileTreeStore,
-                    diffStore: diffStore,
                     codeViewerStore: codeViewerStore,
                     searchStore: searchStore,
                     repositoryPath: repositoryPath

@@ -5,7 +5,7 @@ struct DetailView: View {
     let fileTreeStore: FileTreeStore?
     let fileOverlayStore: FileOverlayStore
     let codeViewerStore: CodeViewerStore
-    let diffStore: DiffStore
+    @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
 
     var body: some View {

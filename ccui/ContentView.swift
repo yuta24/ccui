@@ -56,8 +56,7 @@ struct ContentView: View {
                             worktree: worktree,
                             fileTreeStore: coordinator.fileTreeStore,
                             fileOverlayStore: fileOverlayStore,
-                            codeViewerStore: codeViewerStore,
-                            diffStore: diffStore
+                            codeViewerStore: codeViewerStore
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.surfacePrimary)
@@ -72,7 +71,6 @@ struct ContentView: View {
                 FileOverlayView(
                     store: fileOverlayStore,
                     fileTreeStore: coordinator.fileTreeStore,
-                    diffStore: diffStore,
                     codeViewerStore: codeViewerStore,
                     searchStore: searchStore,
                     repositoryPath: worktree.path
@@ -90,6 +88,7 @@ struct ContentView: View {
                 }
             }
         }
+        .environment(diffStore)
         .animation(.easeInOut(duration: 0.2), value: fileOverlayStore.isVisible)
         .animation(.easeInOut(duration: 0.15), value: quickOpenStore.isVisible)
         .onChange(of: fileOverlayStore.isVisible) { _, newValue in

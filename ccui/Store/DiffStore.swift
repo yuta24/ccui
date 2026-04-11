@@ -19,7 +19,7 @@ final class DiffStore {
         didSet { stateVersion += 1 }
     }
     private(set) var stateVersion: Int = 0
-    private(set) var selectedFileIndex: Int?
+    private(set) var selectedFilePath: String?
     private(set) var isDirty: Bool = false
     var mode: DiffMode = .staged
     private var loadToken = UUID()
@@ -30,7 +30,7 @@ final class DiffStore {
         if let newMode { mode = newMode }
         isDirty = false
         state = .loading
-        selectedFileIndex = nil
+        selectedFilePath = nil
         let token = UUID()
         loadToken = token
 
@@ -38,12 +38,12 @@ final class DiffStore {
         let staged = mode == .staged
         do {
             let entries = try await Task.detached(priority: .userInitiated) {
-                let output = try GitClient.diff(repositoryPath: repoPath, staged: staged)
+                let output = try await GitClient.diff(repositoryPath: repoPath, staged: staged)
                 return DiffParser.parse(output)
             }.value
             guard loadToken == token else { return }
             state = .loaded(entries)
-            selectedFileIndex = entries.isEmpty ? nil : 0
+            selectedFilePath = entries.first?.newPath
         } catch {
             guard loadToken == token else { return }
             state = .error(error.localizedDescription)
@@ -56,8 +56,8 @@ final class DiffStore {
         return false
     }
 
-    func selectFile(_ index: Int?) {
-        selectedFileIndex = index
+    func selectFile(_ path: String?) {
+        selectedFilePath = path
     }
 
     func startWatching(repositoryPath: String, overlayIsVisible: @escaping @MainActor () -> Bool) {
@@ -82,7 +82,7 @@ final class DiffStore {
 
     func reset() {
         state = .idle
-        selectedFileIndex = nil
+        selectedFilePath = nil
         isDirty = false
         loadToken = UUID()
         currentRepositoryPath = nil

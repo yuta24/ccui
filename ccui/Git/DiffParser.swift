@@ -85,13 +85,27 @@ enum DiffParser {
             }
         }
 
+        var additions = 0
+        var deletions = 0
+        for hunk in hunks {
+            for line in hunk.lines {
+                switch line.kind {
+                case .addition: additions += 1
+                case .deletion: deletions += 1
+                case .context: break
+                }
+            }
+        }
+
         let entry = DiffFileEntry(
             id: fileIndex,
             status: status,
             oldPath: oldPath,
             newPath: newPath,
             isBinary: isBinary,
-            hunks: hunks
+            hunks: hunks,
+            additions: additions,
+            deletions: deletions
         )
         return (entry, i)
     }
@@ -104,8 +118,9 @@ enum DiffParser {
 
         var oldLine = 1
         var newLine = 1
-        if let atRange = header.range(of: "@@", options: [], range: header.index(header.startIndex, offsetBy: 2)..<header.endIndex) {
-            let inner = header[header.index(header.startIndex, offsetBy: 3)..<atRange.lowerBound]
+        if header.hasPrefix("@@ "),
+           let closingRange = header.range(of: " @@", range: header.index(header.startIndex, offsetBy: 3)..<header.endIndex) {
+            let inner = header[header.index(header.startIndex, offsetBy: 3)..<closingRange.lowerBound]
                 .trimmingCharacters(in: .whitespaces)
             let parts = inner.components(separatedBy: " ")
             for part in parts {

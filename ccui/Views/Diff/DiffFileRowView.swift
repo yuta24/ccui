@@ -82,17 +82,14 @@ struct DiffFileRowView: View {
     }
 
     private var statsView: some View {
-        let additions = entry.hunks.flatMap(\.lines).filter { $0.kind == .addition }.count
-        let deletions = entry.hunks.flatMap(\.lines).filter { $0.kind == .deletion }.count
-
-        return HStack(spacing: 4) {
-            if additions > 0 {
-                Text("+\(additions)")
+        HStack(spacing: 4) {
+            if entry.additions > 0 {
+                Text("+\(entry.additions)")
                     .font(.uiCaptionMono)
                     .foregroundStyle(Color.diffAddition)
             }
-            if deletions > 0 {
-                Text("-\(deletions)")
+            if entry.deletions > 0 {
+                Text("-\(entry.deletions)")
                     .font(.uiCaptionMono)
                     .foregroundStyle(Color.diffDeletion)
             }

@@ -2,9 +2,9 @@ import SwiftUI
 
 struct FileViewerView: View {
     let node: FileNode
-    let diffStore: DiffStore
     let codeViewerStore: CodeViewerStore
     let repositoryPath: String
+    @Environment(DiffStore.self) private var diffStore
 
     var body: some View {
         VStack(spacing: 0) {

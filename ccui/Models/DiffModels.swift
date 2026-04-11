@@ -4,7 +4,6 @@ nonisolated enum DiffLineKind: Hashable, Sendable {
     case context
     case addition
     case deletion
-    case hunkHeader
 }
 
 nonisolated struct DiffLine: Identifiable, Hashable, Sendable {
@@ -32,4 +31,6 @@ nonisolated struct DiffFileEntry: Identifiable, Hashable, Sendable {
     let newPath: String
     let isBinary: Bool
     let hunks: [DiffHunk]
+    let additions: Int
+    let deletions: Int
 }
