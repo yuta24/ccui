@@ -15,7 +15,7 @@ final class ClaudeHooksInstaller {
         }
 
         let escapedPath = socketPath.replacingOccurrences(of: "'", with: "'\\''")
-        let hookCommand = "cat | nc -U '\(escapedPath)' 2>/dev/null; true"
+        let hookCommand = "if [ -n \"$CCUI_SESSION\" ]; then cat | nc -U '\(escapedPath)' 2>/dev/null; fi; true"
 
         let ccuiEntry: [String: Any] = [
             "hooks": [["type": "command", "command": hookCommand] as [String: Any]]
@@ -28,7 +28,8 @@ final class ClaudeHooksInstaller {
             entries.removeAll { entry in
                 guard let hooks = entry["hooks"] as? [[String: Any]] else { return false }
                 return hooks.contains { hook in
-                    (hook["command"] as? String) == hookCommand
+                    guard let cmd = hook["command"] as? String else { return false }
+                    return cmd == hookCommand || cmd.contains("nc -U '\(escapedPath)'")
                 }
             }
             entries.append(ccuiEntry)

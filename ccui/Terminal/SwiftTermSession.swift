@@ -10,9 +10,12 @@ final class SwiftTermSession: TerminalSession {
         self.label = label
         terminalView = LocalProcessTerminalView(frame: .zero)
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        var env = Terminal.getEnvironmentVariables(termName: "xterm-256color")
+        env.append("CCUI_SESSION=1")
         terminalView.startProcess(
             executable: shell,
             args: ["-l"],
+            environment: env,
             currentDirectory: workingDirectory
         )
     }
