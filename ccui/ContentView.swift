@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var fileOverlayStore = FileOverlayStore()
     @State private var codeViewerStore = CodeViewerStore()
     @State private var diffStore = DiffStore()
+    @State private var quickOpenStore = QuickOpenStore()
     @State private var escMonitor: Any?
 
     var body: some View {
@@ -75,32 +76,37 @@ struct ContentView: View {
                     repositoryPath: worktree.path
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
+
+                if quickOpenStore.isVisible {
+                    QuickOpenPaletteView(
+                        quickOpenStore: quickOpenStore,
+                        fileOverlayStore: fileOverlayStore,
+                        fileTreeStore: coordinator.fileTreeStore,
+                        repositoryPath: worktree.path
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+                }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: fileOverlayStore.isVisible)
-        .onChange(of: fileOverlayStore.isVisible) { _, isVisible in
-            if isVisible {
-                if let existing = escMonitor {
-                    NSEvent.removeMonitor(existing)
-                }
-                escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore] event in
-                    if event.keyCode == 53 { // Esc
-                        fileOverlayStore.close()
-                        return nil
-                    }
-                    return event
-                }
-            } else {
-                if let monitor = escMonitor {
-                    NSEvent.removeMonitor(monitor)
-                    escMonitor = nil
-                }
+        .animation(.easeInOut(duration: 0.15), value: quickOpenStore.isVisible)
+        .onChange(of: fileOverlayStore.isVisible) { _, newValue in
+            if !newValue {
+                quickOpenStore.close()
             }
+            updateKeyMonitor()
+        }
+        .onChange(of: quickOpenStore.isVisible) { _, _ in
+            updateKeyMonitor()
         }
         .onChange(of: coordinator.selectedWorktree) { _, newValue in
             fileOverlayStore.close()
+            quickOpenStore.close()
             if let wt = newValue {
                 claudeEventStore.acknowledge(for: wt.path)
+                quickOpenStore.buildIndex(rootPath: wt.path)
+            } else {
+                quickOpenStore.clearIndex()
             }
         }
         .onChange(of: claudeEventStore.eventHistory) { _, _ in
@@ -137,12 +143,44 @@ struct ContentView: View {
                 for: store.repositories,
                 claudeEventStore: claudeEventStore
             )
+            if let wt = coordinator.selectedWorktree {
+                quickOpenStore.buildIndex(rootPath: wt.path)
+            }
+            updateKeyMonitor()
         }
         .onDisappear {
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
                 escMonitor = nil
             }
+        }
+    }
+
+    private func updateKeyMonitor() {
+        if let existing = escMonitor {
+            NSEvent.removeMonitor(existing)
+            escMonitor = nil
+        }
+
+        guard fileOverlayStore.isVisible else { return }
+
+        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore, quickOpenStore] event in
+            if event.keyCode == 53 { // Esc
+                if quickOpenStore.isVisible {
+                    quickOpenStore.close()
+                } else {
+                    fileOverlayStore.close()
+                }
+                return nil
+            }
+            // Cmd+P
+            if event.modifierFlags.contains(.command) && event.keyCode == 35 {
+                if !quickOpenStore.isVisible {
+                    quickOpenStore.open()
+                }
+                return nil
+            }
+            return event
         }
     }
 
