@@ -10,28 +10,29 @@ final class ClaudeEventStore {
     private(set) var acknowledgedUpTo: [String: Date] = [:]
 
     private let listenerService = UDSListenerService()
-    private let persistence: any ClaudeEventPersistence
+    private let persistenceActor: PersistenceActor
     private var knownWorktreePaths: Set<String> = []
 
     private let maxEventsPerSession = 50
     private let maxSessionsPerWorktree = 20
 
     init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
-        self.persistence = persistence
+        self.persistenceActor = PersistenceActor(persistence: persistence)
     }
 
     // MARK: - Lifecycle
 
     func start() {
-        loadFromDisk()
-        listenerService.start { [weak self] payload in
-            self?.handle(payload)
+        Task {
+            await loadFromDisk()
+            listenerService.start { [weak self] payload in
+                self?.handle(payload)
+            }
         }
     }
 
     func stop() {
         listenerService.stop()
-        saveToDisk()
     }
 
     // MARK: - Query
@@ -111,9 +112,15 @@ final class ClaudeEventStore {
 
     /// 指定パス以外を除去（リポジトリ削除時のクリーンアップ用）
     func removeKnownPathsExcept(_ paths: Set<String>) {
+        let removedPaths = knownWorktreePaths.subtracting(paths)
         knownWorktreePaths.formIntersection(paths)
         sessions = sessions.filter { paths.contains($0.key) }
         acknowledgedUpTo = acknowledgedUpTo.filter { paths.contains($0.key) }
+
+        let actor = persistenceActor
+        for path in removedPaths {
+            Task { await actor.removeWorktree(path) }
+        }
     }
 
     // MARK: - Internal
@@ -129,22 +136,27 @@ final class ClaudeEventStore {
         worktreeSessions[sid] = session
 
         if worktreeSessions.count > maxSessionsPerWorktree {
-            pruneTerminalSessions(&worktreeSessions)
+            pruneTerminalSessions(&worktreeSessions, worktreePath: resolvedPath, excluding: sid)
         }
 
         sessions[resolvedPath] = worktreeSessions
-        saveToDisk()
+
+        let actor = persistenceActor
+        Task { await actor.saveSession(session, worktreePath: resolvedPath) }
     }
 
     /// 終了済みセッションを古い順に削除してセッション数を上限内に収める
-    private func pruneTerminalSessions(_ map: inout [String: AgentSession]) {
+    private func pruneTerminalSessions(_ map: inout [String: AgentSession], worktreePath: String, excluding currentSessionId: String) {
         let terminalSessions = map.values
-            .filter(\.isTerminal)
+            .filter { $0.isTerminal && $0.id != currentSessionId }
             .sorted(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) })
 
+        let actor = persistenceActor
         var toRemove = map.count - maxSessionsPerWorktree
         for session in terminalSessions where toRemove > 0 {
             map.removeValue(forKey: session.id)
+            let sessionId = session.id
+            Task { await actor.removeSession(sessionId, worktreePath: worktreePath) }
             toRemove -= 1
         }
     }
@@ -167,23 +179,50 @@ final class ClaudeEventStore {
 
     // MARK: - Persistence
 
-    private func loadFromDisk() {
+    private func loadFromDisk() async {
         do {
-            sessions = try persistence.load()
+            sessions = try await persistenceActor.loadAll()
         } catch {
             sessions = [:]
         }
     }
+}
 
-    private func saveToDisk() {
-        let snapshot = sessions
-        let persistence = persistence
-        Task.detached {
-            do {
-                try persistence.save(snapshot)
-            } catch {
-                print("[ClaudeEventStore] Failed to persist sessions: \(error)")
-            }
+// MARK: - PersistenceActor
+
+/// 永続化操作を直列化し、index.json への競合書き込みを防ぐ
+private actor PersistenceActor {
+    private let persistence: any ClaudeEventPersistence
+
+    init(persistence: any ClaudeEventPersistence) {
+        self.persistence = persistence
+    }
+
+    func loadAll() throws -> [String: [String: AgentSession]] {
+        try persistence.loadAll()
+    }
+
+    func saveSession(_ session: AgentSession, worktreePath: String) {
+        do {
+            try persistence.saveSession(session, worktreePath: worktreePath)
+        } catch {
+            print("[ClaudeEventStore] Failed to persist session \(session.id): \(error)")
+        }
+    }
+
+    func removeSession(_ sessionId: String, worktreePath: String) {
+        do {
+            try persistence.removeSession(sessionId, worktreePath: worktreePath)
+        } catch {
+            print("[ClaudeEventStore] Failed to remove session \(sessionId): \(error)")
+        }
+    }
+
+    func removeWorktree(_ worktreePath: String) {
+        do {
+            try persistence.removeWorktree(worktreePath)
+        } catch {
+            print("[ClaudeEventStore] Failed to remove worktree \(worktreePath): \(error)")
         }
     }
 }

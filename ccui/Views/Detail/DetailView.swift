@@ -13,7 +13,7 @@ struct DetailView: View {
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, isTimelineVisible: $isTimelineVisible)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -34,6 +34,7 @@ struct DetailView: View {
             diffStore.stopWatching()
         }
         .onChange(of: worktree) { _, newWorktree in
+            isTimelineVisible = false
             codeViewerStore.reset()
             diffStore.reset()
             fileOverlayStore.deselectFile()
@@ -94,12 +95,21 @@ struct DetailView: View {
 
     // MARK: - Terminal Content
 
+    private var hasActiveSession: Bool {
+        terminalSessionStore.session(for: worktree) != nil
+    }
+
     private var terminalContent: some View {
         Group {
             if let session = terminalSessionStore.session(for: worktree) {
                 TerminalContainerView(session: session, isActive: true)
             } else {
                 sessionLauncherView
+            }
+        }
+        .onChange(of: hasActiveSession) { _, active in
+            if !active {
+                isTimelineVisible = false
             }
         }
     }

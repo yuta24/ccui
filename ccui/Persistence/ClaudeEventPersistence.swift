@@ -1,46 +1,141 @@
+import CryptoKit
 import Foundation
 
 protocol ClaudeEventPersistence: Sendable {
-    func load() throws -> [String: [String: AgentSession]]
-    func save(_ sessions: [String: [String: AgentSession]]) throws
+    func loadAll() throws -> [String: [String: AgentSession]]
+    func saveSession(_ session: AgentSession, worktreePath: String) throws
+    func removeSession(_ sessionId: String, worktreePath: String) throws
+    func removeWorktree(_ worktreePath: String) throws
 }
 
 struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
-    private let fileURL: URL
+    private let baseDirectory: URL
 
-    init(fileURL: URL = JSONFileClaudeEventPersistence.defaultFileURL) {
-        self.fileURL = fileURL
+    init(baseDirectory: URL = JSONFileClaudeEventPersistence.defaultBaseDirectory) {
+        self.baseDirectory = baseDirectory
     }
 
-    func load() throws -> [String: [String: AgentSession]] {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            return [:]
-        }
-        let data = try Data(contentsOf: fileURL)
+    func loadAll() throws -> [String: [String: AgentSession]] {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: baseDirectory.path) else { return [:] }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([String: [String: AgentSession]].self, from: data)
+
+        // index.json にワークツリーパス → ハッシュのマッピングを保持
+        let indexURL = baseDirectory.appendingPathComponent("index.json")
+        guard fm.fileExists(atPath: indexURL.path) else { return [:] }
+        let indexData = try Data(contentsOf: indexURL)
+        let index = try JSONDecoder().decode([String: String].self, from: indexData)
+
+        var result: [String: [String: AgentSession]] = [:]
+
+        for (worktreePath, dirName) in index {
+            let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+            guard fm.fileExists(atPath: worktreeDir.path) else { continue }
+
+            let files = try fm.contentsOfDirectory(atPath: worktreeDir.path)
+            var sessions: [String: AgentSession] = [:]
+
+            for file in files where file.hasSuffix(".json") {
+                let fileURL = worktreeDir.appendingPathComponent(file)
+                do {
+                    let data = try Data(contentsOf: fileURL)
+                    let session = try decoder.decode(AgentSession.self, from: data)
+                    sessions[session.id] = session
+                } catch {
+                    print("[ClaudeEventPersistence] Skipping corrupt file \(file): \(error)")
+                }
+            }
+
+            if !sessions.isEmpty {
+                result[worktreePath] = sessions
+            }
+        }
+
+        return result
     }
 
-    func save(_ sessions: [String: [String: AgentSession]]) throws {
-        let directory = fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
+    func saveSession(_ session: AgentSession, worktreePath: String) throws {
+        let fm = FileManager.default
+        let dirName = Self.directoryName(for: worktreePath)
+        let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+
+        try fm.createDirectory(at: worktreeDir, withIntermediateDirectories: true)
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(sessions)
+        let data = try encoder.encode(session)
+        let fileURL = worktreeDir.appendingPathComponent("\(session.id).json")
         try data.write(to: fileURL, options: .atomic)
+
+        // index を更新
+        try updateIndex(worktreePath: worktreePath, dirName: dirName)
     }
 
-    private static var defaultFileURL: URL {
+    func removeSession(_ sessionId: String, worktreePath: String) throws {
+        let dirName = Self.directoryName(for: worktreePath)
+        let fileURL = baseDirectory
+            .appendingPathComponent(dirName)
+            .appendingPathComponent("\(sessionId).json")
+        let fm = FileManager.default
+        if fm.fileExists(atPath: fileURL.path) {
+            try fm.removeItem(at: fileURL)
+        }
+    }
+
+    func removeWorktree(_ worktreePath: String) throws {
+        let fm = FileManager.default
+        let dirName = Self.directoryName(for: worktreePath)
+        let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+
+        if fm.fileExists(atPath: worktreeDir.path) {
+            try fm.removeItem(at: worktreeDir)
+        }
+
+        // index から削除
+        let indexURL = baseDirectory.appendingPathComponent("index.json")
+        if fm.fileExists(atPath: indexURL.path) {
+            let data = try Data(contentsOf: indexURL)
+            var index = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+            index.removeValue(forKey: worktreePath)
+            let newData = try JSONEncoder().encode(index)
+            try newData.write(to: indexURL, options: .atomic)
+        }
+    }
+
+    // MARK: - Private
+
+    private func updateIndex(worktreePath: String, dirName: String) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+
+        let indexURL = baseDirectory.appendingPathComponent("index.json")
+        var index: [String: String] = [:]
+        if fm.fileExists(atPath: indexURL.path) {
+            let data = try Data(contentsOf: indexURL)
+            index = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+        }
+
+        if index[worktreePath] != dirName {
+            index[worktreePath] = dirName
+            let data = try JSONEncoder().encode(index)
+            try data.write(to: indexURL, options: .atomic)
+        }
+    }
+
+    static func directoryName(for worktreePath: String) -> String {
+        let hash = SHA256.hash(data: Data(worktreePath.utf8))
+        return hash.prefix(16).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static var defaultBaseDirectory: URL {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         )[0]
         return appSupport
             .appendingPathComponent("ccui")
-            .appendingPathComponent("claude-events.json")
+            .appendingPathComponent("claude-events")
     }
 }

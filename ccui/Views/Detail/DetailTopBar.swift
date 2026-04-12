@@ -3,6 +3,7 @@ import SwiftUI
 struct DetailTopBar: View {
     let worktree: Worktree
     let fileOverlayStore: FileOverlayStore
+    let hasActiveSession: Bool
     @Binding var isTimelineVisible: Bool
 
     var body: some View {
@@ -20,12 +21,14 @@ struct DetailTopBar: View {
             Spacer()
 
             HStack(spacing: 4) {
-                topBarButton(
-                    icon: "chart.bar.xaxis",
-                    label: "Timeline",
-                    isActive: isTimelineVisible
-                ) {
-                    isTimelineVisible.toggle()
+                if hasActiveSession {
+                    topBarButton(
+                        icon: "chart.bar.xaxis",
+                        label: "Timeline",
+                        isActive: isTimelineVisible
+                    ) {
+                        isTimelineVisible.toggle()
+                    }
                 }
 
                 topBarButton(
