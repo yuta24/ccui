@@ -176,6 +176,15 @@ struct ContentView: View {
                 return nil
             }
 
+            // Cmd+Shift+E → toggle file explorer
+            if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) && event.keyCode == 14 {
+                guard coordinator.selectedWorktree != nil else { return event }
+                quickOpenStore.close()
+                searchStore.deactivate()
+                fileOverlayStore.toggle()
+                return nil
+            }
+
             // Cmd+Shift+F → content search
             if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) && event.keyCode == 3 {
                 guard coordinator.selectedWorktree != nil else { return event }
