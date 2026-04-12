@@ -36,6 +36,14 @@ final class WorktreeSessionStore {
         return entry.sessionId
     }
 
+    /// セッションのタイトルを更新する
+    func updateTitle(for worktreePath: String, sessionId: String, title: String) {
+        guard var list = entries[worktreePath],
+              let index = list.firstIndex(where: { $0.sessionId == sessionId }) else { return }
+        list[index].title = title
+        entries[worktreePath] = list
+    }
+
     func removeExcept(_ paths: Set<String>) {
         entries = entries.filter { paths.contains($0.key) }
     }

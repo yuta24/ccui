@@ -3,6 +3,7 @@ import Foundation
 struct WorktreeSessionEntry: Codable, Sendable {
     let sessionId: String
     let createdAt: Date
+    var title: String?
 }
 
 protocol WorktreeSessionPersistence: Sendable {

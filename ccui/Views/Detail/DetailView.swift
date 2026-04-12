@@ -8,7 +8,6 @@ struct DetailView: View {
     @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
-    @State private var isSessionEnded = false
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
@@ -21,7 +20,6 @@ struct DetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
-            launchSession(for: worktree)
             diffStore.reset()
             codeViewerStore.reset()
             startWatching()
@@ -30,8 +28,6 @@ struct DetailView: View {
             diffStore.stopWatching()
         }
         .onChange(of: worktree) { _, newWorktree in
-            isSessionEnded = false
-            launchSession(for: newWorktree)
             codeViewerStore.reset()
             diffStore.reset()
             fileOverlayStore.deselectFile()
@@ -55,31 +51,31 @@ struct DetailView: View {
         }
     }
 
-    private func launchSession(for wt: Worktree) {
-        let isResume = worktreeSessionStore.isResume(for: wt.path)
-        let sessionId = worktreeSessionStore.currentSessionId(for: wt.path)
+    // MARK: - Session Actions
+
+    private func resumeSession(sessionId: String) {
         Task {
-            await terminalSessionStore.ensureSession(for: wt, sessionId: sessionId, isResume: isResume)
-            if let session = terminalSessionStore.session(for: wt) {
-                session.onProcessTerminated = { [weak terminalSessionStore] in
-                    guard terminalSessionStore != nil else { return }
-                    isSessionEnded = true
-                }
-            }
+            await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: true)
+            setupSessionHandlers(sessionId: sessionId)
         }
     }
 
-    private func regenerateSession() {
-        terminalSessionStore.remove(for: worktree.path)
+    private func newSession() {
         let sessionId = worktreeSessionStore.createSession(for: worktree.path)
-        isSessionEnded = false
         Task {
             await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: false)
-            if let session = terminalSessionStore.session(for: worktree) {
-                session.onProcessTerminated = { [weak terminalSessionStore] in
-                    guard terminalSessionStore != nil else { return }
-                    isSessionEnded = true
-                }
+            setupSessionHandlers(sessionId: sessionId)
+        }
+    }
+
+    private func setupSessionHandlers(sessionId: String) {
+        let path = worktree.path
+        if let session = terminalSessionStore.session(for: worktree) {
+            session.onProcessTerminated = { [weak terminalSessionStore] in
+                terminalSessionStore?.remove(for: path)
+            }
+            session.onTitleChanged = { [weak worktreeSessionStore] title in
+                worktreeSessionStore?.updateTitle(for: path, sessionId: sessionId, title: title)
             }
         }
     }
@@ -94,33 +90,115 @@ struct DetailView: View {
 
     private var terminalContent: some View {
         Group {
-            if isSessionEnded {
-                sessionEndedView
-            } else if let session = terminalSessionStore.session(for: worktree) {
+            if let session = terminalSessionStore.session(for: worktree) {
                 TerminalContainerView(session: session, isActive: true)
             } else {
-                Color.surfacePrimary
+                sessionLauncherView
             }
         }
     }
 
-    private var sessionEndedView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "terminal")
-                .font(.system(size: 32))
-                .foregroundStyle(Color.textTertiary)
-            Text("Session ended")
-                .font(.body)
-                .foregroundStyle(Color.textSecondary)
-            Button(action: regenerateSession) {
-                Text("New Session")
-                    .font(.body)
+    private var sessionLauncherView: some View {
+        let sessions = worktreeSessionStore.entries[worktree.path] ?? []
+        return VStack(spacing: 0) {
+            if sessions.isEmpty {
+                Spacer()
+                Image(systemName: "terminal")
+                    .font(.system(size: 32))
+                    .foregroundStyle(Color.textTertiary)
+                VStack(spacing: 12) {
+                    Text("No sessions")
+                        .font(.uiLabel)
+                        .foregroundStyle(Color.textSecondary)
+                    Button(action: newSession) {
+                        Text("New Session")
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.surfaceBase)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 12)
+                Spacer()
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("Sessions")
+                            .sectionHeader()
+                        Spacer()
+                        Button(action: newSession) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .semibold))
+                                Text("New")
+                                    .font(.uiCaption)
+                            }
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(Color.accent)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+
+                    Rectangle()
+                        .fill(Color.borderSubtle)
+                        .frame(height: 1)
+
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(sessions.reversed(), id: \.sessionId) { entry in
+                                sessionRow(entry: entry)
+                            }
+                        }
+                    }
+                }
             }
-            .buttonStyle(.borderedProminent)
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.surfacePrimary)
     }
+
+    private func sessionRow(entry: WorktreeSessionEntry) -> some View {
+        Button {
+            resumeSession(sessionId: entry.sessionId)
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.textTertiary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.title ?? String(entry.sessionId.prefix(8)))
+                        .font(.uiLabel)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(entry.sessionId.prefix(8))
+                            .font(.uiCaptionMono)
+                            .foregroundStyle(Color.textTertiary)
+                        Text("·")
+                            .foregroundStyle(Color.textTertiary)
+                        Text(entry.createdAt, style: .date)
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.textTertiary)
+                        Text(entry.createdAt, style: .time)
+                            .font(.uiCaption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "play.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.accent)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(Color.surfacePrimary)
+    }
+
 }
