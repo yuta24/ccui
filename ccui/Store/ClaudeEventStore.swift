@@ -136,7 +136,7 @@ final class ClaudeEventStore {
         worktreeSessions[sid] = session
 
         if worktreeSessions.count > maxSessionsPerWorktree {
-            pruneTerminalSessions(&worktreeSessions, worktreePath: resolvedPath, excluding: sid)
+            evictTerminalSessions(&worktreeSessions, excluding: sid)
         }
 
         sessions[resolvedPath] = worktreeSessions
@@ -145,19 +145,16 @@ final class ClaudeEventStore {
         Task { await actor.saveSession(session, worktreePath: resolvedPath) }
     }
 
-    /// 終了済みセッションを古い順に削除してセッション数を上限内に収める
-    private func pruneTerminalSessions(_ map: inout [String: AgentSession], worktreePath: String, excluding currentSessionId: String) {
+    /// 終了済みセッションを古い順にメモリから退避（ディスク上のファイルは保持）
+    private func evictTerminalSessions(_ map: inout [String: AgentSession], excluding currentSessionId: String) {
         let terminalSessions = map.values
             .filter { $0.isTerminal && $0.id != currentSessionId }
             .sorted(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) })
 
-        let actor = persistenceActor
-        var toRemove = map.count - maxSessionsPerWorktree
-        for session in terminalSessions where toRemove > 0 {
+        var toEvict = map.count - maxSessionsPerWorktree
+        for session in terminalSessions where toEvict > 0 {
             map.removeValue(forKey: session.id)
-            let sessionId = session.id
-            Task { await actor.removeSession(sessionId, worktreePath: worktreePath) }
-            toRemove -= 1
+            toEvict -= 1
         }
     }
 
@@ -181,7 +178,21 @@ final class ClaudeEventStore {
 
     private func loadFromDisk() async {
         do {
-            sessions = try await persistenceActor.loadAll()
+            var loaded = try await persistenceActor.loadAll()
+            // メモリ上限を適用（ディスク上は全件保持）
+            for (path, worktreeSessions) in loaded where worktreeSessions.count > maxSessionsPerWorktree {
+                var mutable = worktreeSessions
+                let terminalSessions = mutable.values
+                    .filter(\.isTerminal)
+                    .sorted(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) })
+                var toEvict = mutable.count - maxSessionsPerWorktree
+                for session in terminalSessions where toEvict > 0 {
+                    mutable.removeValue(forKey: session.id)
+                    toEvict -= 1
+                }
+                loaded[path] = mutable
+            }
+            sessions = loaded
         } catch {
             sessions = [:]
         }
