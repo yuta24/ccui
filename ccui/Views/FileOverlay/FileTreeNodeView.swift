@@ -21,6 +21,7 @@ struct FileTreeNodeList: View {
 
     private func directoryRow(_ node: FileNode) -> some View {
         let isExpanded = store.expandedIDs.contains(node.id)
+        let isIgnored = node.gitIgnoreStatus == .ignored
 
         return VStack(spacing: 0) {
             Button {
@@ -47,6 +48,7 @@ struct FileTreeNodeList: View {
 
                     Spacer()
                 }
+                .opacity(isIgnored ? 0.4 : 1.0)
                 .padding(.leading, CGFloat(depth) * 14 + 8)
                 .padding(.trailing, 8)
                 .padding(.vertical, 3)
@@ -80,6 +82,7 @@ struct FileTreeNodeList: View {
     private func fileRow(_ node: FileNode) -> some View {
         let isSelected = store.selectedNode?.id == node.id
         let changeStatus = changedFiles[node.path]
+        let isIgnored = node.gitIgnoreStatus == .ignored
 
         return Button {
             store.selectNode(node)
@@ -108,6 +111,7 @@ struct FileTreeNodeList: View {
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
             }
+            .opacity(isIgnored ? 0.4 : 1.0)
             .padding(.leading, CGFloat(depth) * 14 + 8)
             .padding(.trailing, 8)
             .padding(.vertical, 3)

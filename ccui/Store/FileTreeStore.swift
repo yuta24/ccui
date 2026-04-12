@@ -10,7 +10,8 @@ final class FileTreeStore {
     private(set) var loadingIDs: Set<FileNode.ID> = []
     private(set) var selectedNode: FileNode?
 
-    private let rootPath: String
+    let rootPath: String
+    private var fileIndex: GitFileIndex?
 
     init(rootPath: String) {
         self.rootPath = rootPath
@@ -24,9 +25,12 @@ final class FileTreeStore {
 
         let path = rootPath
         do {
-            let result = try await Task.detached(priority: .userInitiated) {
-                try Self.scanDirectory(at: path)
+            let (index, result) = try await Task.detached(priority: .userInitiated) {
+                let index = GitFileIndex.build(repositoryPath: path)
+                let nodes = try Self.scanDirectory(at: path, rootPath: path, fileIndex: index)
+                return (index, nodes)
             }.value
+            fileIndex = index
             nodes = result
         } catch {
             errorMessage = error.localizedDescription
@@ -55,8 +59,10 @@ final class FileTreeStore {
         loadingIDs.insert(node.id)
 
         let path = node.path
+        let root = rootPath
+        let idx = fileIndex
         let children = await Task.detached(priority: .userInitiated) {
-            (try? Self.scanDirectory(at: path)) ?? []
+            (try? Self.scanDirectory(at: path, rootPath: root, fileIndex: idx)) ?? []
         }.value
 
         let updated = node.withChildren(children)
@@ -70,13 +76,13 @@ final class FileTreeStore {
                 return replacement
             } else if node.isDirectory && !node.children.isEmpty {
                 let updatedChildren = replaceNode(in: node.children, targetID: targetID, with: replacement)
-                return FileNode(id: node.id, name: node.name, path: node.path, isDirectory: true, children: updatedChildren, isLoaded: node.isLoaded)
+                return FileNode(id: node.id, name: node.name, path: node.path, isDirectory: true, children: updatedChildren, isLoaded: node.isLoaded, gitIgnoreStatus: node.gitIgnoreStatus)
             }
             return node
         }
     }
 
-    private nonisolated static func scanDirectory(at path: String) throws -> [FileNode] {
+    private nonisolated static func scanDirectory(at path: String, rootPath: String, fileIndex: GitFileIndex?) throws -> [FileNode] {
         let fm = FileManager.default
         let contents = try fm.contentsOfDirectory(atPath: path)
 
@@ -88,10 +94,21 @@ final class FileTreeStore {
             var isDir: ObjCBool = false
             guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }
 
-            if isDir.boolValue {
-                folders.append(FileNode(name: name, path: fullPath, isDirectory: true))
+            let ignoreStatus: GitIgnoreStatus
+            if let fileIndex {
+                if isDir.boolValue {
+                    ignoreStatus = fileIndex.isIgnoredDirectory(fullPath) ? .ignored : .visible
+                } else {
+                    ignoreStatus = fileIndex.isIgnored(fullPath) ? .ignored : .visible
+                }
             } else {
-                files.append(FileNode(name: name, path: fullPath, isDirectory: false))
+                ignoreStatus = .visible
+            }
+
+            if isDir.boolValue {
+                folders.append(FileNode(name: name, path: fullPath, isDirectory: true, gitIgnoreStatus: ignoreStatus))
+            } else {
+                files.append(FileNode(name: name, path: fullPath, isDirectory: false, gitIgnoreStatus: ignoreStatus))
             }
         }
 

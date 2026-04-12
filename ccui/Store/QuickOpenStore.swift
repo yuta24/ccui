@@ -44,7 +44,7 @@ final class QuickOpenStore {
         indexTask = Task {
             isIndexing = true
             let flat = await Task.detached(priority: .userInitiated) {
-                Self.collectAllFiles(at: rootPath)
+                return GitFileIndex.build(repositoryPath: rootPath).searchableFiles
             }.value
             guard !Task.isCancelled else {
                 isIndexing = false
@@ -92,33 +92,6 @@ final class QuickOpenStore {
                 self.results = top
             }
         }
-    }
-
-    // MARK: - File Collection
-
-    private nonisolated static func collectAllFiles(at path: String) -> [FileNode] {
-        let fm = FileManager.default
-        let skipDirs: Set<String> = ["node_modules", ".build", "DerivedData", "Pods", ".git"]
-        return collectFilesRecursive(at: path, fm: fm, skipDirs: skipDirs)
-    }
-
-    private nonisolated static func collectFilesRecursive(at path: String, fm: FileManager, skipDirs: Set<String>) -> [FileNode] {
-        guard let contents = try? fm.contentsOfDirectory(atPath: path) else { return [] }
-        var result: [FileNode] = []
-
-        for name in contents where !name.hasPrefix(".") {
-            if skipDirs.contains(name) { continue }
-            let fullPath = (path as NSString).appendingPathComponent(name)
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }
-
-            if isDir.boolValue {
-                result += collectFilesRecursive(at: fullPath, fm: fm, skipDirs: skipDirs)
-            } else {
-                result.append(FileNode(name: name, path: fullPath, isDirectory: false))
-            }
-        }
-        return result
     }
 
     // MARK: - Fuzzy Matching

@@ -46,7 +46,7 @@ final class SearchStore {
         indexTask?.cancel()
         indexTask = Task {
             let flat = await Task.detached(priority: .userInitiated) {
-                Self.collectAllFiles(at: rootPath)
+                return GitFileIndex.build(repositoryPath: rootPath).searchableFiles
             }.value
             guard !Task.isCancelled else { return }
             fileIndex = flat
@@ -123,7 +123,7 @@ final class SearchStore {
             guard !Task.isCancelled else { return }
 
             let results = await Task.detached(priority: .userInitiated) {
-                Self.runGrep(query: query, rootPath: root)
+                Self.runGitGrep(query: query, rootPath: root)
             }.value
 
             guard !Task.isCancelled else { return }
@@ -132,49 +132,13 @@ final class SearchStore {
         }
     }
 
-    // MARK: - File Collection
+    // MARK: - Git Grep
 
-    private nonisolated static func collectAllFiles(at path: String) -> [FileNode] {
-        let fm = FileManager.default
-        let skipDirs: Set<String> = ["node_modules", ".build", "DerivedData", "Pods", ".git"]
-        return collectFilesRecursive(at: path, fm: fm, skipDirs: skipDirs)
-    }
-
-    private nonisolated static func collectFilesRecursive(at path: String, fm: FileManager, skipDirs: Set<String>) -> [FileNode] {
-        guard let contents = try? fm.contentsOfDirectory(atPath: path) else { return [] }
-        var result: [FileNode] = []
-
-        for name in contents where !name.hasPrefix(".") {
-            if skipDirs.contains(name) { continue }
-            let fullPath = (path as NSString).appendingPathComponent(name)
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }
-
-            if isDir.boolValue {
-                result += collectFilesRecursive(at: fullPath, fm: fm, skipDirs: skipDirs)
-            } else {
-                result.append(FileNode(name: name, path: fullPath, isDirectory: false))
-            }
-        }
-        return result
-    }
-
-    // MARK: - Grep
-
-    private nonisolated static func runGrep(query: String, rootPath: String) -> [ContentSearchResult] {
+    private nonisolated static func runGitGrep(query: String, rootPath: String) -> [ContentSearchResult] {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
-        process.arguments = [
-            "-rnIF",
-            "--color=never",
-            "--exclude-dir=node_modules",
-            "--exclude-dir=.git",
-            "--exclude-dir=.build",
-            "--exclude-dir=DerivedData",
-            "--exclude-dir=Pods",
-            query,
-            rootPath
-        ]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["grep", "-rnIF", "--untracked", "--color=never", "--", query]
+        process.currentDirectoryURL = URL(fileURLWithPath: rootPath)
 
         let stdout = Pipe()
         process.standardOutput = stdout
@@ -191,21 +155,17 @@ final class SearchStore {
             return []
         }
 
-        // Read stdout before waitUntilExit to prevent pipe buffer deadlock
         let data = stdout.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
             return []
         }
 
-        let rootPrefix = rootPath + "/"
         var fileGroups: [String: [ContentSearchMatch]] = [:]
         var fileOrder: [String] = []
         var totalMatches = 0
         let maxMatches = 1000
 
-        // grep output format: /absolute/path/to/file:linenum:content
-        // Parse by stripping the known rootPrefix, then finding `:digits:` pattern
         let lineNumPattern = try? NSRegularExpression(pattern: ":(\\d+):")
 
         for line in output.components(separatedBy: "\n") {
@@ -213,18 +173,14 @@ final class SearchStore {
                 if totalMatches >= maxMatches { break }
                 continue
             }
-            guard line.hasPrefix(rootPrefix) else { continue }
 
-            let rest = String(line.dropFirst(rootPrefix.count))
+            guard let match = lineNumPattern?.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                  let lineNumRange = Range(match.range(at: 1), in: line) else { continue }
 
-            // Find the first :digits: pattern to split path from line number
-            guard let match = lineNumPattern?.firstMatch(in: rest, range: NSRange(rest.startIndex..., in: rest)),
-                  let lineNumRange = Range(match.range(at: 1), in: rest) else { continue }
-
-            let filePart = String(rest[..<rest.index(before: lineNumRange.lowerBound)])
-            guard let lineNum = Int(rest[lineNumRange]) else { continue }
-            let contentStart = rest.index(after: lineNumRange.upperBound)
-            let content = contentStart < rest.endIndex ? String(rest[contentStart...]) : ""
+            let filePart = String(line[..<line.index(before: lineNumRange.lowerBound)])
+            guard let lineNum = Int(line[lineNumRange]) else { continue }
+            let contentStart = line.index(after: lineNumRange.upperBound)
+            let content = contentStart < line.endIndex ? String(line[contentStart...]) : ""
 
             let fullPath = (rootPath as NSString).appendingPathComponent(filePart)
 
@@ -240,8 +196,8 @@ final class SearchStore {
             let matches = fileGroups[path] ?? []
             let fileName = (path as NSString).lastPathComponent
             let relativePath: String
-            if path.hasPrefix(rootPrefix) {
-                relativePath = String(path.dropFirst(rootPrefix.count))
+            if path.hasPrefix(rootPath + "/") {
+                relativePath = String(path.dropFirst(rootPath.count + 1))
             } else {
                 relativePath = path
             }

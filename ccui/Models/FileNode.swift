@@ -1,5 +1,10 @@
 import Foundation
 
+enum GitIgnoreStatus: Sendable, Hashable {
+    case visible
+    case ignored
+}
+
 nonisolated struct FileNode: Identifiable, Hashable, Sendable {
     let id: UUID
     let name: String
@@ -7,17 +12,19 @@ nonisolated struct FileNode: Identifiable, Hashable, Sendable {
     let isDirectory: Bool
     let children: [FileNode]
     let isLoaded: Bool
+    let gitIgnoreStatus: GitIgnoreStatus
 
-    init(id: UUID = UUID(), name: String, path: String, isDirectory: Bool, children: [FileNode] = [], isLoaded: Bool = false) {
+    init(id: UUID = UUID(), name: String, path: String, isDirectory: Bool, children: [FileNode] = [], isLoaded: Bool = false, gitIgnoreStatus: GitIgnoreStatus = .visible) {
         self.id = id
         self.name = name
         self.path = path
         self.isDirectory = isDirectory
         self.children = children
         self.isLoaded = isDirectory ? isLoaded : true
+        self.gitIgnoreStatus = gitIgnoreStatus
     }
 
     func withChildren(_ children: [FileNode]) -> FileNode {
-        FileNode(id: id, name: name, path: path, isDirectory: isDirectory, children: children, isLoaded: true)
+        FileNode(id: id, name: name, path: path, isDirectory: isDirectory, children: children, isLoaded: true, gitIgnoreStatus: gitIgnoreStatus)
     }
 }

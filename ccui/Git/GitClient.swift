@@ -41,6 +41,12 @@ enum GitClient {
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
     }
 
+    // MARK: - File Listing
+
+    nonisolated static func lsFiles(_ args: [String], at repositoryPath: String) throws -> String {
+        try run(["ls-files"] + args, at: repositoryPath)
+    }
+
     // MARK: - Diff
 
     nonisolated static func diff(repositoryPath: String) async throws -> String {
