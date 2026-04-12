@@ -5,6 +5,7 @@ struct DetailTopBar: View {
     let fileOverlayStore: FileOverlayStore
     let hasActiveSession: Bool
     @Binding var isTimelineVisible: Bool
+    @Binding var isStatsVisible: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -29,6 +30,14 @@ struct DetailTopBar: View {
                     ) {
                         isTimelineVisible.toggle()
                     }
+                }
+
+                topBarButton(
+                    icon: "chart.bar",
+                    label: "Stats",
+                    isActive: isStatsVisible
+                ) {
+                    isStatsVisible.toggle()
                 }
 
                 topBarButton(

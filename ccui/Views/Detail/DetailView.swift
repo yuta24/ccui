@@ -8,12 +8,14 @@ struct DetailView: View {
     @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
+    @Environment(AppCoordinator.self) private var coordinator
     @State private var isTimelineVisible = false
+    @State private var isStatsVisible = false
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -22,6 +24,9 @@ struct DetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if isTimelineVisible {
                     TimelineView(worktreePath: worktree.path)
+                }
+                if isStatsVisible {
+                    ToolStatsView(repositoryWorktreePaths: repositoryWorktreePaths)
                 }
             }
         }
@@ -35,6 +40,7 @@ struct DetailView: View {
         }
         .onChange(of: worktree) { _, newWorktree in
             isTimelineVisible = false
+            isStatsVisible = false
             codeViewerStore.reset()
             diffStore.reset()
             fileOverlayStore.deselectFile()
@@ -94,6 +100,12 @@ struct DetailView: View {
     }
 
     // MARK: - Terminal Content
+
+    private var repositoryWorktreePaths: Set<String> {
+        let repoID = worktree.repositoryID
+        let worktrees = coordinator.worktreeStores[repoID]?.worktrees ?? []
+        return Set(worktrees.map(\.path))
+    }
 
     private var hasActiveSession: Bool {
         terminalSessionStore.session(for: worktree) != nil
