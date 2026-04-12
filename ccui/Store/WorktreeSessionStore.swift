@@ -44,6 +44,18 @@ final class WorktreeSessionStore {
         entries[worktreePath] = list
     }
 
+    /// セッションを削除する
+    func removeSession(for worktreePath: String, sessionId: String) {
+        guard var list = entries[worktreePath] else { return }
+        list.removeAll { $0.sessionId == sessionId }
+        if list.isEmpty {
+            entries.removeValue(forKey: worktreePath)
+        } else {
+            entries[worktreePath] = list
+        }
+        save()
+    }
+
     func removeExcept(_ paths: Set<String>) {
         entries = entries.filter { paths.contains($0.key) }
     }

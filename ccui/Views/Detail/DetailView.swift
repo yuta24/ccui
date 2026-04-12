@@ -215,6 +215,13 @@ struct DetailView: View {
         }
         .buttonStyle(.plain)
         .background(Color.surfacePrimary)
+        .contextMenu {
+            Button(role: .destructive) {
+                worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
 }
