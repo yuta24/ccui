@@ -10,14 +10,20 @@ final class ClaudeEventStore {
     private(set) var acknowledgedUpTo: [String: Date] = [:]
 
     private let listenerService = UDSListenerService()
+    private let persistence: any ClaudeEventPersistence
     private var knownWorktreePaths: Set<String> = []
 
     private let maxEventsPerSession = 50
     private let maxSessionsPerWorktree = 20
 
+    init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
+        self.persistence = persistence
+    }
+
     // MARK: - Lifecycle
 
     func start() {
+        loadFromDisk()
         listenerService.start { [weak self] payload in
             self?.handle(payload)
         }
@@ -25,6 +31,7 @@ final class ClaudeEventStore {
 
     func stop() {
         listenerService.stop()
+        saveToDisk()
     }
 
     // MARK: - Query
@@ -126,6 +133,7 @@ final class ClaudeEventStore {
         }
 
         sessions[resolvedPath] = worktreeSessions
+        saveToDisk()
     }
 
     /// 終了済みセッションを古い順に削除してセッション数を上限内に収める
@@ -155,5 +163,27 @@ final class ClaudeEventStore {
             .filter { cwd == $0 || cwd.hasPrefix($0 + "/") }
             .max(by: { $0.count < $1.count })
             ?? cwd
+    }
+
+    // MARK: - Persistence
+
+    private func loadFromDisk() {
+        do {
+            sessions = try persistence.load()
+        } catch {
+            sessions = [:]
+        }
+    }
+
+    private func saveToDisk() {
+        let snapshot = sessions
+        let persistence = persistence
+        Task.detached {
+            do {
+                try persistence.save(snapshot)
+            } catch {
+                print("[ClaudeEventStore] Failed to persist sessions: \(error)")
+            }
+        }
     }
 }

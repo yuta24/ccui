@@ -8,16 +8,22 @@ struct DetailView: View {
     @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
+    @State private var isTimelineVisible = false
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, isTimelineVisible: $isTimelineVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
-            terminalContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack(spacing: 0) {
+                terminalContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if isTimelineVisible {
+                    TimelineView(worktreePath: worktree.path)
+                }
+            }
         }
         .onAppear {
             diffStore.reset()

@@ -1,9 +1,13 @@
 import Foundation
 
-nonisolated struct AgentSession: Identifiable, Sendable {
+nonisolated struct AgentSession: Identifiable, Codable, Sendable {
     let id: String
     let worktreePath: String
     private(set) var events: [ClaudeEvent]
+
+    private enum CodingKeys: String, CodingKey {
+        case id, worktreePath, events
+    }
 
     var state: AgentState {
         AgentState.from(events: events)
