@@ -9,6 +9,7 @@ protocol TerminalSession: AnyObject {
     var onProcessTerminated: (() -> Void)? { get set }
     var onTitleChanged: ((String) -> Void)? { get set }
     func terminate()
+    func refreshDisplay()
 }
 
 extension TerminalSession {

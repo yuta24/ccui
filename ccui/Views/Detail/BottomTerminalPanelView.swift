@@ -66,11 +66,16 @@ struct BottomTerminalPanelView: View {
                     .fill(Color.borderSubtle)
                     .frame(height: 1)
 
-                if let activeTab = shellStore.activeTab(for: worktreePath) {
-                    TerminalContainerView(session: activeTab.session, isActive: true)
-                        .id(activeTab.id)
-                } else {
+                if tabs.isEmpty {
                     emptyState
+                } else {
+                    ZStack {
+                        ForEach(tabs) { tab in
+                            TerminalContainerView(session: tab.session, isActive: tab.id == activeTabID)
+                                .opacity(tab.id == activeTabID ? 1 : 0)
+                                .allowsHitTesting(tab.id == activeTabID)
+                        }
+                    }
                 }
             }
         }

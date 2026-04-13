@@ -30,6 +30,12 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         terminalView.terminate()
     }
 
+    func refreshDisplay() {
+        let t = terminalView.getTerminal()
+        t.refresh(startRow: 0, endRow: t.rows - 1)
+        terminalView.setNeedsDisplay(terminalView.bounds)
+    }
+
     // MARK: - LocalProcessTerminalViewDelegate
 
     nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
