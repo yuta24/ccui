@@ -11,11 +11,13 @@ struct DetailView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @State private var isTimelineVisible = false
     @State private var isStatsVisible = false
+    @State private var isClaudeMdVisible = false
+    @State private var claudeMdStore = ClaudeMdStore()
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible, isClaudeMdVisible: $isClaudeMdVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -27,6 +29,9 @@ struct DetailView: View {
                 }
                 if isStatsVisible {
                     ToolStatsView(repositoryWorktreePaths: repositoryWorktreePaths)
+                }
+                if isClaudeMdVisible {
+                    ClaudeMdPanelView(repositoryPath: repositoryPath, store: claudeMdStore)
                 }
             }
         }
@@ -41,6 +46,8 @@ struct DetailView: View {
         .onChange(of: worktree) { _, newWorktree in
             isTimelineVisible = false
             isStatsVisible = false
+            isClaudeMdVisible = false
+            claudeMdStore.reset()
             codeViewerStore.reset()
             diffStore.reset()
             fileOverlayStore.deselectFile()
@@ -100,6 +107,10 @@ struct DetailView: View {
     }
 
     // MARK: - Terminal Content
+
+    private var repositoryPath: String {
+        coordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
+    }
 
     private var repositoryWorktreePaths: Set<String> {
         let repoID = worktree.repositoryID

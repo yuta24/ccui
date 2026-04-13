@@ -6,6 +6,7 @@ struct DetailTopBar: View {
     let hasActiveSession: Bool
     @Binding var isTimelineVisible: Bool
     @Binding var isStatsVisible: Bool
+    @Binding var isClaudeMdVisible: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -30,6 +31,14 @@ struct DetailTopBar: View {
                     ) {
                         isTimelineVisible.toggle()
                     }
+                }
+
+                topBarButton(
+                    icon: "doc.text",
+                    label: "CLAUDE.md",
+                    isActive: isClaudeMdVisible
+                ) {
+                    isClaudeMdVisible.toggle()
                 }
 
                 topBarButton(
