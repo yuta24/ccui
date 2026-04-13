@@ -7,7 +7,7 @@ final class ShellTab: Identifiable {
     var title: String
     let session: any TerminalSession
 
-    init(worktreePath: String) {
+    init(worktreePath: String, additionalEnvironment: [String] = []) {
         let id = UUID()
         self.id = id
         self.title = "Shell"
@@ -15,7 +15,8 @@ final class ShellTab: Identifiable {
             workingDirectory: worktreePath,
             label: "Shell",
             executable: "/bin/zsh",
-            args: ["-l"]
+            args: ["-l"],
+            additionalEnvironment: additionalEnvironment
         )
         self.session = session
         session.onTitleChanged = { [weak self] title in

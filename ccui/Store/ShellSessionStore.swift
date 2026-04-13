@@ -5,6 +5,11 @@ import Foundation
 final class ShellSessionStore {
     private(set) var tabsByPath: [String: [ShellTab]] = [:]
     private var activeTabIDByPath: [String: UUID] = [:]
+    private let appSettingsStore: AppSettingsStore
+
+    init(appSettingsStore: AppSettingsStore) {
+        self.appSettingsStore = appSettingsStore
+    }
 
     func tabs(for worktreePath: String) -> [ShellTab] {
         tabsByPath[worktreePath] ?? []
@@ -21,7 +26,7 @@ final class ShellSessionStore {
 
     @discardableResult
     func addTab(for worktreePath: String) -> ShellTab {
-        let tab = ShellTab(worktreePath: worktreePath)
+        let tab = ShellTab(worktreePath: worktreePath, additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings())
         tab.session.onProcessTerminated = { [weak self, weak tab] in
             guard let self, let tab else { return }
             self.closeTab(id: tab.id, worktreePath: worktreePath)

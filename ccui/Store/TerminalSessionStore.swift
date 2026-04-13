@@ -5,6 +5,11 @@ import Foundation
 final class TerminalSessionStore {
     private var sessions: [String: any TerminalSession] = [:]
     private var claudePathTask: Task<String, Never>?
+    private let appSettingsStore: AppSettingsStore
+
+    init(appSettingsStore: AppSettingsStore) {
+        self.appSettingsStore = appSettingsStore
+    }
 
     func startResolvingClaudePath() {
         claudePathTask = Task.detached(priority: .userInitiated) {
@@ -38,7 +43,8 @@ final class TerminalSessionStore {
             workingDirectory: worktree.path,
             label: "Terminal",
             executable: "/bin/zsh",
-            args: ["-l", "-c", claudeArgs]
+            args: ["-l", "-c", claudeArgs],
+            additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings()
         )
         sessions[worktree.path] = session
     }

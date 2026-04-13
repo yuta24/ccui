@@ -9,10 +9,11 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     var onProcessTerminated: (() -> Void)?
     var onTitleChanged: ((String) -> Void)?
 
-    init(workingDirectory: String, label: String, executable: String, args: [String]) {
+    init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
         self.label = label
         terminalView = LocalProcessTerminalView(frame: .zero)
         var env = Terminal.getEnvironmentVariables(termName: "xterm-256color")
+        env.append(contentsOf: additionalEnvironment)
         env.append("CCUI_SESSION=1")
         terminalView.processDelegate = self
         terminalView.startProcess(

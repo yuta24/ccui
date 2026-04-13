@@ -10,18 +10,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct ccuiApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
-    @State private var repositoryStore = RepositoryStore(
-        persistence: JSONFileRepositoryPersistence()
-    )
-    @State private var terminalSessionStore = TerminalSessionStore()
-    @State private var claudeEventStore = ClaudeEventStore()
-    @State private var worktreeSessionStore = WorktreeSessionStore()
-    @State private var shellSessionStore = ShellSessionStore()
-    @State private var appCoordinator = AppCoordinator()
+    @State private var appSettingsStore: AppSettingsStore
+    @State private var repositoryStore: RepositoryStore
+    @State private var terminalSessionStore: TerminalSessionStore
+    @State private var claudeEventStore: ClaudeEventStore
+    @State private var worktreeSessionStore: WorktreeSessionStore
+    @State private var shellSessionStore: ShellSessionStore
+    @State private var appCoordinator: AppCoordinator
+
+    init() {
+        let settingsStore = AppSettingsStore(persistence: JSONFileAppSettingsPersistence())
+        _appSettingsStore = State(wrappedValue: settingsStore)
+        _repositoryStore = State(wrappedValue: RepositoryStore(persistence: JSONFileRepositoryPersistence()))
+        _terminalSessionStore = State(wrappedValue: TerminalSessionStore(appSettingsStore: settingsStore))
+        _claudeEventStore = State(wrappedValue: ClaudeEventStore())
+        _worktreeSessionStore = State(wrappedValue: WorktreeSessionStore())
+        _shellSessionStore = State(wrappedValue: ShellSessionStore(appSettingsStore: settingsStore))
+        _appCoordinator = State(wrappedValue: AppCoordinator())
+    }
 
     var body: some Scene {
         Window("ccui", id: "main") {
             ContentView()
+                .environment(appSettingsStore)
                 .environment(repositoryStore)
                 .environment(terminalSessionStore)
                 .environment(claudeEventStore)
@@ -43,6 +54,11 @@ struct ccuiApp: App {
         }
         .defaultSize(width: 1280, height: 860)
         .windowStyle(.hiddenTitleBar)
+
+        Settings {
+            AppSettingsView()
+                .environment(appSettingsStore)
+        }
     }
 
     private func shutdown() {
