@@ -29,16 +29,16 @@ final class TerminalSessionStore {
     func ensureSession(for worktree: Worktree, sessionId: String, isResume: Bool) async {
         guard sessions[worktree.path] == nil else { return }
         let claudePath = await claudePathTask?.value ?? "claude"
-        let args = if isResume {
-            ["--resume", sessionId]
+        let claudeArgs = if isResume {
+            "\(claudePath) --resume \(sessionId)"
         } else {
-            ["--session-id", sessionId]
+            "\(claudePath) --session-id \(sessionId)"
         }
         let session = SwiftTermSession(
             workingDirectory: worktree.path,
             label: "Terminal",
-            executable: claudePath,
-            args: args
+            executable: "/bin/zsh",
+            args: ["-l", "-c", claudeArgs]
         )
         sessions[worktree.path] = session
     }
