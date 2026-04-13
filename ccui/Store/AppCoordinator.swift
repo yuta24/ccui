@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 @Observable
@@ -111,10 +112,10 @@ final class AppCoordinator {
                     forceDeleteTarget = (wt, wtStore)
                     showForceDeleteAlert = true
                 } else {
-                    print("[AppCoordinator] Failed to remove worktree: \(error)")
+                    Logger.store.error("Failed to remove worktree: \(error)")
                 }
             } catch {
-                print("[AppCoordinator] Failed to remove worktree: \(error)")
+                Logger.store.error("Failed to remove worktree: \(error)")
             }
         }
     }
@@ -132,7 +133,7 @@ final class AppCoordinator {
                 }
                 forceDeleteTarget = nil
             } catch {
-                print("[AppCoordinator] Failed to force remove worktree: \(error)")
+                Logger.store.error("Failed to force remove worktree: \(error)")
             }
         }
     }

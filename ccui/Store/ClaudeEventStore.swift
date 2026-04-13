@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable
 @MainActor
@@ -217,7 +218,7 @@ private actor PersistenceActor {
         do {
             try persistence.saveSession(session, worktreePath: worktreePath)
         } catch {
-            print("[ClaudeEventStore] Failed to persist session \(session.id): \(error)")
+            Logger.store.error("Failed to persist session \(session.id): \(error)")
         }
     }
 
@@ -225,7 +226,7 @@ private actor PersistenceActor {
         do {
             try persistence.removeSession(sessionId, worktreePath: worktreePath)
         } catch {
-            print("[ClaudeEventStore] Failed to remove session \(sessionId): \(error)")
+            Logger.store.error("Failed to remove session \(sessionId): \(error)")
         }
     }
 
@@ -233,7 +234,7 @@ private actor PersistenceActor {
         do {
             try persistence.removeWorktree(worktreePath)
         } catch {
-            print("[ClaudeEventStore] Failed to remove worktree \(worktreePath): \(error)")
+            Logger.store.error("Failed to remove worktree \(worktreePath, privacy: .public): \(error)")
         }
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable
 @MainActor
@@ -11,7 +12,7 @@ final class RepositoryStore {
         do {
             repositories = try persistence.load()
         } catch {
-            print("[RepositoryStore] Failed to load: \(error)")
+            Logger.store.error("Failed to load repositories: \(error)")
             repositories = []
         }
     }
@@ -36,7 +37,7 @@ final class RepositoryStore {
         do {
             try persistence.save(repositories)
         } catch {
-            print("[RepositoryStore] Failed to persist: \(error)")
+            Logger.store.error("Failed to persist repositories: \(error)")
         }
     }
 }

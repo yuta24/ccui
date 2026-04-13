@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import OSLog
 
 protocol ClaudeEventPersistence: Sendable {
     func loadAll() throws -> [String: [String: AgentSession]]
@@ -44,7 +45,7 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
                     let session = try decoder.decode(AgentSession.self, from: data)
                     sessions[session.id] = session
                 } catch {
-                    print("[ClaudeEventPersistence] Skipping corrupt file \(file): \(error)")
+                    Logger.persistence.warning("Skipping corrupt file \(file, privacy: .public): \(error)")
                 }
             }
 

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @MainActor
 final class UDSListenerService {
@@ -15,7 +16,7 @@ final class UDSListenerService {
 
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
-            print("[UDSListenerService] socket() failed: \(String(cString: strerror(errno)))")
+            Logger.services.error("socket() failed: \(String(cString: strerror(errno)))")
             return
         }
 
@@ -37,7 +38,7 @@ final class UDSListenerService {
             }
         }
         guard bindResult == 0 else {
-            print("[UDSListenerService] bind() failed: \(String(cString: strerror(errno)))")
+            Logger.services.error("bind() failed: \(String(cString: strerror(errno)))")
             Darwin.close(fd)
             return
         }
@@ -46,7 +47,7 @@ final class UDSListenerService {
         Darwin.chmod(Self.socketPath, 0o600)
 
         guard Darwin.listen(fd, 5) == 0 else {
-            print("[UDSListenerService] listen() failed: \(String(cString: strerror(errno)))")
+            Logger.services.error("listen() failed: \(String(cString: strerror(errno)))")
             Darwin.close(fd)
             return
         }

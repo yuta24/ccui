@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable
 @MainActor
@@ -11,7 +12,7 @@ final class WorktreeSessionStore {
         do {
             entries = try persistence.load()
         } catch {
-            print("[WorktreeSessionStore] Failed to load: \(error)")
+            Logger.store.error("Failed to load worktree sessions: \(error)")
         }
     }
 
@@ -64,7 +65,7 @@ final class WorktreeSessionStore {
         do {
             try persistence.save(entries)
         } catch {
-            print("[WorktreeSessionStore] Failed to save: \(error)")
+            Logger.store.error("Failed to save worktree sessions: \(error)")
         }
     }
 }

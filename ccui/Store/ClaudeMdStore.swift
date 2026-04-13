@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum ClaudeMdLevel: String, Sendable, CaseIterable, Identifiable {
     case user = "User"
@@ -103,7 +104,7 @@ final class ClaudeMdStore {
             // ファイル一覧を更新
             load(repositoryPath: repositoryPath)
         } catch {
-            print("[ClaudeMdStore] Failed to save \(path): \(error)")
+            Logger.store.error("Failed to save \(path, privacy: .public): \(error)")
         }
     }
 
@@ -125,7 +126,7 @@ final class ClaudeMdStore {
             load(repositoryPath: repositoryPath)
             select(level)
         } catch {
-            print("[ClaudeMdStore] Failed to create \(path): \(error)")
+            Logger.store.error("Failed to create \(path, privacy: .public): \(error)")
         }
     }
 
