@@ -9,9 +9,14 @@ struct DetailView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
     @Environment(AppCoordinator.self) private var coordinator
+    @Environment(ShellSessionStore.self) private var shellSessionStore
     @State private var isTimelineVisible = false
     @State private var isStatsVisible = false
     @State private var isClaudeMdVisible = false
+    @State private var isBottomPanelExpanded = false
+    @State private var bottomPanelHeight: CGFloat = 220
+    @GestureState private var bottomPanelDragOffset: CGFloat = 0
+    @State private var bottomPanelCursorPushed = false
     @State private var claudeMdStore = ClaudeMdStore()
 
     var body: some View {
@@ -21,18 +26,55 @@ struct DetailView: View {
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
-            HStack(spacing: 0) {
-                terminalContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                if isTimelineVisible {
-                    TimelineView(worktreePath: worktree.path)
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    terminalContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if isTimelineVisible {
+                        TimelineView(worktreePath: worktree.path)
+                    }
+                    if isStatsVisible {
+                        ToolStatsView(repositoryWorktreePaths: repositoryWorktreePaths)
+                    }
+                    if isClaudeMdVisible {
+                        ClaudeMdPanelView(repositoryPath: repositoryPath, store: claudeMdStore)
+                    }
                 }
-                if isStatsVisible {
-                    ToolStatsView(repositoryWorktreePaths: repositoryWorktreePaths)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if isBottomPanelExpanded {
+                    Rectangle()
+                        .fill(Color.borderSubtle)
+                        .frame(height: 1)
+                        .contentShape(Rectangle().inset(by: -3))
+                        .gesture(
+                            DragGesture()
+                                .updating($bottomPanelDragOffset) { value, state, _ in
+                                    state = -value.translation.height
+                                }
+                                .onEnded { value in
+                                    bottomPanelHeight = max(120, min(600, bottomPanelHeight - value.translation.height))
+                                }
+                        )
+                        .onHover { hovering in
+                            if hovering {
+                                NSCursor.resizeUpDown.push()
+                                bottomPanelCursorPushed = true
+                            } else if bottomPanelCursorPushed {
+                                NSCursor.pop()
+                                bottomPanelCursorPushed = false
+                            }
+                        }
+                        .onDisappear {
+                            if bottomPanelCursorPushed {
+                                NSCursor.pop()
+                                bottomPanelCursorPushed = false
+                            }
+                        }
                 }
-                if isClaudeMdVisible {
-                    ClaudeMdPanelView(repositoryPath: repositoryPath, store: claudeMdStore)
-                }
+
+                BottomTerminalPanelView(worktreePath: worktree.path, isExpanded: $isBottomPanelExpanded)
+                    .frame(height: isBottomPanelExpanded ? max(120, min(600, bottomPanelHeight + bottomPanelDragOffset)) : nil)
             }
         }
         .onAppear {
@@ -47,6 +89,8 @@ struct DetailView: View {
             isTimelineVisible = false
             isStatsVisible = false
             isClaudeMdVisible = false
+            isBottomPanelExpanded = false
+            bottomPanelHeight = 220
             claudeMdStore.reset()
             codeViewerStore.reset()
             diffStore.reset()

@@ -16,6 +16,7 @@ struct ccuiApp: App {
     @State private var terminalSessionStore = TerminalSessionStore()
     @State private var claudeEventStore = ClaudeEventStore()
     @State private var worktreeSessionStore = WorktreeSessionStore()
+    @State private var shellSessionStore = ShellSessionStore()
     @State private var appCoordinator = AppCoordinator()
 
     var body: some Scene {
@@ -25,6 +26,7 @@ struct ccuiApp: App {
                 .environment(terminalSessionStore)
                 .environment(claudeEventStore)
                 .environment(worktreeSessionStore)
+                .environment(shellSessionStore)
                 .environment(appCoordinator)
                 .preferredColorScheme(.dark)
                 .task {
@@ -45,6 +47,7 @@ struct ccuiApp: App {
 
     private func shutdown() {
         terminalSessionStore.terminateAll()
+        shellSessionStore.terminateAll()
         claudeEventStore.stop()
         worktreeSessionStore.save()
     }

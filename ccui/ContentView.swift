@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
+    @Environment(ShellSessionStore.self) private var shellSessionStore
     @State private var sidebarWidth: CGFloat = 240
     @GestureState private var dragOffset: CGFloat = 0
     @State private var sidebarCursorPushed = false
@@ -119,6 +120,7 @@ struct ContentView: View {
             coordinator.syncWorktreeStores(
                 with: newValue,
                 terminalSessionStore: terminalSessionStore,
+                shellSessionStore: shellSessionStore,
                 claudeEventStore: claudeEventStore
             )
         }
@@ -131,7 +133,7 @@ struct ContentView: View {
         }
         .alert("Uncommitted Changes", isPresented: $coordinator.showForceDeleteAlert) {
             Button("Force Delete", role: .destructive) {
-                coordinator.forceDeleteWorktree(terminalSessionStore: terminalSessionStore)
+                coordinator.forceDeleteWorktree(terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore)
             }
             Button("Cancel", role: .cancel) {
                 coordinator.forceDeleteTarget = nil

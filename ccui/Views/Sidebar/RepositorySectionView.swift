@@ -7,6 +7,7 @@ struct RepositorySectionView: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
+    @Environment(ShellSessionStore.self) private var shellSessionStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -121,7 +122,7 @@ struct RepositorySectionView: View {
         if !wt.isMain {
             Divider()
             Button("Remove Worktree", role: .destructive) {
-                coordinator.removeWorktree(wt, from: worktreeStore, terminalSessionStore: terminalSessionStore)
+                coordinator.removeWorktree(wt, from: worktreeStore, terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore)
             }
         }
     }
