@@ -41,6 +41,10 @@ extension Color {
     static let statusClean = Color(nsColor: NSColor(red: 0.30, green: 0.69, blue: 0.31, alpha: 1))
     static let statusRenamed = Color(nsColor: NSColor(red: 0.26, green: 0.65, blue: 0.96, alpha: 1))
 
+    // Intervention
+    static let interventionColor = Color(nsColor: NSColor(red: 0.67, green: 0.44, blue: 0.96, alpha: 1))
+    static let interventionSubtle = Color(nsColor: NSColor(red: 0.67, green: 0.44, blue: 0.96, alpha: 0.12))
+
     // Gutter
     static let gutterBg = Color.white.opacity(0.02)
     static let gutterText = Color.white.opacity(0.20)

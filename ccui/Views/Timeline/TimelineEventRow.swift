@@ -4,6 +4,7 @@ struct TimelineEventRow: View {
     let event: ClaudeEvent
     let previousEvent: ClaudeEvent?
     let isLast: Bool
+    let isIntervention: Bool
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -69,37 +70,54 @@ struct TimelineEventRow: View {
     // MARK: - Event Properties
 
     private var eventColor: Color {
-        switch event.hookEventName {
+        if isIntervention { return .interventionColor }
+        return switch event.hookEventName {
         case .preToolUse: .statusRenamed
         case .postToolUse: .accent
         case .stop, .subagentStop: .statusClean
         case .notification: .accent
+        case .permissionRequest: .interventionColor
+        case .userPromptSubmit: .interventionColor
         }
     }
 
     private var eventIcon: String {
-        switch event.hookEventName {
+        if isIntervention { return "person.fill.questionmark" }
+        return switch event.hookEventName {
         case .preToolUse: "hammer"
         case .postToolUse: "brain"
         case .stop: "checkmark.circle.fill"
         case .subagentStop: "checkmark.circle"
         case .notification: "bell.fill"
+        case .permissionRequest: "lock.shield"
+        case .userPromptSubmit: "text.bubble"
         }
     }
 
     private var eventLabel: String {
-        switch event.hookEventName {
+        if isIntervention {
+            return switch event.hookEventName {
+            case .permissionRequest: "Permission Request"
+            case .userPromptSubmit: "User Prompt"
+            case .preToolUse: "User Input"
+            default: "Intervention"
+            }
+        }
+        return switch event.hookEventName {
         case .preToolUse: event.toolName ?? "Tool"
         case .postToolUse: "Thinking"
         case .stop: "Done"
         case .subagentStop: "Subagent Done"
         case .notification: "Notification"
+        case .permissionRequest: "Permission Request"
+        case .userPromptSubmit: "User Prompt"
         }
     }
 
     private var eventDetail: String? {
         switch event.hookEventName {
         case .notification: event.message
+        case .permissionRequest: event.toolName
         default: nil
         }
     }

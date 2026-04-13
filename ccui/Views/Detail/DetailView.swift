@@ -233,7 +233,12 @@ struct DetailView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(sessions.reversed(), id: \.sessionId) { entry in
-                                sessionRow(entry: entry)
+                                SessionAnnotationRow(
+                                    entry: entry,
+                                    worktreePath: worktree.path,
+                                    onResume: { resumeSession(sessionId: entry.sessionId) },
+                                    onDelete: { worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId) }
+                                )
                             }
                         }
                     }
@@ -244,51 +249,5 @@ struct DetailView: View {
         .background(Color.surfacePrimary)
     }
 
-    private func sessionRow(entry: WorktreeSessionEntry) -> some View {
-        Button {
-            resumeSession(sessionId: entry.sessionId)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "terminal")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.textTertiary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.title ?? String(entry.sessionId.prefix(8)))
-                        .font(.uiLabel)
-                        .foregroundStyle(Color.textPrimary)
-                        .lineLimit(1)
-                    HStack(spacing: 4) {
-                        Text(entry.sessionId.prefix(8))
-                            .font(.uiCaptionMono)
-                            .foregroundStyle(Color.textTertiary)
-                        Text("·")
-                            .foregroundStyle(Color.textTertiary)
-                        Text(entry.createdAt, style: .date)
-                            .font(.uiCaption)
-                            .foregroundStyle(Color.textTertiary)
-                        Text(entry.createdAt, style: .time)
-                            .font(.uiCaption)
-                            .foregroundStyle(Color.textTertiary)
-                    }
-                }
-                Spacer()
-                Image(systemName: "play.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.accent)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(Color.surfacePrimary)
-        .contextMenu {
-            Button(role: .destructive) {
-                worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
-    }
 
 }

@@ -13,8 +13,9 @@ struct TimelineView: View {
 
     var body: some View {
         let events = sortedEvents
+        let interventionIds = Set(InterventionDetector.interventions(in: events).map(\.id))
         VStack(alignment: .leading, spacing: 0) {
-            header(eventCount: events.count)
+            header(eventCount: events.count, interventionCount: interventionIds.count)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -22,7 +23,7 @@ struct TimelineView: View {
             if events.isEmpty {
                 emptyState
             } else {
-                eventList(events)
+                eventList(events, interventionIds: interventionIds)
             }
         }
         .frame(width: 280)
@@ -34,11 +35,21 @@ struct TimelineView: View {
 
     // MARK: - Header
 
-    private func header(eventCount: Int) -> some View {
+    private func header(eventCount: Int, interventionCount: Int) -> some View {
         HStack {
             Text("Timeline")
                 .sectionHeader()
             Spacer()
+            if interventionCount > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "person.fill.questionmark")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.interventionColor)
+                    Text("\(interventionCount)")
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.interventionColor)
+                }
+            }
             Text("\(eventCount)")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textTertiary)
@@ -69,7 +80,7 @@ struct TimelineView: View {
 
     // MARK: - Event List
 
-    private func eventList(_ events: [ClaudeEvent]) -> some View {
+    private func eventList(_ events: [ClaudeEvent], interventionIds: Set<UUID>) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -77,7 +88,8 @@ struct TimelineView: View {
                         TimelineEventRow(
                             event: event,
                             previousEvent: index > 0 ? events[index - 1] : nil,
-                            isLast: index == events.count - 1
+                            isLast: index == events.count - 1,
+                            isIntervention: interventionIds.contains(event.id)
                         )
                         .id(event.id)
                     }

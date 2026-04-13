@@ -107,6 +107,22 @@ final class ClaudeEventStore {
         acknowledgedUpTo[worktreePath] = latest
     }
 
+    func annotateSession(
+        worktreePath: String,
+        sessionId: String,
+        outcome: SessionOutcome?,
+        failureReasons: Set<FailureReason>
+    ) {
+        guard var worktreeSessions = sessions[worktreePath],
+              var session = worktreeSessions[sessionId] else { return }
+        session.setAnnotation(outcome: outcome, failureReasons: failureReasons)
+        worktreeSessions[sessionId] = session
+        sessions[worktreePath] = worktreeSessions
+
+        let actor = persistenceActor
+        Task { await actor.saveSession(session, worktreePath: worktreePath) }
+    }
+
     func addKnownPaths(_ paths: Set<String>) {
         knownWorktreePaths.formUnion(paths)
     }

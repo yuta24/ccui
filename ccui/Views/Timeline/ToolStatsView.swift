@@ -120,6 +120,9 @@ struct ToolStatsView: View {
                     summaryItem(value: "\(snapshot.sessionCount)", label: "sessions")
                     summaryItem(value: "\(snapshot.totalEvents)", label: "events")
                     summaryItem(value: "\(snapshot.stats.count)", label: "tools")
+                    if snapshot.interventionCount > 0 {
+                        summaryItem(value: "\(snapshot.interventionCount)", label: "interventions", color: .interventionColor)
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -139,14 +142,14 @@ struct ToolStatsView: View {
         }
     }
 
-    private func summaryItem(value: String, label: String) -> some View {
+    private func summaryItem(value: String, label: String, color: Color? = nil) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(value)
                 .font(.uiLabel)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(color ?? Color.textPrimary)
             Text(label)
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(color?.opacity(0.7) ?? Color.textTertiary)
         }
     }
 

@@ -22,7 +22,7 @@ final class ClaudeHooksInstaller {
         ]
 
         var existingHooks = settings["hooks"] as? [String: Any] ?? [:]
-        for eventName in ["Stop", "Notification", "PreToolUse", "PostToolUse", "SubagentStop"] {
+        for eventName in ["Stop", "Notification", "PreToolUse", "PostToolUse", "SubagentStop", "PermissionRequest", "UserPromptSubmit"] {
             var entries = existingHooks[eventName] as? [[String: Any]] ?? []
             // 既存の ccui エントリを除去してから追加（冪等性）
             entries.removeAll { entry in

@@ -7,6 +7,8 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
         case preToolUse = "PreToolUse"
         case postToolUse = "PostToolUse"
         case subagentStop = "SubagentStop"
+        case permissionRequest = "PermissionRequest"
+        case userPromptSubmit = "UserPromptSubmit"
     }
 
     let hookEventName: HookEventName
