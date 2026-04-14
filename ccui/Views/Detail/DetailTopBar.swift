@@ -9,6 +9,7 @@ struct DetailTopBar: View {
     @Binding var isClaudeMdVisible: Bool
     @Binding var isEvaluationVisible: Bool
     @Binding var isHooksVisible: Bool
+    @Binding var isPermissionsVisible: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -57,6 +58,14 @@ struct DetailTopBar: View {
                     isActive: isHooksVisible
                 ) {
                     isHooksVisible.toggle()
+                }
+
+                topBarButton(
+                    icon: "lock.shield",
+                    label: "Perms",
+                    isActive: isPermissionsVisible
+                ) {
+                    isPermissionsVisible.toggle()
                 }
 
                 topBarButton(
