@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @Observable
 @MainActor
@@ -57,7 +58,12 @@ final class WorktreeStore: Identifiable {
         await loadStatus()
 
         for wt in worktrees {
-            try? ClaudeHooksInstaller.install(worktreePath: wt.path)
+            do {
+                try ClaudeHooksInstaller.install(worktreePath: wt.path)
+            } catch {
+                Logger.store.error("Failed to install hooks for \(wt.path, privacy: .public): \(error)")
+                errorMessage = "Hook install failed: \(error.localizedDescription)"
+            }
         }
 
         onWorktreesLoaded?(worktrees)

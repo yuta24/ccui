@@ -6,6 +6,7 @@ import OSLog
 final class WorktreeSessionStore {
     private(set) var entries: [String: [WorktreeSessionEntry]] = [:]
     private let persistence: any WorktreeSessionPersistence
+    private var debouncedSaveTask: Task<Void, Never>?
 
     init(persistence: any WorktreeSessionPersistence = JSONFileWorktreeSessionPersistence()) {
         self.persistence = persistence
@@ -34,6 +35,7 @@ final class WorktreeSessionStore {
     func createSession(for worktreePath: String) -> String {
         let entry = WorktreeSessionEntry(sessionId: UUID().uuidString, createdAt: Date())
         entries[worktreePath, default: []].append(entry)
+        save()
         return entry.sessionId
     }
 
@@ -43,6 +45,7 @@ final class WorktreeSessionStore {
               let index = list.firstIndex(where: { $0.sessionId == sessionId }) else { return }
         list[index].title = title
         entries[worktreePath] = list
+        scheduleSave()
     }
 
     /// セッションを削除する
@@ -59,6 +62,17 @@ final class WorktreeSessionStore {
 
     func removeExcept(_ paths: Set<String>) {
         entries = entries.filter { paths.contains($0.key) }
+        save()
+    }
+
+    /// デバウンス付き保存（高頻度な updateTitle 用）
+    private func scheduleSave() {
+        debouncedSaveTask?.cancel()
+        debouncedSaveTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            save()
+        }
     }
 
     func save() {

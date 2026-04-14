@@ -4,11 +4,12 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
     let id: String
     let worktreePath: String
     private(set) var events: [ClaudeEvent]
+    private(set) var isTruncated: Bool
     private(set) var outcome: SessionOutcome?
     private(set) var failureReasons: Set<FailureReason>
 
     private enum CodingKeys: String, CodingKey {
-        case id, worktreePath, events, outcome, failureReasons
+        case id, worktreePath, events, isTruncated, outcome, failureReasons
     }
 
     init(from decoder: Decoder) throws {
@@ -16,6 +17,7 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
         id = try container.decode(String.self, forKey: .id)
         worktreePath = try container.decode(String.self, forKey: .worktreePath)
         events = try container.decode([ClaudeEvent].self, forKey: .events)
+        isTruncated = try container.decodeIfPresent(Bool.self, forKey: .isTruncated) ?? false
         let rawOutcome = try container.decodeIfPresent(String.self, forKey: .outcome)
         outcome = rawOutcome.flatMap(SessionOutcome.init(rawValue:))
         let rawReasons = try container.decodeIfPresent([String].self, forKey: .failureReasons) ?? []
@@ -45,6 +47,7 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
         self.id = id
         self.worktreePath = worktreePath
         self.events = events
+        self.isTruncated = false
         self.outcome = nil
         self.failureReasons = []
     }
@@ -53,6 +56,7 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
         events.append(event)
         if events.count > maxEvents {
             events.removeFirst()
+            isTruncated = true
         }
     }
 
@@ -65,7 +69,7 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
 extension AgentSession: Equatable {
     nonisolated static func == (lhs: AgentSession, rhs: AgentSession) -> Bool {
         lhs.id == rhs.id && lhs.worktreePath == rhs.worktreePath && lhs.events == rhs.events
-            && lhs.outcome == rhs.outcome && lhs.failureReasons == rhs.failureReasons
+            && lhs.isTruncated == rhs.isTruncated && lhs.outcome == rhs.outcome && lhs.failureReasons == rhs.failureReasons
     }
 }
 

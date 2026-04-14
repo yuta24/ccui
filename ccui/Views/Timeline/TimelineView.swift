@@ -5,6 +5,7 @@ struct TimelineView: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @State private var cachedEvents: [ClaudeEvent] = []
     @State private var cachedInterventionIds: Set<UUID> = []
+    @State private var hasTruncatedSessions: Bool = false
 
     var body: some View {
         let events = cachedEvents
@@ -14,6 +15,10 @@ struct TimelineView: View {
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
+
+            if hasTruncatedSessions {
+                truncatedBanner
+            }
 
             if events.isEmpty {
                 emptyState
@@ -58,6 +63,23 @@ struct TimelineView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+    }
+
+    // MARK: - Truncated Banner
+
+    private var truncatedBanner: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.orange)
+            Text("Older events were dropped (limit: \(claudeEventStore.maxEventsPerSessionLimit)). Metrics may be inaccurate.")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1))
     }
 
     // MARK: - Empty State
@@ -115,5 +137,6 @@ struct TimelineView: View {
             .sorted(by: { $0.receivedAt < $1.receivedAt })
         cachedEvents = events
         cachedInterventionIds = Set(InterventionDetector.interventions(in: events).map(\.id))
+        hasTruncatedSessions = worktreeSessions.values.contains(where: \.isTruncated)
     }
 }

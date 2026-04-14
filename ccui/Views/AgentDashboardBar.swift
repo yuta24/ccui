@@ -10,7 +10,13 @@ struct AgentDashboardBar: View {
         let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || notified > 0)
 
         HStack(spacing: 12) {
-            if hasStatus {
+            if let loadError = claudeEventStore.loadError {
+                statusItem(
+                    icon: "exclamationmark.triangle.fill",
+                    color: .diffDeletion,
+                    label: loadError
+                )
+            } else if hasStatus {
                 if active > 0 {
                     statusItem(
                         icon: "hammer",

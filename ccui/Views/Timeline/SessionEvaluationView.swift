@@ -72,6 +72,10 @@ struct SessionEvaluationView: View {
     private func evaluationContent(_ eval: SessionEvaluation) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                if store.isTruncated {
+                    truncatedBanner
+                    divider
+                }
                 autonomySection(eval)
                 divider
                 summarySection(eval)
@@ -93,6 +97,23 @@ struct SessionEvaluationView: View {
         Rectangle()
             .fill(Color.borderSubtle)
             .frame(height: 1)
+    }
+
+    // MARK: - Truncated Banner
+
+    private var truncatedBanner: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(.orange)
+            Text("Older events were dropped. Scores may be inaccurate.")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1))
     }
 
     // MARK: - Autonomy Score

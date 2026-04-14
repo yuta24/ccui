@@ -10,11 +10,14 @@ final class ClaudeEventStore {
     /// worktree パスごとの既読タイムスタンプ（この時刻以前のイベントは確認済み）
     private(set) var acknowledgedUpTo: [String: Date] = [:]
 
+    /// ディスクからの読み込みに失敗した場合のエラーメッセージ
+    private(set) var loadError: String?
+
     private let listenerService = UDSListenerService()
     private let persistenceActor: PersistenceActor
     private var knownWorktreePaths: Set<String> = []
 
-    private let maxEventsPerSession = 50
+    let maxEventsPerSessionLimit = 50
     private let maxSessionsPerWorktree = 20
     /// ディスク上に保持するワークツリーごとのセッション数上限
     private let maxDiskSessionsPerWorktree = 100
@@ -152,7 +155,7 @@ final class ClaudeEventStore {
 
         var worktreeSessions = sessions[resolvedPath] ?? [:]
         var session = worktreeSessions[sid] ?? AgentSession(id: sid, worktreePath: resolvedPath)
-        session.append(event, maxEvents: maxEventsPerSession)
+        session.append(event, maxEvents: maxEventsPerSessionLimit)
         worktreeSessions[sid] = session
 
         if worktreeSessions.count > maxSessionsPerWorktree {
@@ -214,7 +217,9 @@ final class ClaudeEventStore {
             }
             sessions = loaded
         } catch {
+            Logger.store.error("Failed to load claude events from disk: \(error)")
             sessions = [:]
+            loadError = "Failed to load session history: \(error.localizedDescription)"
         }
     }
 }
