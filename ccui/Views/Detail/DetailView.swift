@@ -22,6 +22,7 @@ struct DetailView: View {
     @State private var bottomPanelCursorPushed = false
     @State private var claudeMdStore = ClaudeMdStore()
     @State private var sessionEvaluationStore = SessionEvaluationStore()
+    @State private var reversedSessions: [WorktreeSessionEntry] = []
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
@@ -88,6 +89,7 @@ struct DetailView: View {
             diffStore.reset()
             codeViewerStore.reset()
             startWatching()
+            reversedSessions = (worktreeSessionStore.entries[worktree.path] ?? []).reversed()
         }
         .onDisappear {
             diffStore.stopWatching()
@@ -102,6 +104,7 @@ struct DetailView: View {
             claudeMdStore.reset()
             sessionEvaluationStore.close()
             codeViewerStore.reset()
+            reversedSessions = (worktreeSessionStore.entries[newWorktree.path] ?? []).reversed()
             diffStore.reset()
             fileOverlayStore.deselectFile()
             startWatching()
@@ -113,6 +116,9 @@ struct DetailView: View {
             if isOpen, diffStore.needsLoad {
                 Task { await diffStore.load(repositoryPath: worktree.path) }
             }
+        }
+        .onChange(of: worktreeSessionStore.entries[worktree.path]) { _, newEntries in
+            reversedSessions = (newEntries ?? []).reversed()
         }
         .onChange(of: fileTreeStore?.selectedNode) { _, newValue in
             guard let node = newValue, !node.isDirectory else { return }
@@ -191,7 +197,7 @@ struct DetailView: View {
     }
 
     private var sessionLauncherView: some View {
-        let sessions = worktreeSessionStore.entries[worktree.path] ?? []
+        let sessions = reversedSessions
         return VStack(spacing: 0) {
             if sessions.isEmpty {
                 Spacer()
@@ -241,7 +247,7 @@ struct DetailView: View {
 
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(sessions.reversed(), id: \.sessionId) { entry in
+                            ForEach(sessions, id: \.sessionId) { entry in
                                 SessionAnnotationRow(
                                     entry: entry,
                                     worktreePath: worktree.path,

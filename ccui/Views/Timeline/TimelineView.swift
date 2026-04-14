@@ -3,17 +3,12 @@ import SwiftUI
 struct TimelineView: View {
     let worktreePath: String
     @Environment(ClaudeEventStore.self) private var claudeEventStore
-
-    private var sortedEvents: [ClaudeEvent] {
-        let worktreeSessions = claudeEventStore.sessions[worktreePath] ?? [:]
-        return worktreeSessions.values
-            .flatMap(\.events)
-            .sorted(by: { $0.receivedAt < $1.receivedAt })
-    }
+    @State private var cachedEvents: [ClaudeEvent] = []
+    @State private var cachedInterventionIds: Set<UUID> = []
 
     var body: some View {
-        let events = sortedEvents
-        let interventionIds = Set(InterventionDetector.interventions(in: events).map(\.id))
+        let events = cachedEvents
+        let interventionIds = cachedInterventionIds
         VStack(alignment: .leading, spacing: 0) {
             header(eventCount: events.count, interventionCount: interventionIds.count)
             Rectangle()
@@ -30,6 +25,13 @@ struct TimelineView: View {
         .background(Color.surfacePrimary)
         .overlay(alignment: .leading) {
             Rectangle().fill(Color.borderSubtle).frame(width: 1)
+        }
+        .onAppear { recomputeCache() }
+        .onChange(of: worktreePath) { _, _ in
+            recomputeCache()
+        }
+        .onChange(of: claudeEventStore.sessions[worktreePath]) { _, _ in
+            recomputeCache()
         }
     }
 
@@ -104,5 +106,14 @@ struct TimelineView: View {
                 }
             }
         }
+    }
+
+    private func recomputeCache() {
+        let worktreeSessions = claudeEventStore.sessions[worktreePath] ?? [:]
+        let events = worktreeSessions.values
+            .flatMap(\.events)
+            .sorted(by: { $0.receivedAt < $1.receivedAt })
+        cachedEvents = events
+        cachedInterventionIds = Set(InterventionDetector.interventions(in: events).map(\.id))
     }
 }

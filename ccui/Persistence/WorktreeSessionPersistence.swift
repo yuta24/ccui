@@ -1,6 +1,6 @@
 import Foundation
 
-struct WorktreeSessionEntry: Codable, Sendable {
+struct WorktreeSessionEntry: Codable, Sendable, Equatable {
     let sessionId: String
     let createdAt: Date
     var title: String?
