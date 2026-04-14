@@ -16,18 +16,21 @@ struct DetailView: View {
     @State private var isStatsVisible = false
     @State private var isClaudeMdVisible = false
     @State private var isEvaluationVisible = false
+    @State private var isHooksVisible = false
     @State private var isBottomPanelExpanded = false
     @State private var bottomPanelHeight: CGFloat = 220
     @GestureState private var bottomPanelDragOffset: CGFloat = 0
     @State private var bottomPanelCursorPushed = false
     @State private var claudeMdStore = ClaudeMdStore()
     @State private var sessionEvaluationStore = SessionEvaluationStore()
+    @State private var hooksStore = HooksStore()
+    @State private var hookTestRunner = HookTestRunner()
     @State private var reversedSessions: [WorktreeSessionEntry] = []
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible, isClaudeMdVisible: $isClaudeMdVisible, isEvaluationVisible: $isEvaluationVisible)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible, isClaudeMdVisible: $isClaudeMdVisible, isEvaluationVisible: $isEvaluationVisible, isHooksVisible: $isHooksVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -46,6 +49,9 @@ struct DetailView: View {
                     }
                     if isEvaluationVisible {
                         SessionEvaluationView(store: sessionEvaluationStore, isVisible: $isEvaluationVisible)
+                    }
+                    if isHooksVisible {
+                        HooksPanelView(worktreePath: worktree.path, store: hooksStore, testRunner: hookTestRunner)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -99,10 +105,12 @@ struct DetailView: View {
             isStatsVisible = false
             isClaudeMdVisible = false
             isEvaluationVisible = false
+            isHooksVisible = false
             isBottomPanelExpanded = false
             bottomPanelHeight = 220
             claudeMdStore.reset()
             sessionEvaluationStore.close()
+            hooksStore.reset()
             codeViewerStore.reset()
             reversedSessions = (worktreeSessionStore.entries[newWorktree.path] ?? []).reversed()
             diffStore.reset()

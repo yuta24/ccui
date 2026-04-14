@@ -8,6 +8,7 @@ struct DetailTopBar: View {
     @Binding var isStatsVisible: Bool
     @Binding var isClaudeMdVisible: Bool
     @Binding var isEvaluationVisible: Bool
+    @Binding var isHooksVisible: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -48,6 +49,14 @@ struct DetailTopBar: View {
                     isActive: isEvaluationVisible
                 ) {
                     isEvaluationVisible.toggle()
+                }
+
+                topBarButton(
+                    icon: "bolt.fill",
+                    label: "Hooks",
+                    isActive: isHooksVisible
+                ) {
+                    isHooksVisible.toggle()
                 }
 
                 topBarButton(
