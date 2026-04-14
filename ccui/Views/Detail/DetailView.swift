@@ -5,24 +5,28 @@ struct DetailView: View {
     let fileTreeStore: FileTreeStore?
     let fileOverlayStore: FileOverlayStore
     let codeViewerStore: CodeViewerStore
+    let sessionComparisonStore: SessionComparisonStore
     @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
+    @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(ShellSessionStore.self) private var shellSessionStore
     @State private var isTimelineVisible = false
     @State private var isStatsVisible = false
     @State private var isClaudeMdVisible = false
+    @State private var isEvaluationVisible = false
     @State private var isBottomPanelExpanded = false
     @State private var bottomPanelHeight: CGFloat = 220
     @GestureState private var bottomPanelDragOffset: CGFloat = 0
     @State private var bottomPanelCursorPushed = false
     @State private var claudeMdStore = ClaudeMdStore()
+    @State private var sessionEvaluationStore = SessionEvaluationStore()
 
     var body: some View {
         let _ = fileOverlayStore.isVisible // establish @Observable tracking for onChange
         VStack(spacing: 0) {
-            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible, isClaudeMdVisible: $isClaudeMdVisible)
+            DetailTopBar(worktree: worktree, fileOverlayStore: fileOverlayStore, hasActiveSession: hasActiveSession, isTimelineVisible: $isTimelineVisible, isStatsVisible: $isStatsVisible, isClaudeMdVisible: $isClaudeMdVisible, isEvaluationVisible: $isEvaluationVisible)
             Rectangle()
                 .fill(Color.borderSubtle)
                 .frame(height: 1)
@@ -38,6 +42,9 @@ struct DetailView: View {
                     }
                     if isClaudeMdVisible {
                         ClaudeMdPanelView(repositoryPath: repositoryPath, store: claudeMdStore)
+                    }
+                    if isEvaluationVisible {
+                        SessionEvaluationView(store: sessionEvaluationStore, isVisible: $isEvaluationVisible)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -89,9 +96,11 @@ struct DetailView: View {
             isTimelineVisible = false
             isStatsVisible = false
             isClaudeMdVisible = false
+            isEvaluationVisible = false
             isBottomPanelExpanded = false
             bottomPanelHeight = 220
             claudeMdStore.reset()
+            sessionEvaluationStore.close()
             codeViewerStore.reset()
             diffStore.reset()
             fileOverlayStore.deselectFile()
@@ -237,7 +246,23 @@ struct DetailView: View {
                                     entry: entry,
                                     worktreePath: worktree.path,
                                     onResume: { resumeSession(sessionId: entry.sessionId) },
-                                    onDelete: { worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId) }
+                                    onDelete: { worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId) },
+                                    onEvaluate: {
+                                        if let session = claudeEventStore.sessions[worktree.path]?[entry.sessionId] {
+                                            sessionEvaluationStore.open(session: session, title: entry.title)
+                                            isEvaluationVisible = true
+                                        }
+                                    },
+                                    onCompare: { otherEntry in
+                                        if let sessionA = claudeEventStore.sessions[worktree.path]?[entry.sessionId],
+                                           let sessionB = claudeEventStore.sessions[worktree.path]?[otherEntry.sessionId] {
+                                            sessionComparisonStore.open(sessionA: sessionA, titleA: entry.title, sessionB: sessionB, titleB: otherEntry.title)
+                                        }
+                                    },
+                                    availableSessions: sessions.filter {
+                                        $0.sessionId != entry.sessionId
+                                            && claudeEventStore.sessions[worktree.path]?[$0.sessionId] != nil
+                                    }
                                 )
                             }
                         }

@@ -7,6 +7,7 @@ struct DetailTopBar: View {
     @Binding var isTimelineVisible: Bool
     @Binding var isStatsVisible: Bool
     @Binding var isClaudeMdVisible: Bool
+    @Binding var isEvaluationVisible: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -39,6 +40,14 @@ struct DetailTopBar: View {
                     isActive: isClaudeMdVisible
                 ) {
                     isClaudeMdVisible.toggle()
+                }
+
+                topBarButton(
+                    icon: "checkmark.seal",
+                    label: "Eval",
+                    isActive: isEvaluationVisible
+                ) {
+                    isEvaluationVisible.toggle()
                 }
 
                 topBarButton(

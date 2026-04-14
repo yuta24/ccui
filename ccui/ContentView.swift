@@ -10,6 +10,7 @@ struct ContentView: View {
     @GestureState private var dragOffset: CGFloat = 0
     @State private var sidebarCursorPushed = false
     @State private var fileOverlayStore = FileOverlayStore()
+    @State private var sessionComparisonStore = SessionComparisonStore()
     @State private var codeViewerStore = CodeViewerStore()
     @State private var diffStore = DiffStore()
     @State private var quickOpenStore = QuickOpenStore()
@@ -57,7 +58,8 @@ struct ContentView: View {
                             worktree: worktree,
                             fileTreeStore: coordinator.fileTreeStore,
                             fileOverlayStore: fileOverlayStore,
-                            codeViewerStore: codeViewerStore
+                            codeViewerStore: codeViewerStore,
+                            sessionComparisonStore: sessionComparisonStore
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.surfacePrimary)
@@ -67,6 +69,11 @@ struct ContentView: View {
                 }
             }
             .background(Color.surfaceBase)
+
+            if sessionComparisonStore.isVisible {
+                SessionComparisonView(store: sessionComparisonStore)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
 
             if fileOverlayStore.isVisible, let worktree = coordinator.selectedWorktree {
                 FileOverlayView(
@@ -91,6 +98,7 @@ struct ContentView: View {
         }
         .environment(diffStore)
         .animation(.easeInOut(duration: 0.2), value: fileOverlayStore.isVisible)
+        .animation(.easeInOut(duration: 0.2), value: sessionComparisonStore.isVisible)
         .animation(.easeInOut(duration: 0.15), value: quickOpenStore.isVisible)
         .onChange(of: fileOverlayStore.isVisible) { _, newValue in
             if !newValue {
@@ -100,6 +108,7 @@ struct ContentView: View {
         }
         .onChange(of: coordinator.selectedWorktree) { _, newValue in
             fileOverlayStore.close()
+            sessionComparisonStore.close()
             quickOpenStore.close()
             searchStore.deactivate()
             if let wt = newValue {
@@ -166,7 +175,7 @@ struct ContentView: View {
             escMonitor = nil
         }
 
-        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore, quickOpenStore, searchStore, coordinator] event in
+        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [fileOverlayStore, quickOpenStore, searchStore, coordinator, sessionComparisonStore] event in
             // Cmd+F → file search
             if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift) && event.keyCode == 3 {
                 guard coordinator.selectedWorktree != nil else { return event }
@@ -195,6 +204,12 @@ struct ContentView: View {
                     fileOverlayStore.open()
                 }
                 searchStore.activate(mode: .content)
+                return nil
+            }
+
+            // Esc to close comparison overlay
+            if event.keyCode == 53, sessionComparisonStore.isVisible {
+                sessionComparisonStore.close()
                 return nil
             }
 

@@ -5,9 +5,13 @@ struct SessionAnnotationRow: View {
     let worktreePath: String
     let onResume: () -> Void
     let onDelete: () -> Void
+    var onEvaluate: (() -> Void)?
+    var onCompare: ((WorktreeSessionEntry) -> Void)?
+    var availableSessions: [WorktreeSessionEntry] = []
 
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @State private var showAnnotationPopover = false
+    @State private var showComparePicker = false
 
     private var session: AgentSession? {
         claudeEventStore.sessions[worktreePath]?[entry.sessionId]
@@ -79,9 +83,23 @@ struct SessionAnnotationRow: View {
         .buttonStyle(.plain)
         .background(Color.surfacePrimary)
         .contextMenu {
+            if let onEvaluate {
+                Button { onEvaluate() } label: {
+                    Label("Evaluate", systemImage: "checkmark.seal")
+                }
+            }
+            if onCompare != nil, !availableSessions.isEmpty {
+                Button { showComparePicker = true } label: {
+                    Label("Compare with...", systemImage: "arrow.left.arrow.right")
+                }
+            }
+            Divider()
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
             }
+        }
+        .sheet(isPresented: $showComparePicker) {
+            comparePickerSheet
         }
     }
 
@@ -204,6 +222,58 @@ struct SessionAnnotationRow: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+    // MARK: - Compare Picker
+
+    private var comparePickerSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Compare with")
+                    .font(.uiLabel)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Button("Cancel") { showComparePicker = false }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accent)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            Rectangle().fill(Color.borderSubtle).frame(height: 1)
+
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(availableSessions, id: \.sessionId) { other in
+                        Button {
+                            showComparePicker = false
+                            onCompare?(other)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "terminal")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.textTertiary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(other.title ?? String(other.sessionId.prefix(8)))
+                                        .font(.uiLabel)
+                                        .foregroundStyle(Color.textPrimary)
+                                        .lineLimit(1)
+                                    Text(other.createdAt, style: .date)
+                                        .font(.uiCaption)
+                                        .foregroundStyle(Color.textTertiary)
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .frame(width: 320, height: 280)
+        .background(Color.surfacePrimary)
     }
 }
 
