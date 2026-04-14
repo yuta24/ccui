@@ -139,8 +139,9 @@ final class WorktreeStore: Identifiable {
             self.reloadTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { return }
+                self.stopWatching()
+                defer { self.startWatching() }
                 await self.load()
-                self.startWatching()
             }
         }
     }
