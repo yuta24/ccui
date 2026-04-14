@@ -12,14 +12,23 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
         self.label = label
         terminalView = LocalProcessTerminalView(frame: .zero)
-        var env = Terminal.getEnvironmentVariables(termName: "xterm-256color")
-        env.append(contentsOf: additionalEnvironment)
-        env.append("CCUI_SESSION=1")
+        var env = ProcessInfo.processInfo.environment
+        env["TERM"] = "xterm-256color"
+        env["COLORTERM"] = "truecolor"
+        env["LANG"] = "en_US.UTF-8"
+        for entry in additionalEnvironment {
+            let parts = entry.split(separator: "=", maxSplits: 1)
+            if parts.count == 2 {
+                env[String(parts[0])] = String(parts[1])
+            }
+        }
+        env["CCUI_SESSION"] = "1"
+        let envStrings = env.map { "\($0.key)=\($0.value)" }
         terminalView.processDelegate = self
         terminalView.startProcess(
             executable: executable,
             args: args,
-            environment: env,
+            environment: envStrings,
             currentDirectory: workingDirectory
         )
     }
