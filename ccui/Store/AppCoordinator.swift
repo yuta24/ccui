@@ -37,6 +37,7 @@ final class AppCoordinator {
         }
 
         for key in worktreeStores.keys where !validIDs.contains(key) {
+            worktreeStores[key]?.tearDown()
             worktreeStores.removeValue(forKey: key)
         }
 

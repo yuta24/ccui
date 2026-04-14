@@ -19,6 +19,7 @@ final class DiffStore {
     private var loadToken = UUID()
     private var watcher: FileWatcherService?
     private var currentRepositoryPath: String?
+    private var debounceTask: Task<Void, Never>?
 
     func load(repositoryPath: String) async {
         isDirty = false
@@ -74,7 +75,12 @@ final class DiffStore {
         watcher.start(path: repositoryPath) { [weak self] in
             guard let self, let path = self.currentRepositoryPath else { return }
             if overlayIsVisible() {
-                Task { await self.load(repositoryPath: path) }
+                self.debounceTask?.cancel()
+                self.debounceTask = Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    guard !Task.isCancelled else { return }
+                    await self.load(repositoryPath: path)
+                }
             } else {
                 self.isDirty = true
             }
@@ -82,6 +88,8 @@ final class DiffStore {
     }
 
     func stopWatching() {
+        debounceTask?.cancel()
+        debounceTask = nil
         watcher?.stop()
         watcher = nil
     }

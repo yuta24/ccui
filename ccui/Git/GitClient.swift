@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 enum GitClient {
 
@@ -68,6 +69,8 @@ enum GitClient {
 
     // MARK: - Process
 
+    private nonisolated static let processTimeout: TimeInterval = 30
+
     nonisolated private static func run(_ args: [String], at directoryPath: String) throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
@@ -80,7 +83,20 @@ enum GitClient {
         process.standardError = stderr
 
         try process.run()
+
+        let didTimeout = OSAllocatedUnfairLock(initialState: false)
+        let timeoutItem = DispatchWorkItem { [process] in
+            didTimeout.withLock { $0 = true }
+            if process.isRunning { process.terminate() }
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + processTimeout, execute: timeoutItem)
+
         process.waitUntilExit()
+        timeoutItem.cancel()
+
+        if didTimeout.withLock({ $0 }) {
+            throw GitError.timeout
+        }
 
         let outData = stdout.fileHandleForReading.readDataToEndOfFile()
         let errData = stderr.fileHandleForReading.readDataToEndOfFile()
@@ -105,7 +121,28 @@ enum GitClient {
             process.standardOutput = stdout
             process.standardError = stderr
 
+            let state = OSAllocatedUnfairLock(initialState: (resumed: false, timedOut: false))
+
+            let timeoutItem = DispatchWorkItem { [process] in
+                state.withLock { $0.timedOut = true }
+                if process.isRunning { process.terminate() }
+            }
+
             process.terminationHandler = { terminatedProcess in
+                timeoutItem.cancel()
+
+                let (alreadyResumed, didTimeout) = state.withLock { val in
+                    let result = (val.resumed, val.timedOut)
+                    val.resumed = true
+                    return result
+                }
+                guard !alreadyResumed else { return }
+
+                if didTimeout {
+                    continuation.resume(throwing: GitError.timeout)
+                    return
+                }
+
                 let outData = stdout.fileHandleForReading.readDataToEndOfFile()
                 let errData = stderr.fileHandleForReading.readDataToEndOfFile()
 
@@ -119,7 +156,9 @@ enum GitClient {
 
             do {
                 try process.run()
+                DispatchQueue.global().asyncAfter(deadline: .now() + processTimeout, execute: timeoutItem)
             } catch {
+                timeoutItem.cancel()
                 process.terminationHandler = nil
                 continuation.resume(throwing: error)
             }

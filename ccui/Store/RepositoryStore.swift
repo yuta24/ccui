@@ -5,6 +5,8 @@ import OSLog
 @MainActor
 final class RepositoryStore {
     private(set) var repositories: [Repository] = []
+    /// ディスク上に存在しないリポジトリパスのセット
+    private(set) var missingPaths: Set<String> = []
     private let persistence: any RepositoryPersistence
 
     init(persistence: any RepositoryPersistence) {
@@ -15,6 +17,20 @@ final class RepositoryStore {
             Logger.store.error("Failed to load repositories: \(error)")
             repositories = []
         }
+        refreshMissingPaths()
+    }
+
+    func exists(_ repository: Repository) -> Bool {
+        !missingPaths.contains(repository.path)
+    }
+
+    func refreshMissingPaths() {
+        let fm = FileManager.default
+        missingPaths = Set(
+            repositories
+                .filter { !fm.fileExists(atPath: $0.path) }
+                .map(\.path)
+        )
     }
 
     func addRepository(at url: URL) {
@@ -26,10 +42,12 @@ final class RepositoryStore {
         let repo = Repository(name: name, path: path)
         repositories.append(repo)
         persist()
+        refreshMissingPaths()
     }
 
     func remove(_ repository: Repository) {
         repositories.removeAll { $0.id == repository.id }
+        missingPaths.remove(repository.path)
         persist()
     }
 

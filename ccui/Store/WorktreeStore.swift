@@ -19,12 +19,7 @@ final class WorktreeStore: Identifiable {
     private let repository: Repository
     private var loadToken = UUID()
     private let watcher = GitDirectoryWatcher()
-    // Accessed from deinit (nonisolated). Task.cancel() is thread-safe.
-    nonisolated(unsafe) private var _reloadTask: Task<Void, Never>?
-    private var reloadTask: Task<Void, Never>? {
-        get { _reloadTask }
-        set { _reloadTask = newValue }
-    }
+    private var reloadTask: Task<Void, Never>?
 
     init(repository: Repository) {
         self.id = repository.id
@@ -32,8 +27,10 @@ final class WorktreeStore: Identifiable {
         self.repository = repository
     }
 
-    deinit {
-        _reloadTask?.cancel()
+    func tearDown() {
+        reloadTask?.cancel()
+        reloadTask = nil
+        stopWatching()
     }
 
     func load() async {

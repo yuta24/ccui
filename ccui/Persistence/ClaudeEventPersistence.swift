@@ -7,6 +7,8 @@ protocol ClaudeEventPersistence: Sendable {
     func saveSession(_ session: AgentSession, worktreePath: String) throws
     func removeSession(_ sessionId: String, worktreePath: String) throws
     func removeWorktree(_ worktreePath: String) throws
+    /// ワークツリーごとのディスク上セッション数を maxPerWorktree 以下に削減する
+    func pruneOldSessions(maxPerWorktree: Int) throws
 }
 
 struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
@@ -102,6 +104,46 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
             index.removeValue(forKey: worktreePath)
             let newData = try JSONEncoder().encode(index)
             try newData.write(to: indexURL, options: .atomic)
+        }
+    }
+
+    func pruneOldSessions(maxPerWorktree: Int) throws {
+        let fm = FileManager.default
+        let indexURL = baseDirectory.appendingPathComponent("index.json")
+        guard fm.fileExists(atPath: indexURL.path) else { return }
+
+        let indexData = try Data(contentsOf: indexURL)
+        let index = try JSONDecoder().decode([String: String].self, from: indexData)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        for (_, dirName) in index {
+            let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+            guard fm.fileExists(atPath: worktreeDir.path) else { continue }
+
+            let files = try fm.contentsOfDirectory(atPath: worktreeDir.path)
+                .filter { $0.hasSuffix(".json") }
+            guard files.count > maxPerWorktree else { continue }
+
+            // 各ファイルの最終イベント日時を取得し、古い順にソート（デコード不可のファイルは最古扱い）
+            var entries: [(file: String, lastEvent: Date)] = []
+            for file in files {
+                let fileURL = worktreeDir.appendingPathComponent(file)
+                if let data = try? Data(contentsOf: fileURL),
+                   let session = try? decoder.decode(AgentSession.self, from: data) {
+                    entries.append((file, session.lastEventAt ?? .distantPast))
+                } else {
+                    entries.append((file, .distantPast))
+                }
+            }
+            entries.sort { $0.lastEvent < $1.lastEvent }
+
+            let toRemove = entries.count - maxPerWorktree
+            for entry in entries.prefix(toRemove) {
+                let fileURL = worktreeDir.appendingPathComponent(entry.file)
+                try? fm.removeItem(at: fileURL)
+                Logger.persistence.info("Pruned old session file: \(entry.file, privacy: .public)")
+            }
         }
     }
 

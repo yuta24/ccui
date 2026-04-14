@@ -16,6 +16,8 @@ final class ClaudeEventStore {
 
     private let maxEventsPerSession = 50
     private let maxSessionsPerWorktree = 20
+    /// ディスク上に保持するワークツリーごとのセッション数上限
+    private let maxDiskSessionsPerWorktree = 100
 
     init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
         self.persistenceActor = PersistenceActor(persistence: persistence)
@@ -26,6 +28,7 @@ final class ClaudeEventStore {
     func start() {
         Task {
             await loadFromDisk()
+            await persistenceActor.pruneOldSessions(maxPerWorktree: maxDiskSessionsPerWorktree)
             listenerService.start { [weak self] payload in
                 self?.handle(payload)
             }
@@ -196,7 +199,7 @@ final class ClaudeEventStore {
     private func loadFromDisk() async {
         do {
             var loaded = try await persistenceActor.loadAll()
-            // メモリ上限を適用（ディスク上は全件保持）
+            // メモリ上限を適用（ディスク上は maxDiskSessionsPerWorktree 件まで保持）
             for (path, worktreeSessions) in loaded where worktreeSessions.count > maxSessionsPerWorktree {
                 var mutable = worktreeSessions
                 let terminalSessions = mutable.values
@@ -251,6 +254,14 @@ private actor PersistenceActor {
             try persistence.removeWorktree(worktreePath)
         } catch {
             Logger.store.error("Failed to remove worktree \(worktreePath, privacy: .public): \(error)")
+        }
+    }
+
+    func pruneOldSessions(maxPerWorktree: Int) {
+        do {
+            try persistence.pruneOldSessions(maxPerWorktree: maxPerWorktree)
+        } catch {
+            Logger.store.error("Failed to prune old sessions: \(error)")
         }
     }
 }

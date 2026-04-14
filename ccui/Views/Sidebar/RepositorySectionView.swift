@@ -9,13 +9,31 @@ struct RepositorySectionView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(ShellSessionStore.self) private var shellSessionStore
 
+    private var isMissing: Bool {
+        !store.exists(repository)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionHeader
 
-            worktreeList
+            if isMissing {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.yellow)
+                    Text("Repository not found on disk")
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+            } else {
+                worktreeList
+            }
         }
         .task(id: repository.id) {
+            guard !isMissing else { return }
             if worktreeStore.worktrees.isEmpty && !worktreeStore.isLoading {
                 await worktreeStore.load()
                 worktreeStore.startWatching()
