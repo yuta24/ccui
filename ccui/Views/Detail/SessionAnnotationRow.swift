@@ -60,7 +60,7 @@ struct SessionAnnotationRow: View {
                     }
                 }
                 Spacer()
-                if isHovered || showAnnotationPopover {
+                HStack(spacing: 0) {
                     if session != nil {
                         Button {
                             showAnnotationPopover.toggle()
@@ -81,6 +81,7 @@ struct SessionAnnotationRow: View {
                         .foregroundStyle(Color.accent)
                         .frame(width: 28, height: 28)
                 }
+                .opacity(isHovered || showAnnotationPopover ? 1 : 0)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
