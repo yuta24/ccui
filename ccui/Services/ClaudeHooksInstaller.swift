@@ -1,8 +1,7 @@
 import Foundation
 
-@MainActor
 final class ClaudeHooksInstaller {
-    static func install(worktreePath: String, socketPath: String = UDSListenerService.socketPath) throws {
+    nonisolated static func install(worktreePath: String, socketPath: String = UDSListenerService.socketPath) throws {
         let claudeDir = (worktreePath as NSString).appendingPathComponent(".claude")
         let settingsPath = (claudeDir as NSString).appendingPathComponent("settings.local.json")
 

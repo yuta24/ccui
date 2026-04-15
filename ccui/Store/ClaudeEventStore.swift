@@ -234,8 +234,11 @@ private actor PersistenceActor {
         self.persistence = persistence
     }
 
-    func loadAll() throws -> [String: [String: AgentSession]] {
-        try persistence.loadAll()
+    func loadAll() async throws -> [String: [String: AgentSession]] {
+        let persistence = self.persistence
+        return try await Task.detached(priority: .utility) {
+            try persistence.loadAll()
+        }.value
     }
 
     func saveSession(_ session: AgentSession, worktreePath: String) {
@@ -262,9 +265,12 @@ private actor PersistenceActor {
         }
     }
 
-    func pruneOldSessions(maxPerWorktree: Int) {
+    func pruneOldSessions(maxPerWorktree: Int) async {
+        let persistence = self.persistence
         do {
-            try persistence.pruneOldSessions(maxPerWorktree: maxPerWorktree)
+            try await Task.detached(priority: .utility) {
+                try persistence.pruneOldSessions(maxPerWorktree: maxPerWorktree)
+            }.value
         } catch {
             Logger.store.error("Failed to prune old sessions: \(error)")
         }

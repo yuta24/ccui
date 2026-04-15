@@ -57,13 +57,22 @@ final class WorktreeStore: Identifiable {
 
         await loadStatus()
 
-        for wt in worktrees {
-            do {
-                try ClaudeHooksInstaller.install(worktreePath: wt.path)
-            } catch {
-                Logger.store.error("Failed to install hooks for \(wt.path, privacy: .public): \(error)")
-                errorMessage = "Hook install failed: \(error.localizedDescription)"
+        let paths = worktrees.map(\.path)
+        let installErrors: [(String, Error)] = await Task.detached(priority: .utility) {
+            var errors: [(String, Error)] = []
+            for path in paths {
+                do {
+                    try ClaudeHooksInstaller.install(worktreePath: path)
+                } catch {
+                    errors.append((path, error))
+                }
             }
+            return errors
+        }.value
+
+        for (path, error) in installErrors {
+            Logger.store.error("Failed to install hooks for \(path, privacy: .public): \(error)")
+            errorMessage = "Hook install failed: \(error.localizedDescription)"
         }
 
         onWorktreesLoaded?(worktrees)
@@ -85,6 +94,9 @@ final class WorktreeStore: Identifiable {
             try GitClient.addWorktree(args: args, repositoryPath: repoPath)
         }.value
 
+        reloadTask?.cancel()
+        reloadTask = nil
+        stopWatching()
         await load()
         startWatching()
     }
@@ -122,6 +134,9 @@ final class WorktreeStore: Identifiable {
             try GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: force)
         }.value
 
+        reloadTask?.cancel()
+        reloadTask = nil
+        stopWatching()
         await load()
         startWatching()
     }

@@ -73,6 +73,9 @@ private final class StreamContext: @unchecked Sendable {
     }
 
     func handleEvent() {
+        let isReleased = released.withLock { $0 }
+        guard !isReleased else { return }
+
         debounceTask?.cancel()
         debounceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
@@ -82,6 +85,12 @@ private final class StreamContext: @unchecked Sendable {
     }
 
     func invalidate() {
+        let alreadyReleased = released.withLock { value in
+            let was = value
+            value = true
+            return was
+        }
+
         debounceTask?.cancel()
         debounceTask = nil
 
@@ -92,11 +101,6 @@ private final class StreamContext: @unchecked Sendable {
             self.stream = nil
         }
 
-        let alreadyReleased = released.withLock { value in
-            let was = value
-            value = true
-            return was
-        }
         guard !alreadyReleased else { return }
         Unmanaged.passUnretained(self).release()
     }

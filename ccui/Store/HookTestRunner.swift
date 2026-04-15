@@ -44,51 +44,52 @@ final class HookTestRunner {
     private func execute(command: String, eventName: ClaudeHookPayload.HookEventName, worktreePath: String) async -> (output: String, exitCode: Int32) {
         let payload = Self.samplePayload(for: eventName, worktreePath: worktreePath)
 
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", command]
+
+        var env = ProcessInfo.processInfo.environment
+        env["CCUI_SESSION"] = "dry-run-test"
+        process.environment = env
+
+        let stdinPipe = Pipe()
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardInput = stdinPipe
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
+
+        do {
+            try process.run()
+        } catch {
+            return ("[error] \(error.localizedDescription)", -1)
+        }
+
+        runningProcess = process
+
         let result: (output: String, exitCode: Int32) = await withCheckedContinuation { continuation in
-            Task.detached(priority: .userInitiated) { [weak self] in
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/bin/sh")
-                process.arguments = ["-c", command]
+            Task.detached(priority: .userInitiated) {
+                stdinPipe.fileHandleForWriting.write(payload)
+                stdinPipe.fileHandleForWriting.closeFile()
 
-                var env = ProcessInfo.processInfo.environment
-                env["CCUI_SESSION"] = "dry-run-test"
-                process.environment = env
-
-                let stdinPipe = Pipe()
-                let stdoutPipe = Pipe()
-                let stderrPipe = Pipe()
-                process.standardInput = stdinPipe
-                process.standardOutput = stdoutPipe
-                process.standardError = stderrPipe
-
-                do {
-                    try process.run()
-                    await MainActor.run { self?.runningProcess = process }
-
-                    stdinPipe.fileHandleForWriting.write(payload)
-                    stdinPipe.fileHandleForWriting.closeFile()
-
-                    // Timeout after 10 seconds
-                    let timeoutItem = DispatchWorkItem { [weak process] in
-                        if process?.isRunning == true { process?.terminate() }
-                    }
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: timeoutItem)
-
-                    process.waitUntilExit()
-                    timeoutItem.cancel()
-
-                    let out = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                    let err = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                    var output = ""
-                    if !out.isEmpty { output += out }
-                    if !err.isEmpty { output += "[stderr] \(err)" }
-                    if output.isEmpty { output = "(no output)" }
-
-                    continuation.resume(returning: (output, process.terminationStatus))
-                } catch {
-                    continuation.resume(returning: ("[error] \(error.localizedDescription)", -1))
+                // Timeout after 10 seconds
+                let timeoutItem = DispatchWorkItem { [weak process] in
+                    if process?.isRunning == true { process?.terminate() }
                 }
+                DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: timeoutItem)
+
+                process.waitUntilExit()
+                timeoutItem.cancel()
+
+                let out = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                let err = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+                var output = ""
+                if !out.isEmpty { output += out }
+                if !err.isEmpty { output += "[stderr] \(err)" }
+                if output.isEmpty { output = "(no output)" }
+
+                continuation.resume(returning: (output, process.terminationStatus))
             }
         }
 
