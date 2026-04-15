@@ -4,6 +4,7 @@ struct AgentDashboardBar: View {
     @Binding var showingConfiguration: Bool
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
+    @Environment(DetailUIState.self) private var detailUIState
 
     var body: some View {
         let active = claudeEventStore.activeAgentCount
@@ -63,6 +64,18 @@ struct AgentDashboardBar: View {
             // Actions (right)
             HStack(spacing: 4) {
                 if coordinator.selectedWorktree != nil {
+                    Button {
+                        detailUIState.isRightPanelVisible.toggle()
+                    } label: {
+                        Image(systemName: "sidebar.trailing")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(detailUIState.isRightPanelVisible ? Color.accent : Color.textSecondary)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Inspector (⌘I)")
+
                     Button {
                         showingConfiguration.toggle()
                     } label: {

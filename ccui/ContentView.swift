@@ -29,6 +29,7 @@ struct ContentView: View {
                 AgentDashboardBar(
                     showingConfiguration: $showingConfiguration
                 )
+                .environment(detailUIState)
 
                 HStack(spacing: 0) {
                     sidebarSection
