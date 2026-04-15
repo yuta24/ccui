@@ -172,21 +172,24 @@ final class WorktreeStore: Identifiable {
     private func loadStatus() async {
         let token = loadToken
         let currentWorktrees = worktrees
-        var results: [String: Int] = [:]
-        await withTaskGroup(of: (String, Int?).self) { group in
-            for wt in currentWorktrees {
-                let wtPath = wt.path
-                group.addTask {
-                    let count = try? GitClient.statusCount(worktreePath: wtPath)
-                    return (wtPath, count)
+        let results = await Task.detached(priority: .utility) {
+            var map: [String: Int] = [:]
+            await withTaskGroup(of: (String, Int?).self) { group in
+                for wt in currentWorktrees {
+                    let wtPath = wt.path
+                    group.addTask {
+                        let count = try? GitClient.statusCount(worktreePath: wtPath)
+                        return (wtPath, count)
+                    }
+                }
+                for await (path, count) in group {
+                    if let count {
+                        map[path] = count
+                    }
                 }
             }
-            for await (path, count) in group {
-                if let count {
-                    results[path] = count
-                }
-            }
-        }
+            return map
+        }.value
         guard loadToken == token else { return }
         statusCounts = results
     }

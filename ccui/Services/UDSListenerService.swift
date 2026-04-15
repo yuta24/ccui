@@ -52,11 +52,15 @@ final class UDSListenerService {
             return
         }
 
+        // Non-blocking mode to prevent accept() from blocking the main thread
+        _ = fcntl(fd, F_SETFL, O_NONBLOCK)
+
         let newState = ListenerState(serverFd: fd)
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
         source.setEventHandler { [weak self] in
-            Task { @MainActor [weak self] in
+            // Already on main queue; acceptConnection uses non-blocking accept
+            MainActor.assumeIsolated {
                 self?.acceptConnection(serverFd: fd)
             }
         }
@@ -79,35 +83,38 @@ final class UDSListenerService {
     // MARK: - Connection Handling
 
     private func acceptConnection(serverFd: Int32) {
-        var clientAddr = sockaddr_un()
-        var clientLen = socklen_t(MemoryLayout<sockaddr_un>.size)
-        let clientFd = withUnsafeMutablePointer(to: &clientAddr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
-                Darwin.accept(serverFd, sockaddrPtr, &clientLen)
-            }
-        }
-        guard clientFd >= 0 else { return }
-
-        Task.detached(priority: .utility) { [weak self] in
-            defer { Darwin.close(clientFd) }
-
-            var data = Data()
-            var buffer = [UInt8](repeating: 0, count: 4096)
-            while true {
-                let n = Darwin.read(clientFd, &buffer, buffer.count)
-                if n > 0 {
-                    data.append(contentsOf: buffer[..<n])
-                } else {
-                    break
+        // Accept all pending connections (non-blocking socket returns EWOULDBLOCK when done)
+        while true {
+            var clientAddr = sockaddr_un()
+            var clientLen = socklen_t(MemoryLayout<sockaddr_un>.size)
+            let clientFd = withUnsafeMutablePointer(to: &clientAddr) { ptr in
+                ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
+                    Darwin.accept(serverFd, sockaddrPtr, &clientLen)
                 }
             }
+            guard clientFd >= 0 else { break }
 
-            guard !data.isEmpty else { return }
+            Task.detached(priority: .utility) { [weak self] in
+                defer { Darwin.close(clientFd) }
 
-            let decoder = JSONDecoder()
-            if let payload = try? decoder.decode(ClaudeHookPayload.self, from: data) {
-                Task { @MainActor [weak self] in
-                    self?.onEvent?(payload)
+                var data = Data()
+                var buffer = [UInt8](repeating: 0, count: 4096)
+                while true {
+                    let n = Darwin.read(clientFd, &buffer, buffer.count)
+                    if n > 0 {
+                        data.append(contentsOf: buffer[..<n])
+                    } else {
+                        break
+                    }
+                }
+
+                guard !data.isEmpty else { return }
+
+                let decoder = JSONDecoder()
+                if let payload = try? decoder.decode(ClaudeHookPayload.self, from: data) {
+                    Task { @MainActor [weak self] in
+                        self?.onEvent?(payload)
+                    }
                 }
             }
         }

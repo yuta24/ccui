@@ -91,8 +91,18 @@ struct ContentView: View {
                 searchStore.clearIndex()
             }
         }
-        .onChange(of: claudeEventStore.sessions) { _, _ in
-            if let wt = coordinator.selectedWorktree, claudeEventStore.hasUnacknowledged(for: wt.path) {
+        .onChange(of: claudeEventStore.sessions) { _, newSessions in
+            guard let wt = coordinator.selectedWorktree,
+                  let worktreeSessions = newSessions[wt.path] else { return }
+            let cutoff = claudeEventStore.acknowledgedUpTo[wt.path]
+            let hasNew = worktreeSessions.values.contains { session in
+                guard let lastEvent = session.lastEventAt else { return false }
+                let isTerminalState = session.state == .done || { if case .notified = session.state { return true }; return false }()
+                guard isTerminalState else { return false }
+                if let cutoff { return lastEvent > cutoff }
+                return true
+            }
+            if hasNew {
                 claudeEventStore.acknowledge(for: wt.path)
             }
         }
