@@ -7,6 +7,8 @@ final class RepositoryStore {
     private(set) var repositories: [Repository] = []
     /// ディスク上に存在しないリポジトリパスのセット
     private(set) var missingPaths: Set<String> = []
+    /// 直近のエラーメッセージ（UI 表示用）
+    private(set) var lastError: String?
     private let persistence: any RepositoryPersistence
 
     init(persistence: any RepositoryPersistence) {
@@ -16,6 +18,7 @@ final class RepositoryStore {
         } catch {
             Logger.store.error("Failed to load repositories: \(error)")
             repositories = []
+            lastError = "Failed to load repositories: \(error.localizedDescription)"
         }
         refreshMissingPaths()
     }
@@ -51,11 +54,16 @@ final class RepositoryStore {
         persist()
     }
 
+    func clearError() {
+        lastError = nil
+    }
+
     private func persist() {
         do {
             try persistence.save(repositories)
         } catch {
             Logger.store.error("Failed to persist repositories: \(error)")
+            lastError = "Failed to save repositories: \(error.localizedDescription)"
         }
     }
 }

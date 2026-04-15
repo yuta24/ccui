@@ -13,6 +13,10 @@ final class AppCoordinator {
     var forceDeleteTarget: (Worktree, WorktreeStore)?
     var showForceDeleteAlert = false
 
+    /// ユーザーに表示するエラーメッセージ
+    var errorMessage: String?
+    var showErrorAlert = false
+
     // MARK: - Worktree Store Lifecycle
 
     func makeWorktreeStore(for repo: Repository, claudeEventStore: ClaudeEventStore) -> WorktreeStore {
@@ -74,13 +78,21 @@ final class AppCoordinator {
     // MARK: - Selection
 
     func selectWorktree(_ wt: Worktree?, claudeEventStore: ClaudeEventStore) {
-        selectedWorktree = wt
         if let wt {
+            guard FileManager.default.fileExists(atPath: wt.path) else {
+                selectedWorktree = nil
+                fileTreeStore = nil
+                errorMessage = "Worktree path no longer exists: \(wt.path)"
+                showErrorAlert = true
+                return
+            }
+            selectedWorktree = wt
             let store = FileTreeStore(rootPath: wt.path)
             fileTreeStore = store
             claudeEventStore.acknowledge(for: wt.path)
             Task { await store.load() }
         } else {
+            selectedWorktree = nil
             fileTreeStore = nil
         }
     }
@@ -127,9 +139,13 @@ final class AppCoordinator {
                     showForceDeleteAlert = true
                 } else {
                     Logger.store.error("Failed to remove worktree: \(error)")
+                    errorMessage = error.localizedDescription
+                    showErrorAlert = true
                 }
             } catch {
                 Logger.store.error("Failed to remove worktree: \(error)")
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
@@ -148,6 +164,8 @@ final class AppCoordinator {
                 forceDeleteTarget = nil
             } catch {
                 Logger.store.error("Failed to force remove worktree: \(error)")
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }

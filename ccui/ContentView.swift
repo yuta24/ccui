@@ -144,6 +144,23 @@ struct ContentView: View {
         } message: {
             Text("This worktree has uncommitted changes. Force delete will discard them.")
         }
+        .alert("Error", isPresented: $coordinator.showErrorAlert) {
+            Button("OK", role: .cancel) {
+                coordinator.errorMessage = nil
+            }
+        } message: {
+            Text(coordinator.errorMessage ?? "An unknown error occurred.")
+        }
+        .alert("Error", isPresented: Binding(
+            get: { store.lastError != nil },
+            set: { if !$0 { store.clearError() } }
+        )) {
+            Button("OK", role: .cancel) {
+                store.clearError()
+            }
+        } message: {
+            Text(store.lastError ?? "An unknown error occurred.")
+        }
         .onAppear {
             coordinator.ensureWorktreeStores(
                 for: store.repositories,
@@ -255,32 +272,26 @@ struct ContentView: View {
         }
 
         escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [detailUIState, quickOpenStore, searchStore, coordinator, sessionComparisonStore] event in
+            let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
+            let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
             // Cmd+Shift+E → toggle Agent/Files mode
-            if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) && event.keyCode == 14 {
+            if chars == "e" && mods.contains(.command) && mods.contains(.shift) {
                 guard coordinator.selectedWorktree != nil else { return event }
                 detailUIState.contentMode = detailUIState.contentMode == .agent ? .files : .agent
                 return nil
             }
 
             // Cmd+I → toggle Right Panel (Agent mode only)
-            if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift) && event.keyCode == 34 {
+            if chars == "i" && mods.contains(.command) && !mods.contains(.shift) {
                 guard coordinator.selectedWorktree != nil else { return event }
                 guard detailUIState.contentMode == .agent else { return event }
                 detailUIState.isRightPanelVisible.toggle()
                 return nil
             }
 
-            // Cmd+F → file search (switch to Files mode)
-            if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift) && event.keyCode == 3 {
-                guard coordinator.selectedWorktree != nil else { return event }
-                quickOpenStore.close()
-                detailUIState.contentMode = .files
-                searchStore.activate(mode: .files)
-                return nil
-            }
-
-            // Cmd+Shift+F → content search (switch to Files mode)
-            if event.modifierFlags.contains(.command) && event.modifierFlags.contains(.shift) && event.keyCode == 3 {
+            // Cmd+Shift+F → content search (switch to Files mode) — check before Cmd+F
+            if chars == "f" && mods.contains(.command) && mods.contains(.shift) {
                 guard coordinator.selectedWorktree != nil else { return event }
                 quickOpenStore.close()
                 detailUIState.contentMode = .files
@@ -288,8 +299,17 @@ struct ContentView: View {
                 return nil
             }
 
+            // Cmd+F → file search (switch to Files mode)
+            if chars == "f" && mods.contains(.command) && !mods.contains(.shift) {
+                guard coordinator.selectedWorktree != nil else { return event }
+                quickOpenStore.close()
+                detailUIState.contentMode = .files
+                searchStore.activate(mode: .files)
+                return nil
+            }
+
             // Cmd+P → quick open
-            if event.modifierFlags.contains(.command) && event.keyCode == 35 {
+            if chars == "p" && mods.contains(.command) {
                 guard coordinator.selectedWorktree != nil else { return event }
                 if !quickOpenStore.isVisible {
                     searchStore.deactivate()

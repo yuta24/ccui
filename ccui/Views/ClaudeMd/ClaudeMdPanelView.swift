@@ -16,6 +16,28 @@ struct ClaudeMdPanelView: View {
                 .frame(height: 1)
             ClaudeMdEditorView(store: store)
                 .frame(maxHeight: .infinity)
+
+            if let error = store.lastError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Color.diffDeletion)
+                    Text(error)
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.diffDeletion)
+                    Spacer()
+                    Button {
+                        store.lastError = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.diffDeletionBg)
+            }
         }
         .frame(width: 360)
         .background(Color.surfacePrimary)

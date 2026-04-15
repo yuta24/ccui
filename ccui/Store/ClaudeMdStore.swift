@@ -34,6 +34,7 @@ final class ClaudeMdStore {
     var editorContent: String = ""
     var isDirty: Bool = false
     private(set) var loadedContent: String = ""
+    var lastError: String?
 
     private var repositoryPath: String = ""
 
@@ -101,10 +102,12 @@ final class ClaudeMdStore {
             try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
             try editorContent.write(toFile: path, atomically: true, encoding: .utf8)
             isDirty = false
+            lastError = nil
             // ファイル一覧を更新
             load(repositoryPath: repositoryPath)
         } catch {
             Logger.store.error("Failed to save \(path, privacy: .public): \(error)")
+            lastError = "Failed to save \(level.rawValue): \(error.localizedDescription)"
         }
     }
 
@@ -123,10 +126,12 @@ final class ClaudeMdStore {
             let directory = (path as NSString).deletingLastPathComponent
             try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
             try "".write(toFile: path, atomically: true, encoding: .utf8)
+            lastError = nil
             load(repositoryPath: repositoryPath)
             select(level)
         } catch {
             Logger.store.error("Failed to create \(path, privacy: .public): \(error)")
+            lastError = "Failed to create \(level.rawValue): \(error.localizedDescription)"
         }
     }
 
