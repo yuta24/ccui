@@ -20,72 +20,71 @@ struct SessionAnnotationRow: View {
 
     var body: some View {
         Button(action: onResume) {
-            HStack(spacing: 10) {
-                Image(systemName: "terminal")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.textTertiary)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(entry.title ?? String(entry.sessionId.prefix(8)))
-                            .font(.uiLabel)
-                            .foregroundStyle(Color.textPrimary)
-                            .lineLimit(1)
-                        if let outcome = session?.outcome {
-                            outcomeBadge(outcome)
-                        }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.title ?? String(entry.sessionId.prefix(8)))
+                    .font(.uiLabel)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    if let outcome = session?.outcome {
+                        outcomeBadge(outcome)
                     }
-                    HStack(spacing: 4) {
-                        Text(entry.sessionId.prefix(8))
-                            .font(.uiCaptionMono)
-                            .foregroundStyle(Color.textTertiary)
+                    Text(entry.createdAt, style: .offset)
+                        .font(.uiCaption)
+                        .foregroundStyle(Color.textTertiary)
+                    if let count = session?.interventionCount, count > 0 {
                         Text("\u{00B7}")
                             .foregroundStyle(Color.textTertiary)
-                        Text(entry.createdAt, style: .date)
-                            .font(.uiCaption)
-                            .foregroundStyle(Color.textTertiary)
-                        Text(entry.createdAt, style: .time)
-                            .font(.uiCaption)
-                            .foregroundStyle(Color.textTertiary)
-                        if let count = session?.interventionCount, count > 0 {
-                            Text("\u{00B7}")
-                                .foregroundStyle(Color.textTertiary)
-                            HStack(spacing: 2) {
-                                Image(systemName: "person.fill.questionmark")
-                                    .font(.system(size: 8))
-                                Text("\(count)")
-                                    .font(.uiCaption)
-                            }
-                            .foregroundStyle(Color.interventionColor)
+                        HStack(spacing: 2) {
+                            Image(systemName: "person.fill.questionmark")
+                                .font(.system(size: 8))
+                            Text("\(count)")
+                                .font(.uiCaption)
                         }
+                        .foregroundStyle(Color.interventionColor)
                     }
                 }
-                Spacer()
-                HStack(spacing: 0) {
-                    if session != nil {
-                        Button {
-                            showAnnotationPopover.toggle()
-                        } label: {
-                            Image(systemName: "tag")
-                                .font(.system(size: 11))
-                                .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textTertiary)
-                                .frame(width: 28, height: 28)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showAnnotationPopover, arrowEdge: .trailing) {
-                            annotationPopover
-                        }
-                    }
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.accent)
-                        .frame(width: 28, height: 28)
-                }
-                .opacity(isHovered || showAnnotationPopover ? 1 : 0)
             }
-            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .contentShape(Rectangle())
+            .overlay(alignment: .trailing) {
+                if isHovered || showAnnotationPopover {
+                    HStack(spacing: 0) {
+                        if session != nil {
+                            Button {
+                                showAnnotationPopover.toggle()
+                            } label: {
+                                Image(systemName: "tag")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textTertiary)
+                                    .frame(width: 28, height: 28)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .popover(isPresented: $showAnnotationPopover, arrowEdge: .trailing) {
+                                annotationPopover
+                            }
+                        }
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.accent)
+                            .frame(width: 28, height: 28)
+                    }
+                    .padding(.trailing, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                (isHovered ? Color.surfaceHover : Color.surfacePrimary).opacity(0),
+                                isHovered ? Color.surfaceHover : Color.surfacePrimary,
+                            ],
+                            startPoint: .leading,
+                            endPoint: .init(x: 0.3, y: 0.5)
+                        )
+                    )
+                }
+            }
         }
         .buttonStyle(.plain)
         .background(isHovered ? Color.surfaceHover : Color.surfacePrimary)

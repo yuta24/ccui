@@ -7,7 +7,7 @@ struct ContentView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(ShellSessionStore.self) private var shellSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
-    @State private var sidebarWidth: CGFloat = 240
+    @State private var sidebarWidth: CGFloat = 260
     @GestureState private var dragOffset: CGFloat = 0
     @State private var sidebarCursorPushed = false
     @State private var sidebarHandleHovered = false
@@ -191,7 +191,7 @@ struct ContentView: View {
                 }
             }
         )
-        .frame(width: max(180, min(400, sidebarWidth + dragOffset)))
+        .frame(width: max(200, min(400, sidebarWidth + dragOffset)))
         .background(Color.surfaceBase)
     }
 
@@ -207,7 +207,7 @@ struct ContentView: View {
                         state = value.translation.width
                     }
                     .onEnded { value in
-                        sidebarWidth = max(180, min(400, sidebarWidth + value.translation.width))
+                        sidebarWidth = max(200, min(400, sidebarWidth + value.translation.width))
                     }
             )
             .onHover { hovering in
