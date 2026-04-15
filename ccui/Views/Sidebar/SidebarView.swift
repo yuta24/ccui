@@ -1,6 +1,11 @@
 import SwiftUI
 
 struct SidebarView: View {
+    let onResumeSession: (String) -> Void
+    let onNewSession: () -> Void
+    let onEvaluateSession: (WorktreeSessionEntry) -> Void
+    let onCompareSession: (WorktreeSessionEntry, WorktreeSessionEntry) -> Void
+
     @Environment(RepositoryStore.self) private var store
     @Environment(AppCoordinator.self) private var coordinator
 
@@ -31,7 +36,25 @@ struct SidebarView: View {
                         }
                     }
                     .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 4)
+
+                    // Session list for selected worktree
+                    if let worktree = coordinator.selectedWorktree {
+                        Rectangle()
+                            .fill(Color.borderSubtle)
+                            .frame(height: 1)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+
+                        SessionListSection(
+                            worktree: worktree,
+                            onResumeSession: onResumeSession,
+                            onNewSession: onNewSession,
+                            onEvaluateSession: onEvaluateSession,
+                            onCompareSession: onCompareSession
+                        )
+                        .padding(.horizontal, 8)
+                    }
                 }
             }
         }

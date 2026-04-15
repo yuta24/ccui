@@ -65,8 +65,10 @@ final class AppCoordinator {
     func selectWorktree(_ wt: Worktree?, claudeEventStore: ClaudeEventStore) {
         selectedWorktree = wt
         if let wt {
-            fileTreeStore = FileTreeStore(rootPath: wt.path)
+            let store = FileTreeStore(rootPath: wt.path)
+            fileTreeStore = store
             claudeEventStore.acknowledge(for: wt.path)
+            Task { await store.load() }
         } else {
             fileTreeStore = nil
         }

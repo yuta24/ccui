@@ -64,17 +64,6 @@ struct FileExplorerContent: View {
             }
 
             Spacer()
-
-            Button {
-                store.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-            .help("Close")
         }
         .padding(.horizontal, 12)
         .frame(height: 36)
