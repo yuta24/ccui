@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var sidebarWidth: CGFloat = 240
     @GestureState private var dragOffset: CGFloat = 0
     @State private var sidebarCursorPushed = false
+    @State private var sidebarHandleHovered = false
     @State private var fileOverlayStore = FileOverlayStore()
     @State private var sessionComparisonStore = SessionComparisonStore()
     @State private var codeViewerStore = CodeViewerStore()
@@ -31,8 +32,9 @@ struct ContentView: View {
 
                     // Sidebar resize handle
                     Rectangle()
-                        .fill(Color.borderSubtle)
-                        .frame(width: 1)
+                        .fill(sidebarHandleHovered ? Color.borderStrong : Color.borderSubtle)
+                        .frame(width: sidebarHandleHovered ? 3 : 1)
+                        .animation(.easeInOut(duration: 0.15), value: sidebarHandleHovered)
                         .contentShape(Rectangle().inset(by: -3))
                         .gesture(
                             DragGesture()
@@ -44,6 +46,7 @@ struct ContentView: View {
                                 }
                         )
                         .onHover { hovering in
+                            sidebarHandleHovered = hovering
                             if hovering {
                                 NSCursor.resizeLeftRight.push()
                                 sidebarCursorPushed = true

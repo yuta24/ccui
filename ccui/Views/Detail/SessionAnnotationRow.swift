@@ -12,6 +12,7 @@ struct SessionAnnotationRow: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @State private var showAnnotationPopover = false
     @State private var showComparePicker = false
+    @State private var isHovered = false
 
     private var session: AgentSession? {
         claudeEventStore.sessions[worktreePath]?[entry.sessionId]
@@ -59,29 +60,35 @@ struct SessionAnnotationRow: View {
                     }
                 }
                 Spacer()
-                if session != nil {
-                    Button {
-                        showAnnotationPopover.toggle()
-                    } label: {
-                        Image(systemName: "tag")
-                            .font(.system(size: 10))
-                            .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textTertiary)
+                if isHovered || showAnnotationPopover {
+                    if session != nil {
+                        Button {
+                            showAnnotationPopover.toggle()
+                        } label: {
+                            Image(systemName: "tag")
+                                .font(.system(size: 11))
+                                .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textTertiary)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showAnnotationPopover, arrowEdge: .trailing) {
+                            annotationPopover
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showAnnotationPopover, arrowEdge: .trailing) {
-                        annotationPopover
-                    }
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.accent)
+                        .frame(width: 28, height: 28)
                 }
-                Image(systemName: "play.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.accent)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.surfacePrimary)
+        .background(isHovered ? Color.surfaceHover : Color.surfacePrimary)
+        .onHover { hovering in isHovered = hovering }
         .contextMenu {
             if let onEvaluate {
                 Button { onEvaluate() } label: {

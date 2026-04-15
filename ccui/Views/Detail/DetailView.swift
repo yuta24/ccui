@@ -22,6 +22,7 @@ struct DetailView: View {
     @State private var bottomPanelHeight: CGFloat = 220
     @GestureState private var bottomPanelDragOffset: CGFloat = 0
     @State private var bottomPanelCursorPushed = false
+    @State private var bottomPanelHandleHovered = false
     @State private var claudeMdStore = ClaudeMdStore()
     @State private var sessionEvaluationStore = SessionEvaluationStore()
     @State private var hooksStore = HooksStore()
@@ -63,8 +64,9 @@ struct DetailView: View {
 
                 if isBottomPanelExpanded {
                     Rectangle()
-                        .fill(Color.borderSubtle)
-                        .frame(height: 1)
+                        .fill(bottomPanelHandleHovered ? Color.borderStrong : Color.borderSubtle)
+                        .frame(height: bottomPanelHandleHovered ? 3 : 1)
+                        .animation(.easeInOut(duration: 0.15), value: bottomPanelHandleHovered)
                         .contentShape(Rectangle().inset(by: -3))
                         .gesture(
                             DragGesture()
@@ -76,6 +78,7 @@ struct DetailView: View {
                                 }
                         )
                         .onHover { hovering in
+                            bottomPanelHandleHovered = hovering
                             if hovering {
                                 NSCursor.resizeUpDown.push()
                                 bottomPanelCursorPushed = true

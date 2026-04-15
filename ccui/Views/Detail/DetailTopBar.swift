@@ -79,7 +79,8 @@ struct DetailTopBar: View {
                 topBarButton(
                     icon: "doc.text.magnifyingglass",
                     label: "Files",
-                    isActive: fileOverlayStore.isVisible
+                    isActive: fileOverlayStore.isVisible,
+                    shortcut: "⇧⌘E"
                 ) {
                     fileOverlayStore.toggle()
                 }
@@ -90,7 +91,7 @@ struct DetailTopBar: View {
         .background(Color.surfaceBase)
     }
 
-    private func topBarButton(icon: String, label: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+    private func topBarButton(icon: String, label: String, isActive: Bool, shortcut: String? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Image(systemName: icon)
@@ -107,5 +108,6 @@ struct DetailTopBar: View {
             )
         }
         .buttonStyle(.plain)
+        .help(shortcut.map { "\(label) (\($0))" } ?? label)
     }
 }
