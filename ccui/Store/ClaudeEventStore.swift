@@ -16,6 +16,8 @@ final class ClaudeEventStore {
     private let listenerService = UDSListenerService()
     private let persistenceActor: PersistenceActor
     private var knownWorktreePaths: Set<String> = []
+    /// worktree パス → リポジトリパスのマッピング
+    private var worktreeToRepository: [String: String] = [:]
 
     let maxEventsPerSessionLimit = 50
     private let maxSessionsPerWorktree = 20
@@ -126,22 +128,29 @@ final class ClaudeEventStore {
         sessions[worktreePath] = worktreeSessions
 
         let actor = persistenceActor
-        Task { await actor.saveSession(session, worktreePath: worktreePath) }
+        let repoPath = worktreeToRepository[worktreePath]
+        Task { await actor.saveSession(session, worktreePath: worktreePath, repositoryPath: repoPath) }
     }
 
-    func addKnownPaths(_ paths: Set<String>) {
+    func addKnownPaths(_ paths: Set<String>, repositoryPath: String) {
         knownWorktreePaths.formUnion(paths)
+        for path in paths {
+            worktreeToRepository[path] = repositoryPath
+        }
     }
 
-    /// 指定パス以外を除去（リポジトリ削除時のクリーンアップ用）
+    /// 指定パス以外をメモリから除去（ディスク上のセッションデータは保持し、統計・分析に活用する）
     func removeKnownPathsExcept(_ paths: Set<String>) {
-        let removedPaths = knownWorktreePaths.subtracting(paths)
         knownWorktreePaths.formIntersection(paths)
         sessions = sessions.filter { paths.contains($0.key) }
         acknowledgedUpTo = acknowledgedUpTo.filter { paths.contains($0.key) }
+        worktreeToRepository = worktreeToRepository.filter { paths.contains($0.key) }
+    }
 
+    /// リポジトリ削除時にディスクからもセッションデータを削除する
+    func removeRepositorySessions(worktreePaths: Set<String>) {
         let actor = persistenceActor
-        for path in removedPaths {
+        for path in worktreePaths {
             Task { await actor.removeWorktree(path) }
         }
     }
@@ -164,8 +173,11 @@ final class ClaudeEventStore {
 
         sessions[resolvedPath] = worktreeSessions
 
+        // addKnownPaths 前にイベントが到着した場合は保存を遅延させない（セッションデータは保存する）が、
+        // repositoryPath は判明次第 updateIndex で補完される
         let actor = persistenceActor
-        Task { await actor.saveSession(session, worktreePath: resolvedPath) }
+        let repoPath = worktreeToRepository[resolvedPath]
+        Task { await actor.saveSession(session, worktreePath: resolvedPath, repositoryPath: repoPath) }
     }
 
     /// 終了済みセッションを古い順にメモリから退避（ディスク上のファイルは保持）
@@ -241,9 +253,9 @@ private actor PersistenceActor {
         }.value
     }
 
-    func saveSession(_ session: AgentSession, worktreePath: String) {
+    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) {
         do {
-            try persistence.saveSession(session, worktreePath: worktreePath)
+            try persistence.saveSession(session, worktreePath: worktreePath, repositoryPath: repositoryPath)
         } catch {
             Logger.store.error("Failed to persist session \(session.id): \(error)")
         }

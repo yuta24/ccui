@@ -4,11 +4,19 @@ import OSLog
 
 protocol ClaudeEventPersistence: Sendable {
     func loadAll() throws -> [String: [String: AgentSession]]
-    func saveSession(_ session: AgentSession, worktreePath: String) throws
+    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) throws
     func removeSession(_ sessionId: String, worktreePath: String) throws
     func removeWorktree(_ worktreePath: String) throws
     /// ワークツリーごとのディスク上セッション数を maxPerWorktree 以下に削減する
     func pruneOldSessions(maxPerWorktree: Int) throws
+    /// 指定リポジトリに属する全 worktree パスを返す（削除済み worktree を含む）
+    func worktreePathsForRepository(_ repositoryPath: String) throws -> Set<String>
+}
+
+/// インデックスエントリ: worktree パスに対応するディレクトリ名とリポジトリパス
+struct WorktreeIndexEntry: Codable, Sendable {
+    let dirName: String
+    let repositoryPath: String?
 }
 
 struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
@@ -25,16 +33,12 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        // index.json にワークツリーパス → ハッシュのマッピングを保持
-        let indexURL = baseDirectory.appendingPathComponent("index.json")
-        guard fm.fileExists(atPath: indexURL.path) else { return [:] }
-        let indexData = try Data(contentsOf: indexURL)
-        let index = try JSONDecoder().decode([String: String].self, from: indexData)
+        let index = try loadIndex()
 
         var result: [String: [String: AgentSession]] = [:]
 
-        for (worktreePath, dirName) in index {
-            let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+        for (worktreePath, entry) in index {
+            let worktreeDir = baseDirectory.appendingPathComponent(entry.dirName)
             guard fm.fileExists(atPath: worktreeDir.path) else { continue }
 
             let files = try fm.contentsOfDirectory(atPath: worktreeDir.path)
@@ -59,7 +63,7 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         return result
     }
 
-    func saveSession(_ session: AgentSession, worktreePath: String) throws {
+    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) throws {
         let fm = FileManager.default
         let dirName = Self.directoryName(for: worktreePath)
         let worktreeDir = baseDirectory.appendingPathComponent(dirName)
@@ -73,7 +77,7 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         try data.write(to: fileURL, options: .atomic)
 
         // index を更新
-        try updateIndex(worktreePath: worktreePath, dirName: dirName)
+        try updateIndex(worktreePath: worktreePath, dirName: dirName, repositoryPath: repositoryPath)
     }
 
     func removeSession(_ sessionId: String, worktreePath: String) throws {
@@ -99,8 +103,7 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         // index から削除
         let indexURL = baseDirectory.appendingPathComponent("index.json")
         if fm.fileExists(atPath: indexURL.path) {
-            let data = try Data(contentsOf: indexURL)
-            var index = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+            var index = (try? loadIndex()) ?? [:]
             index.removeValue(forKey: worktreePath)
             let newData = try JSONEncoder().encode(index)
             try newData.write(to: indexURL, options: .atomic)
@@ -109,16 +112,12 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
 
     func pruneOldSessions(maxPerWorktree: Int) throws {
         let fm = FileManager.default
-        let indexURL = baseDirectory.appendingPathComponent("index.json")
-        guard fm.fileExists(atPath: indexURL.path) else { return }
-
-        let indexData = try Data(contentsOf: indexURL)
-        let index = try JSONDecoder().decode([String: String].self, from: indexData)
+        let index = try loadIndex()
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
-        for (_, dirName) in index {
-            let worktreeDir = baseDirectory.appendingPathComponent(dirName)
+        for (_, entry) in index {
+            let worktreeDir = baseDirectory.appendingPathComponent(entry.dirName)
             guard fm.fileExists(atPath: worktreeDir.path) else { continue }
 
             let files = try fm.contentsOfDirectory(atPath: worktreeDir.path)
@@ -147,21 +146,54 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         }
     }
 
+    func worktreePathsForRepository(_ repositoryPath: String) throws -> Set<String> {
+        let index = try loadIndex()
+        return Set(
+            index.compactMap { worktreePath, entry in
+                entry.repositoryPath == repositoryPath ? worktreePath : nil
+            }
+        )
+    }
+
     // MARK: - Private
 
-    private func updateIndex(worktreePath: String, dirName: String) throws {
+    /// インデックスを読み込む（旧フォーマット [String: String] からの自動マイグレーション対応）
+    private func loadIndex() throws -> [String: WorktreeIndexEntry] {
+        let fm = FileManager.default
+        let indexURL = baseDirectory.appendingPathComponent("index.json")
+        guard fm.fileExists(atPath: indexURL.path) else { return [:] }
+
+        let data = try Data(contentsOf: indexURL)
+
+        // 新フォーマットを試行
+        if let index = try? JSONDecoder().decode([String: WorktreeIndexEntry].self, from: data) {
+            return index
+        }
+
+        // 旧フォーマット [String: String] からマイグレーション
+        if let legacy = try? JSONDecoder().decode([String: String].self, from: data) {
+            let migrated = legacy.mapValues { WorktreeIndexEntry(dirName: $0, repositoryPath: nil) }
+            if let newData = try? JSONEncoder().encode(migrated) {
+                try? newData.write(to: indexURL, options: .atomic)
+            }
+            return migrated
+        }
+
+        return [:]
+    }
+
+    private func updateIndex(worktreePath: String, dirName: String, repositoryPath: String?) throws {
         let fm = FileManager.default
         try fm.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
 
         let indexURL = baseDirectory.appendingPathComponent("index.json")
-        var index: [String: String] = [:]
-        if fm.fileExists(atPath: indexURL.path) {
-            let data = try Data(contentsOf: indexURL)
-            index = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
-        }
+        var index = (try? loadIndex()) ?? [:]
 
-        if index[worktreePath] != dirName {
-            index[worktreePath] = dirName
+        let existing = index[worktreePath]
+        let effectiveRepoPath = repositoryPath ?? existing?.repositoryPath
+        // dirName が変わった場合、または repositoryPath が nil → 非 nil に補完された場合に更新
+        if existing?.dirName != dirName || existing?.repositoryPath != effectiveRepoPath {
+            index[worktreePath] = WorktreeIndexEntry(dirName: dirName, repositoryPath: effectiveRepoPath)
             let data = try JSONEncoder().encode(index)
             try data.write(to: indexURL, options: .atomic)
         }

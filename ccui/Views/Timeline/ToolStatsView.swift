@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ToolStatsView: View {
-    let repositoryWorktreePaths: Set<String>
+    let repositoryPath: String
     @State private var toolStatsStore = ToolStatsStore()
     @State private var scope: Scope = .repository
 
@@ -10,9 +10,8 @@ struct ToolStatsView: View {
         case all = "All"
     }
 
-    private var effectivePaths: Set<String>? {
-        guard scope == .repository else { return nil }
-        return repositoryWorktreePaths.isEmpty ? nil : repositoryWorktreePaths
+    private var effectiveRepositoryPath: String? {
+        scope == .repository ? repositoryPath : nil
     }
 
     var body: some View {
@@ -36,15 +35,10 @@ struct ToolStatsView: View {
             Rectangle().fill(Color.borderSubtle).frame(width: 1)
         }
         .onAppear {
-            toolStatsStore.loadStats(worktreePaths: effectivePaths)
+            toolStatsStore.loadStats(repositoryPath: effectiveRepositoryPath)
         }
         .onChange(of: scope) { _, _ in
-            toolStatsStore.loadStats(worktreePaths: effectivePaths)
-        }
-        .onChange(of: repositoryWorktreePaths) { _, _ in
-            if scope == .repository {
-                toolStatsStore.loadStats(worktreePaths: effectivePaths)
-            }
+            toolStatsStore.loadStats(repositoryPath: effectiveRepositoryPath)
         }
     }
 
@@ -57,7 +51,7 @@ struct ToolStatsView: View {
                     .sectionHeader()
                 Spacer()
                 Button {
-                    toolStatsStore.loadStats(worktreePaths: effectivePaths)
+                    toolStatsStore.loadStats(repositoryPath: effectiveRepositoryPath)
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 10, weight: .medium))

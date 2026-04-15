@@ -71,7 +71,7 @@ struct DetailView: View {
                     RightPanelView(
                         worktreePath: worktree.path,
                         repositoryPath: worktree.path,
-                        repositoryWorktreePaths: repositoryWorktreePaths,
+                        statsRepositoryPath: repositoryPath,
                         sessionEvaluationStore: uiState.sessionEvaluationStore,
                         selectedTab: Binding(
                             get: { uiState.rightPanelTab },
@@ -155,9 +155,4 @@ struct DetailView: View {
         coordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
     }
 
-    private var repositoryWorktreePaths: Set<String> {
-        let repoID = worktree.repositoryID
-        let worktrees = coordinator.worktreeStores[repoID]?.worktrees ?? []
-        return Set(worktrees.map(\.path))
-    }
 }

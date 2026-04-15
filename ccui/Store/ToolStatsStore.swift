@@ -30,14 +30,14 @@ final class ToolStatsStore {
     }
 
     /// ディスク上の全セッションを読み込んで統計を計算
-    /// - worktreePaths: nil なら全体、Set を渡すとそのパスのみ集計
-    func loadStats(worktreePaths: Set<String>? = nil) {
+    /// - repositoryPath: nil なら全体、指定するとそのリポジトリに属する全 worktree（削除済み含む）のみ集計
+    func loadStats(repositoryPath: String? = nil) {
         currentTask?.cancel()
         isLoading = true
         let persistence = persistence
-        let filterPaths = worktreePaths
+        let repoPath = repositoryPath
         currentTask = Task.detached { [weak self] in
-            let snapshot = Self.computeStats(persistence: persistence, worktreePaths: filterPaths)
+            let snapshot = Self.computeStats(persistence: persistence, repositoryPath: repoPath)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 self?.snapshot = snapshot
@@ -46,14 +46,18 @@ final class ToolStatsStore {
         }
     }
 
-    private nonisolated static func computeStats(persistence: any ClaudeEventPersistence, worktreePaths: Set<String>?) -> ToolStatsSnapshot {
+    private nonisolated static func computeStats(persistence: any ClaudeEventPersistence, repositoryPath: String?) -> ToolStatsSnapshot {
         guard let allSessions = try? persistence.loadAll() else {
             return .empty
         }
 
         let filteredSessions: [String: [String: AgentSession]]
-        if let paths = worktreePaths {
-            filteredSessions = allSessions.filter { paths.contains($0.key) }
+        if let repoPath = repositoryPath,
+           let repoPaths = try? persistence.worktreePathsForRepository(repoPath) {
+            filteredSessions = allSessions.filter { repoPaths.contains($0.key) }
+        } else if repositoryPath != nil {
+            // リポジトリパス指定があるがインデックスにエントリがない場合は空
+            filteredSessions = [:]
         } else {
             filteredSessions = allSessions
         }

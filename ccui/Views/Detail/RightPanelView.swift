@@ -3,7 +3,7 @@ import SwiftUI
 struct RightPanelView: View {
     let worktreePath: String
     let repositoryPath: String
-    let repositoryWorktreePaths: Set<String>
+    let statsRepositoryPath: String
     let sessionEvaluationStore: SessionEvaluationStore
     @Binding var selectedTab: RightPanelTab
     @Environment(DiffStore.self) private var diffStore
@@ -80,7 +80,7 @@ struct RightPanelView: View {
             DiffViewerView(repositoryPath: repositoryPath)
                 .frame(maxWidth: .infinity)
         case .stats:
-            ToolStatsView(repositoryWorktreePaths: repositoryWorktreePaths)
+            ToolStatsView(repositoryPath: statsRepositoryPath)
                 .frame(maxWidth: .infinity)
         case .eval:
             SessionEvaluationView(

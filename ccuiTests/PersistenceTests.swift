@@ -46,7 +46,7 @@ struct JSONFileClaudeEventPersistenceTests {
         var session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
         session.append(event, maxEvents: 100)
 
-        try persistence.saveSession(session, worktreePath: "/repo")
+        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
 
         let loaded = try persistence.loadAll()
         #expect(loaded.keys.contains("/repo"))
@@ -72,7 +72,7 @@ struct JSONFileClaudeEventPersistenceTests {
         let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
         let session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
 
-        try persistence.saveSession(session, worktreePath: "/repo")
+        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
         try persistence.removeSession("s1", worktreePath: "/repo")
 
         let loaded = try persistence.loadAll()
@@ -88,7 +88,7 @@ struct JSONFileClaudeEventPersistenceTests {
         let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
         let session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
 
-        try persistence.saveSession(session, worktreePath: "/repo")
+        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
         try persistence.removeWorktree("/repo")
 
         let loaded = try persistence.loadAll()
@@ -113,7 +113,7 @@ struct JSONFileClaudeEventPersistenceTests {
             )
             var session = TestHelpers.makeSession(id: sessionId, worktreePath: "/repo")
             session.append(event, maxEvents: 100)
-            try persistence.saveSession(session, worktreePath: "/repo")
+            try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
         }
 
         try persistence.pruneOldSessions(maxPerWorktree: 3)
@@ -129,6 +129,70 @@ struct JSONFileClaudeEventPersistenceTests {
 
     // MARK: - Multiple Worktrees
 
+    // MARK: - Repository Query
+
+    @Test func worktreePathsForRepository() throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+
+        // 同一リポジトリに属する 2 つの worktree
+        try persistence.saveSession(
+            TestHelpers.makeSession(id: "s1", worktreePath: "/repo"),
+            worktreePath: "/repo",
+            repositoryPath: "/repo"
+        )
+        try persistence.saveSession(
+            TestHelpers.makeSession(id: "s2", worktreePath: "/repo-feature"),
+            worktreePath: "/repo-feature",
+            repositoryPath: "/repo"
+        )
+        // 別リポジトリ
+        try persistence.saveSession(
+            TestHelpers.makeSession(id: "s3", worktreePath: "/other"),
+            worktreePath: "/other",
+            repositoryPath: "/other"
+        )
+
+        let paths = try persistence.worktreePathsForRepository("/repo")
+        #expect(paths == Set(["/repo", "/repo-feature"]))
+    }
+
+    @Test func worktreePathsForRepositoryExcludesNilEntries() throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+
+        // repositoryPath が nil のエントリ（マイグレーション直後の状態）
+        try persistence.saveSession(
+            TestHelpers.makeSession(id: "s1", worktreePath: "/legacy"),
+            worktreePath: "/legacy",
+            repositoryPath: nil
+        )
+        // repositoryPath が設定済みのエントリ
+        try persistence.saveSession(
+            TestHelpers.makeSession(id: "s2", worktreePath: "/repo"),
+            worktreePath: "/repo",
+            repositoryPath: "/repo"
+        )
+
+        let paths = try persistence.worktreePathsForRepository("/repo")
+        // nil エントリは他リポジトリのデータ汚染を防ぐため含めない
+        #expect(!paths.contains("/legacy"))
+        #expect(paths.contains("/repo"))
+    }
+
+    @Test func worktreePathsForRepositoryWithNoMatch() throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let paths = try persistence.worktreePathsForRepository("/nonexistent")
+        #expect(paths.isEmpty)
+    }
+
     @Test func multipleWorktrees() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
@@ -137,11 +201,13 @@ struct JSONFileClaudeEventPersistenceTests {
 
         try persistence.saveSession(
             TestHelpers.makeSession(id: "s1", worktreePath: "/repo1"),
-            worktreePath: "/repo1"
+            worktreePath: "/repo1",
+            repositoryPath: "/repo1"
         )
         try persistence.saveSession(
             TestHelpers.makeSession(id: "s2", worktreePath: "/repo2"),
-            worktreePath: "/repo2"
+            worktreePath: "/repo2",
+            repositoryPath: "/repo2"
         )
 
         let loaded = try persistence.loadAll()

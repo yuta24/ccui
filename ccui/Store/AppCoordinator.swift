@@ -17,9 +17,10 @@ final class AppCoordinator {
 
     func makeWorktreeStore(for repo: Repository, claudeEventStore: ClaudeEventStore) -> WorktreeStore {
         let wtStore = WorktreeStore(repository: repo)
+        let repoPath = repo.path
         wtStore.onWorktreesLoaded = { [weak claudeEventStore] worktrees in
             let paths = Set(worktrees.map(\.path))
-            claudeEventStore?.addKnownPaths(paths)
+            claudeEventStore?.addKnownPaths(paths, repositoryPath: repoPath)
         }
         return wtStore
     }
@@ -36,14 +37,24 @@ final class AppCoordinator {
             worktreeStores[repo.id] = makeWorktreeStore(for: repo, claudeEventStore: claudeEventStore)
         }
 
+        // リポジトリ削除時: そのリポジトリの worktree パスを収集してからストアを除去
+        var removedRepoPaths: Set<String> = []
         for key in worktreeStores.keys where !validIDs.contains(key) {
-            worktreeStores[key]?.tearDown()
+            if let store = worktreeStores[key] {
+                removedRepoPaths.formUnion(store.worktrees.map(\.path))
+                store.tearDown()
+            }
             worktreeStores.removeValue(forKey: key)
         }
 
         let allWorktreePaths = Set(worktreeStores.values.flatMap(\.worktrees).map(\.path))
         terminalSessionStore.removeExcept(paths: allWorktreePaths)
         shellSessionStore.removeExcept(paths: allWorktreePaths)
+
+        // リポジトリ削除時のみディスクからセッションデータを削除（worktree 削除時は保持）
+        if !removedRepoPaths.isEmpty {
+            claudeEventStore.removeRepositorySessions(worktreePaths: removedRepoPaths)
+        }
         claudeEventStore.removeKnownPathsExcept(allWorktreePaths)
 
         if let selected = selectedWorktree, !validIDs.contains(selected.repositoryID) {
