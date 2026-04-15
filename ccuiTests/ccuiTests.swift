@@ -1,17 +1,9 @@
-//
-//  ccuiTests.swift
-//  ccuiTests
-//
-//  Created by nova on 2026/04/07.
-//
-
-import Testing
-@testable import ccui
-
-struct ccuiTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-    }
-
-}
+// Tests are organized into individual test files:
+// - DiffParserTests.swift
+// - FuzzyScoreTests.swift
+// - PermissionRuleTests.swift
+// - AgentStateTests.swift
+// - InterventionDetectorTests.swift
+// - SessionEvaluationTests.swift
+// - ModelTests.swift
+// - PersistenceTests.swift
