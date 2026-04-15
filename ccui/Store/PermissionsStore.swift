@@ -39,11 +39,19 @@ final class PermissionsStore {
 
     // MARK: - Lifecycle
 
-    func load(worktreePath: String) {
+    func load(worktreePath: String) async {
         self.worktreePath = worktreePath
         dirtyLevels = []
-        for level in PermissionLevel.allCases {
-            loadLevel(level)
+        let wp = worktreePath
+        let loaded = await Task.detached(priority: .userInitiated) {
+            var result: [PermissionLevel: [String: Any]] = [:]
+            for level in PermissionLevel.allCases {
+                result[level] = Self.readSettings(at: level.settingsPath(worktreePath: wp))
+            }
+            return result
+        }.value
+        for (level, json) in loaded {
+            rawSettings[level] = json
             levelCache[level] = parseCache(for: level)
         }
         syncFromCache()
@@ -106,13 +114,13 @@ final class PermissionsStore {
 
     // MARK: - Save
 
-    func save() {
+    func save() async {
         for level in PermissionLevel.allCases where dirtyLevels.contains(level) {
-            saveLevel(level)
+            await saveLevel(level)
         }
     }
 
-    private func saveLevel(_ level: PermissionLevel) {
+    private func saveLevel(_ level: PermissionLevel) async {
         let path = level.settingsPath(worktreePath: worktreePath)
         var settings: [String: Any] = rawSettings[level] ?? [:]
 
@@ -144,27 +152,37 @@ final class PermissionsStore {
 
         settings["permissions"] = permsDict
 
-        do {
-            let directory = (path as NSString).deletingLastPathComponent
-            try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-            let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+        let success = await Task.detached(priority: .utility) { () -> Bool in
+            do {
+                let directory = (path as NSString).deletingLastPathComponent
+                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+                let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
+                try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+                return true
+            } catch {
+                Logger.store.error("Failed to save permissions to \(path, privacy: .public): \(error)")
+                return false
+            }
+        }.value
+
+        if success {
             dirtyLevels.remove(level)
-        } catch {
-            Logger.store.error("Failed to save permissions to \(path, privacy: .public): \(error)")
         }
     }
 
     // MARK: - Private
 
-    private func loadLevel(_ level: PermissionLevel) {
-        let path = level.settingsPath(worktreePath: worktreePath)
+    private nonisolated static func readSettings(at path: String) -> [String: Any] {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            rawSettings[level] = [:]
-            return
+            return [:]
         }
-        rawSettings[level] = json
+        return json
+    }
+
+    private func loadLevel(_ level: PermissionLevel) {
+        let path = level.settingsPath(worktreePath: worktreePath)
+        rawSettings[level] = Self.readSettings(at: path)
     }
 
     private func parseCache(for level: PermissionLevel) -> LevelCache {

@@ -122,9 +122,7 @@ final class SearchStore {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
 
-            let results = await Task.detached(priority: .userInitiated) {
-                Self.runGitGrep(query: query, rootPath: root)
-            }.value
+            let results = await Self.runGitGrep(query: query, rootPath: root)
 
             guard !Task.isCancelled else { return }
             contentResults = results
@@ -134,7 +132,7 @@ final class SearchStore {
 
     // MARK: - Git Grep
 
-    private nonisolated static func runGitGrep(query: String, rootPath: String) -> [ContentSearchResult] {
+    private nonisolated static func runGitGrep(query: String, rootPath: String) async -> [ContentSearchResult] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = ["grep", "-rnIF", "--untracked", "--color=never", "--", query]
@@ -150,13 +148,17 @@ final class SearchStore {
             return []
         }
 
-        if Task.isCancelled {
+        let data = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                process.terminationHandler = { _ in
+                    let output = stdout.fileHandleForReading.readDataToEndOfFile()
+                    continuation.resume(returning: output)
+                }
+            }
+        } onCancel: {
             process.terminate()
-            return []
         }
 
-        let data = stdout.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
         guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
             return []
         }

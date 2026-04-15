@@ -69,8 +69,11 @@ final class WorktreeSessionStore {
     private func scheduleSave() {
         debouncedSaveTask?.cancel()
         debouncedSaveTask = Task {
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
+            do {
+                try await Task.sleep(for: .seconds(2))
+            } catch {
+                return
+            }
             save()
         }
     }

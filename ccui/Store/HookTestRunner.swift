@@ -67,30 +67,34 @@ final class HookTestRunner {
 
         runningProcess = process
 
-        let result: (output: String, exitCode: Int32) = await withCheckedContinuation { continuation in
-            Task.detached(priority: .userInitiated) {
-                stdinPipe.fileHandleForWriting.write(payload)
-                stdinPipe.fileHandleForWriting.closeFile()
+        let result: (output: String, exitCode: Int32) = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                Task.detached(priority: .userInitiated) {
+                    stdinPipe.fileHandleForWriting.write(payload)
+                    stdinPipe.fileHandleForWriting.closeFile()
 
-                // Timeout after 10 seconds
-                let timeoutItem = DispatchWorkItem { [weak process] in
-                    if process?.isRunning == true { process?.terminate() }
+                    // Timeout after 10 seconds
+                    let timeoutItem = DispatchWorkItem { [weak process] in
+                        if process?.isRunning == true { process?.terminate() }
+                    }
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: timeoutItem)
+
+                    process.waitUntilExit()
+                    timeoutItem.cancel()
+
+                    let out = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let err = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+                    var output = ""
+                    if !out.isEmpty { output += out }
+                    if !err.isEmpty { output += "[stderr] \(err)" }
+                    if output.isEmpty { output = "(no output)" }
+
+                    continuation.resume(returning: (output, process.terminationStatus))
                 }
-                DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: timeoutItem)
-
-                process.waitUntilExit()
-                timeoutItem.cancel()
-
-                let out = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                let err = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                var output = ""
-                if !out.isEmpty { output += out }
-                if !err.isEmpty { output += "[stderr] \(err)" }
-                if output.isEmpty { output = "(no output)" }
-
-                continuation.resume(returning: (output, process.terminationStatus))
             }
+        } onCancel: {
+            process.terminate()
         }
 
         return result

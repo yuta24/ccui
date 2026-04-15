@@ -12,36 +12,57 @@ final class FileTreeStore {
 
     let rootPath: String
     private var fileIndex: GitFileIndex?
+    private var loadTask: Task<Void, Never>?
 
     init(rootPath: String) {
         self.rootPath = rootPath
     }
 
     func load() async {
+        loadTask?.cancel()
+
         isLoading = true
         errorMessage = nil
         expandedIDs = []
         loadingIDs = []
 
         let path = rootPath
+
+        // Phase 1: Show file tree immediately without git status
         do {
-            let (index, result) = try await Task.detached(priority: .userInitiated) {
-                let index = GitFileIndex.build(repositoryPath: path)
-                let nodes = try Self.scanDirectory(at: path, rootPath: path, fileIndex: index)
-                return (index, nodes)
+            let result = try await Task.detached(priority: .userInitiated) {
+                try Self.scanDirectory(at: path, rootPath: path, fileIndex: nil)
             }.value
-            fileIndex = index
             nodes = result
         } catch {
             errorMessage = error.localizedDescription
         }
-
         isLoading = false
+
+        // Phase 2: Build git index in background, then re-apply ignore status
+        loadTask = Task {
+            let index = await Task.detached(priority: .utility) {
+                GitFileIndex.build(repositoryPath: path)
+            }.value
+            guard !Task.isCancelled else { return }
+            fileIndex = index
+
+            do {
+                let updatedNodes = try await Task.detached(priority: .utility) {
+                    try Self.scanDirectory(at: path, rootPath: path, fileIndex: index)
+                }.value
+                guard !Task.isCancelled else { return }
+                // Preserve expanded state: only update top-level nodes
+                nodes = Self.mergeIgnoreStatus(existing: nodes, updated: updatedNodes)
+            } catch {
+                // Ignore — tree is already displayed without git status
+            }
+        }
     }
 
     func expand(_ node: FileNode) {
         expandedIDs.insert(node.id)
-        if node.isDirectory && !node.isLoaded {
+        if node.isDirectory && !node.isLoaded && !loadingIDs.contains(node.id) {
             Task { await loadChildren(of: node) }
         }
     }
@@ -79,6 +100,20 @@ final class FileTreeStore {
                 return FileNode(id: node.id, name: node.name, path: node.path, isDirectory: true, children: updatedChildren, isLoaded: node.isLoaded, gitIgnoreStatus: node.gitIgnoreStatus)
             }
             return node
+        }
+    }
+
+    /// Merge git ignore status from freshly scanned nodes into existing tree,
+    /// preserving loaded children of expanded directories.
+    private static func mergeIgnoreStatus(existing: [FileNode], updated: [FileNode]) -> [FileNode] {
+        let updatedByPath = Dictionary(updated.map { ($0.path, $0) }, uniquingKeysWith: { _, last in last })
+        return existing.map { node in
+            guard let match = updatedByPath[node.path] else { return node }
+            if node.isDirectory && node.isLoaded {
+                // Keep loaded children, just update ignore status
+                return FileNode(id: node.id, name: node.name, path: node.path, isDirectory: true, children: node.children, isLoaded: true, gitIgnoreStatus: match.gitIgnoreStatus)
+            }
+            return FileNode(id: node.id, name: node.name, path: node.path, isDirectory: node.isDirectory, children: node.children, isLoaded: node.isLoaded, gitIgnoreStatus: match.gitIgnoreStatus)
         }
     }
 

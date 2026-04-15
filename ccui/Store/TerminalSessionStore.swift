@@ -19,11 +19,24 @@ final class TerminalSessionStore {
             process.arguments = ["-l", "-c", "which claude"]
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
-            try? process.run()
-            process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let resolved = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return resolved.isEmpty ? "claude" : resolved
+
+            do {
+                try process.run()
+            } catch {
+                return "claude"
+            }
+
+            return await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    process.terminationHandler = { _ in
+                        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                        let resolved = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        continuation.resume(returning: resolved.isEmpty ? "claude" : resolved)
+                    }
+                }
+            } onCancel: {
+                process.terminate()
+            }
         }
     }
 

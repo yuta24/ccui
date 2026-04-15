@@ -26,11 +26,11 @@ struct PermissionsPanelView: View {
         .overlay(alignment: .leading) {
             Rectangle().fill(Color.borderSubtle).frame(width: 1)
         }
-        .onAppear {
-            store.load(worktreePath: worktreePath)
+        .task {
+            await store.load(worktreePath: worktreePath)
         }
         .onChange(of: worktreePath) { _, newPath in
-            store.load(worktreePath: newPath)
+            Task { await store.load(worktreePath: newPath) }
         }
     }
 
@@ -43,7 +43,7 @@ struct PermissionsPanelView: View {
             Spacer()
             if store.isDirty {
                 Button {
-                    store.save()
+                    Task { await store.save() }
                 } label: {
                     Text("Save")
                         .font(.uiCaption)

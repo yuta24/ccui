@@ -37,11 +37,19 @@ final class HooksStore {
 
     // MARK: - Lifecycle
 
-    func load(worktreePath: String) {
+    func load(worktreePath: String) async {
         self.worktreePath = worktreePath
         dirtyLevels = []
-        for level in HookLevel.allCases {
-            loadLevel(level)
+        let wp = worktreePath
+        let loaded = await Task.detached(priority: .userInitiated) {
+            var result: [HookLevel: [String: Any]] = [:]
+            for level in HookLevel.allCases {
+                result[level] = Self.readSettings(at: level.settingsPath(worktreePath: wp))
+            }
+            return result
+        }.value
+        for (level, json) in loaded {
+            rawSettings[level] = json
             levelCache[level] = parseEntries(for: level)
         }
         entries = levelCache[selectedLevel] ?? [:]
@@ -107,13 +115,13 @@ final class HooksStore {
 
     // MARK: - Save
 
-    func save() {
+    func save() async {
         for level in HookLevel.allCases where dirtyLevels.contains(level) {
-            saveLevel(level)
+            await saveLevel(level)
         }
     }
 
-    private func saveLevel(_ level: HookLevel) {
+    private func saveLevel(_ level: HookLevel) async {
         let path = level.settingsPath(worktreePath: worktreePath)
         var settings: [String: Any] = rawSettings[level] ?? [:]
 
@@ -143,17 +151,25 @@ final class HooksStore {
 
         settings["hooks"] = hooksDict
 
-        do {
-            let directory = (path as NSString).deletingLastPathComponent
-            try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-            let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+        let result = await Task.detached(priority: .utility) { () -> Result<[String: Any], Error> in
+            do {
+                let directory = (path as NSString).deletingLastPathComponent
+                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+                let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
+                try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+                return .success(Self.readSettings(at: path))
+            } catch {
+                return .failure(error)
+            }
+        }.value
+
+        switch result {
+        case .success(let reloaded):
             dirtyLevels.remove(level)
-            // Reload from disk to re-sync
-            loadLevel(level)
+            rawSettings[level] = reloaded
             levelCache[level] = parseEntries(for: level)
             entries = levelCache[selectedLevel] ?? [:]
-        } catch {
+        case .failure(let error):
             Logger.store.error("Failed to save hooks to \(path, privacy: .public): \(error)")
         }
     }
@@ -183,14 +199,17 @@ final class HooksStore {
 
     // MARK: - Private
 
-    private func loadLevel(_ level: HookLevel) {
-        let path = level.settingsPath(worktreePath: worktreePath)
+    private nonisolated static func readSettings(at path: String) -> [String: Any] {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            rawSettings[level] = [:]
-            return
+            return [:]
         }
-        rawSettings[level] = json
+        return json
+    }
+
+    private func loadLevel(_ level: HookLevel) {
+        let path = level.settingsPath(worktreePath: worktreePath)
+        rawSettings[level] = Self.readSettings(at: path)
     }
 
     private func parseEntries(for level: HookLevel) -> [ClaudeHookPayload.HookEventName: [HookEntry]] {

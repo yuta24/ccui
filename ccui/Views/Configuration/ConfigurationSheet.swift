@@ -52,8 +52,8 @@ struct ConfigurationSheet: View {
     private func saveCurrentTab() {
         switch selectedTab {
         case .claudeMd: claudeMdStore.save()
-        case .hooks: hooksStore.save()
-        case .permissions: permissionsStore.save()
+        case .hooks: Task { await hooksStore.save() }
+        case .permissions: Task { await permissionsStore.save() }
         }
     }
 
@@ -156,12 +156,12 @@ struct ConfigurationSheet: View {
                 .frame(maxHeight: .infinity)
         }
         .background(Color.surfacePrimary)
-        .onAppear {
-            hooksStore.load(worktreePath: worktreePath)
+        .task {
+            await hooksStore.load(worktreePath: worktreePath)
             refreshFireLogs()
         }
         .onChange(of: worktreePath) { _, newPath in
-            hooksStore.load(worktreePath: newPath)
+            Task { await hooksStore.load(worktreePath: newPath) }
             refreshFireLogs()
         }
         .onChange(of: claudeEventStore.sessions[worktreePath]) { _, _ in
@@ -199,7 +199,7 @@ struct ConfigurationSheet: View {
             Spacer()
             if hooksStore.isDirty {
                 Button {
-                    hooksStore.save()
+                    Task { await hooksStore.save() }
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
@@ -230,11 +230,11 @@ struct ConfigurationSheet: View {
                 .frame(maxHeight: .infinity)
         }
         .background(Color.surfacePrimary)
-        .onAppear {
-            permissionsStore.load(worktreePath: worktreePath)
+        .task {
+            await permissionsStore.load(worktreePath: worktreePath)
         }
         .onChange(of: worktreePath) { _, newPath in
-            permissionsStore.load(worktreePath: newPath)
+            Task { await permissionsStore.load(worktreePath: newPath) }
         }
     }
 
@@ -259,7 +259,7 @@ struct ConfigurationSheet: View {
             Spacer()
             if permissionsStore.isDirty {
                 Button {
-                    permissionsStore.save()
+                    Task { await permissionsStore.save() }
                 } label: {
                     Text("Save")
                         .font(.uiCaption)

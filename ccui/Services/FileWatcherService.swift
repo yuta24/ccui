@@ -112,7 +112,7 @@ private nonisolated let fsEventCallback: FSEventStreamCallback = {
     _, clientCallBackInfo, _, _, _, _ in
     guard let info = clientCallBackInfo else { return }
     let ctx = Unmanaged<StreamContext>.fromOpaque(info).takeUnretainedValue()
-    MainActor.assumeIsolated {
+    Task { @MainActor in
         ctx.handleEvent()
     }
 }

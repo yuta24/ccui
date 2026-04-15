@@ -56,7 +56,7 @@ final class UDSListenerService {
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
         source.setEventHandler { [weak self] in
-            MainActor.assumeIsolated {
+            Task { @MainActor [weak self] in
                 self?.acceptConnection(serverFd: fd)
             }
         }
