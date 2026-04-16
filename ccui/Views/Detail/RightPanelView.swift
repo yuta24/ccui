@@ -47,21 +47,17 @@ struct RightPanelView: View {
         return Button {
             selectedTab = tab
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 9, weight: .medium))
-                Text(tab.rawValue)
-                    .font(.uiCaption)
-            }
-            .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(isSelected ? Color.accentSubtle : Color.clear)
-            )
+            Image(systemName: tab.icon)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
+                .frame(width: 24, height: 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isSelected ? Color.accentSubtle : Color.clear)
+                )
         }
         .buttonStyle(.plain)
+        .help(tab.rawValue)
     }
 
     // MARK: - Tab Content
