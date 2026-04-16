@@ -7,7 +7,6 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private let collapsedHeight: CGFloat = 32
     private let defaultExpandedHeight: CGFloat = 220
     private var isUpdatingSplitFromState = false
-    private var didInitialLayout = false
     private var isObserving = false
 
     init(stores: StoreContainer) {
@@ -38,15 +37,6 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
         splitView.addArrangedSubview(bottomVC.view)
 
         view = splitView
-    }
-
-    override func viewDidLayout() {
-        super.viewDidLayout()
-        guard !didInitialLayout else { return }
-        didInitialLayout = true
-        guard let splitView = view as? NSSplitView else { return }
-        let targetY = splitView.frame.height - collapsedHeight
-        splitView.setPosition(targetY, ofDividerAt: 0)
     }
 
     override func viewDidAppear() {
@@ -92,6 +82,29 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     }
 
     // MARK: - NSSplitViewDelegate
+
+    func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
+        guard children.count == 2 else {
+            splitView.adjustSubviews()
+            return
+        }
+        let topView = children[0].view
+        let bottomView = children[1].view
+        let dividerThickness = splitView.dividerThickness
+        let newHeight = splitView.frame.height
+        let newWidth = splitView.frame.width
+
+        // Preserve current bottom height, enforcing minimum
+        var bottomHeight = bottomView.frame.height
+        if bottomHeight < collapsedHeight {
+            bottomHeight = collapsedHeight
+        }
+        let topHeight = newHeight - bottomHeight - dividerThickness
+
+        // NSSplitView is flipped: y=0 is top
+        topView.frame = NSRect(x: 0, y: 0, width: newWidth, height: topHeight)
+        bottomView.frame = NSRect(x: 0, y: topHeight + dividerThickness, width: newWidth, height: bottomHeight)
+    }
 
     func splitViewDidResizeSubviews(_ notification: Notification) {
         guard !isUpdatingSplitFromState else { return }
