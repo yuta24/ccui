@@ -5,6 +5,7 @@ final class AgentTerminalViewController: NSViewController {
     private let terminalSessionStore: TerminalSessionStore
     private var worktree: Worktree
     private var embeddedSession: (any TerminalSession)?
+    private var isObserving = false
 
     init(worktree: Worktree, terminalSessionStore: TerminalSessionStore) {
         self.worktree = worktree
@@ -24,7 +25,10 @@ final class AgentTerminalViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         updateTerminal()
-        observeSession()
+        if !isObserving {
+            isObserving = true
+            observeSession()
+        }
     }
 
     func update(worktree: Worktree) {

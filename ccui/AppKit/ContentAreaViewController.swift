@@ -6,6 +6,7 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
     private var isUpdatingFromState = false
     private var rightPanelCollapsed = true
     private var didInitialLayout = false
+    private var isObserving = false
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -43,9 +44,18 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
 
     override func viewDidLayout() {
         super.viewDidLayout()
-        if !didInitialLayout {
+        guard let splitView = view as? NSSplitView else { return }
+        if !didInitialLayout, splitView.frame.width > 0 {
             didInitialLayout = true
-            // Collapse right panel on initial layout
+            splitView.setPosition(splitView.frame.width, ofDividerAt: 0)
+        }
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        if !isObserving {
+            isObserving = true
+            // Ensure right panel is collapsed on first appear
             if let splitView = view as? NSSplitView {
                 splitView.setPosition(splitView.frame.width, ofDividerAt: 0)
             }

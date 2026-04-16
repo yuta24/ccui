@@ -5,6 +5,8 @@ final class RootContainerViewController: NSViewController {
     private let stores: StoreContainer
     private var keyMonitor: Any?
     private var isShowingSheet = false
+    private var isShowingAlert = false
+    private var presentedSheetVC: NSViewController?
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -113,6 +115,7 @@ final class RootContainerViewController: NSViewController {
 
         let hostingVC = NSHostingController(rootView: sheetView)
         isShowingSheet = true
+        presentedSheetVC = hostingVC
         presentAsSheet(hostingVC)
     }
 
@@ -132,21 +135,27 @@ final class RootContainerViewController: NSViewController {
 
         let hostingVC = NSHostingController(rootView: sheetView)
         isShowingSheet = true
+        presentedSheetVC = hostingVC
         presentAsSheet(hostingVC)
     }
 
     private func dismissSheet() {
-        guard let presented = presentedViewControllers?.first else {
+        guard let presented = presentedSheetVC else {
             isShowingSheet = false
             return
         }
-        dismiss(presented)
+        // Set flag before dismiss to prevent re-entry from observeSheetState
         isShowingSheet = false
+        presentedSheetVC = nil
+        dismiss(presented)
     }
 
     override func dismiss(_ viewController: NSViewController) {
         super.dismiss(viewController)
+        // Only clean up state when dismissing our sheet (not child VCs)
+        guard viewController === presentedSheetVC || presentedSheetVC == nil else { return }
         isShowingSheet = false
+        presentedSheetVC = nil
         // Clean up state when sheet is dismissed by user (e.g. Esc key)
         if stores.appCoordinator.showingAddWorktree != nil {
             stores.appCoordinator.showingAddWorktree = nil
@@ -172,6 +181,7 @@ final class RootContainerViewController: NSViewController {
     }
 
     private func handleAlertStateChanged() {
+        guard !isShowingAlert else { return }
         if stores.appCoordinator.showForceDeleteAlert {
             showForceDeleteAlert()
         } else if stores.appCoordinator.showErrorAlert {
@@ -191,9 +201,11 @@ final class RootContainerViewController: NSViewController {
         alert.addButton(withTitle: "Cancel")
 
         stores.appCoordinator.showForceDeleteAlert = false
+        isShowingAlert = true
 
         alert.beginSheetModal(for: window) { [weak self] response in
             guard let self else { return }
+            self.isShowingAlert = false
             if response == .alertFirstButtonReturn {
                 self.stores.appCoordinator.forceDeleteWorktree(
                     terminalSessionStore: self.stores.terminalSessionStore,
@@ -210,26 +222,32 @@ final class RootContainerViewController: NSViewController {
         let message = stores.appCoordinator.errorMessage ?? "An unknown error occurred."
         stores.appCoordinator.showErrorAlert = false
         stores.appCoordinator.errorMessage = nil
+        isShowingAlert = true
 
         let alert = NSAlert()
         alert.messageText = "Error"
         alert.informativeText = message
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
-        alert.beginSheetModal(for: window)
+        alert.beginSheetModal(for: window) { [weak self] _ in
+            self?.isShowingAlert = false
+        }
     }
 
     private func showStoreErrorAlert() {
         guard let window = view.window else { return }
         let message = stores.repositoryStore.lastError ?? "An unknown error occurred."
         stores.repositoryStore.clearError()
+        isShowingAlert = true
 
         let alert = NSAlert()
         alert.messageText = "Error"
         alert.informativeText = message
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
-        alert.beginSheetModal(for: window)
+        alert.beginSheetModal(for: window) { [weak self] _ in
+            self?.isShowingAlert = false
+        }
     }
 
     // MARK: - Keyboard Shortcuts

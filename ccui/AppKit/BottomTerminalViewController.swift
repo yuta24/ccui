@@ -7,6 +7,7 @@ final class BottomTerminalViewController: NSViewController {
     private let terminalContainer = NSView()
     private var embeddedSession: (any TerminalSession)?
     private var emptyStateVC: NSHostingController<AnyView>?
+    private var isObserving = false
 
     init(stores: StoreContainer, bottomPanelState: BottomPanelState) {
         self.stores = stores
@@ -63,7 +64,10 @@ final class BottomTerminalViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         updateTerminal()
-        observeTerminalState()
+        if !isObserving {
+            isObserving = true
+            observeTerminalState()
+        }
     }
 
     // MARK: - State Observation

@@ -8,6 +8,7 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private let defaultExpandedHeight: CGFloat = 220
     private var isUpdatingSplitFromState = false
     private var didInitialLayout = false
+    private var isObserving = false
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -50,7 +51,10 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
 
     override func viewDidAppear() {
         super.viewDidAppear()
-        observeBottomPanelState()
+        if !isObserving {
+            isObserving = true
+            observeBottomPanelState()
+        }
     }
 
     // MARK: - State Observation
