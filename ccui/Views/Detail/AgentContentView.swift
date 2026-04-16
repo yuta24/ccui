@@ -5,8 +5,11 @@ struct AgentContentView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
 
     var body: some View {
-        if let session = terminalSessionStore.session(for: worktree) {
-            TerminalContainerView(session: session, isActive: true)
+        if terminalSessionStore.session(for: worktree) != nil {
+            AgentTerminalRepresentable(
+                worktree: worktree,
+                terminalSessionStore: terminalSessionStore
+            )
         } else {
             emptyState
         }
@@ -33,5 +36,20 @@ struct AgentContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.surfacePrimary)
+    }
+}
+
+// MARK: - NSViewControllerRepresentable
+
+private struct AgentTerminalRepresentable: NSViewControllerRepresentable {
+    let worktree: Worktree
+    let terminalSessionStore: TerminalSessionStore
+
+    func makeNSViewController(context: Context) -> AgentTerminalViewController {
+        AgentTerminalViewController(worktree: worktree, terminalSessionStore: terminalSessionStore)
+    }
+
+    func updateNSViewController(_ controller: AgentTerminalViewController, context: Context) {
+        controller.update(worktree: worktree)
     }
 }

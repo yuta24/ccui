@@ -29,11 +29,8 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
         let topVC = ContentAreaViewController(stores: stores, bottomPanelState: bottomPanelState)
         addChild(topVC)
 
-        // Bottom: BottomTerminalPanelView
-        let bottomView = stores.injectEnvironment(into: BottomTerminalPanelView())
-            .environment(bottomPanelState)
-            .preferredColorScheme(.dark)
-        let bottomVC = NSHostingController(rootView: bottomView)
+        // Bottom: BottomTerminalViewController (AppKit-managed terminal)
+        let bottomVC = BottomTerminalViewController(stores: stores, bottomPanelState: bottomPanelState)
         addChild(bottomVC)
 
         splitView.addArrangedSubview(topVC.view)
