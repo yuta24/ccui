@@ -21,8 +21,8 @@ final class MainWindowController: NSWindowController {
 
         super.init(window: window)
 
-        let splitVC = MainSplitViewController(stores: stores)
-        window.contentViewController = splitVC
+        let rootVC = RootContainerViewController(stores: stores)
+        window.contentViewController = rootVC
 
         stores.start()
     }

@@ -10,12 +10,10 @@ struct ContentView: View {
     @Environment(DetailUIState.self) private var detailUIState
     @Environment(SessionComparisonStore.self) private var sessionComparisonStore
     @Environment(BottomPanelState.self) private var bottomPanelState
-    @Environment(DiffStore.self) private var diffStore
     @State private var fileOverlayStore = FileOverlayStore()
     @State private var codeViewerStore = CodeViewerStore()
     @State private var quickOpenStore = QuickOpenStore()
     @State private var searchStore = SearchStore()
-    @State private var showingConfiguration = false
     @State private var escMonitor: Any?
 
     var body: some View {
@@ -23,11 +21,6 @@ struct ContentView: View {
 
         ZStack {
             VStack(spacing: 0) {
-                AgentDashboardBar(
-                    showingConfiguration: $showingConfiguration
-                )
-                .environment(detailUIState)
-
                 if let worktree = coordinator.selectedWorktree {
                     DetailView(
                         worktree: worktree,
@@ -74,7 +67,6 @@ struct ContentView: View {
             quickOpenStore.close()
             searchStore.deactivate()
             bottomPanelState.collapse()
-            showingConfiguration = false
             if let wt = newValue {
                 claudeEventStore.acknowledge(for: wt.path)
                 quickOpenStore.buildIndex(rootPath: wt.path)
@@ -115,15 +107,18 @@ struct ContentView: View {
             )
         }
         .sheet(isPresented: Binding(
-            get: { showingConfiguration && coordinator.selectedWorktree != nil },
-            set: { showingConfiguration = $0 }
+            get: { detailUIState.showingConfiguration && coordinator.selectedWorktree != nil },
+            set: { detailUIState.showingConfiguration = $0 }
         )) {
             if let worktree = coordinator.selectedWorktree {
                 let repoPath = coordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
                 ConfigurationSheet(
                     worktreePath: worktree.path,
                     repositoryPath: repoPath,
-                    isPresented: $showingConfiguration
+                    isPresented: Binding(
+                        get: { detailUIState.showingConfiguration },
+                        set: { detailUIState.showingConfiguration = $0 }
+                    )
                 )
             }
         }

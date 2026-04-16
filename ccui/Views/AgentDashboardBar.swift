@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct AgentDashboardBar: View {
-    @Binding var showingConfiguration: Bool
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(DetailUIState.self) private var detailUIState
@@ -77,11 +76,11 @@ struct AgentDashboardBar: View {
                     .help("Inspector (⌘I)")
 
                     Button {
-                        showingConfiguration.toggle()
+                        detailUIState.showingConfiguration.toggle()
                     } label: {
                         Image(systemName: "gearshape")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(showingConfiguration ? Color.accent : Color.textSecondary)
+                            .foregroundStyle(detailUIState.showingConfiguration ? Color.accent : Color.textSecondary)
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
                     }
