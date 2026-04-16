@@ -22,17 +22,21 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
         let splitView = NSSplitView()
         splitView.isVertical = true
         splitView.dividerStyle = .thin
+        splitView.wantsLayer = true
+        splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
         splitView.delegate = self
         // Left: ContentView (dashboard bar + main content + overlays)
         let leftView = stores.injectEnvironment(into: ContentView())
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
+        leftVC.safeAreaRegions = []
         addChild(leftVC)
 
         // Right: RightPanelView
         let rightView = stores.injectEnvironment(into: RightPanelContainerView())
             .preferredColorScheme(.dark)
         let rightVC = NSHostingController(rootView: rightView)
+        rightVC.safeAreaRegions = []
         addChild(rightVC)
 
         splitView.addArrangedSubview(leftVC.view)

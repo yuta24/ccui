@@ -18,6 +18,8 @@ final class MainSplitViewController: NSSplitViewController {
         super.viewDidLoad()
 
         splitView.dividerStyle = .thin
+        splitView.wantsLayer = true
+        splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
 
         let sidebarView = stores.injectEnvironment(into: SidebarContainerView())
         let sidebarVC = NSHostingController(rootView: sidebarView)

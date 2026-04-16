@@ -23,7 +23,7 @@ struct BottomTerminalTabBarView: View {
             Spacer()
         }
         .frame(height: 32)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 
     private func tabBar(worktreePath: String) -> some View {
@@ -71,7 +71,7 @@ struct BottomTerminalTabBarView: View {
             .padding(.trailing, 8)
         }
         .frame(height: 32)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 
     private func tabChip(tab: ShellTab, isActive: Bool, worktreePath: String) -> some View {

@@ -22,22 +22,22 @@ final class RootContainerViewController: NSViewController {
     override func loadView() {
         let container = NSView()
         container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.surfacePrimaryColor.withAlphaComponent(0).cgColor
+        container.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
 
-        // Split view (below titlebar)
+        // Split view (below titlebar, inset from window edges)
         let splitVC = MainSplitViewController(stores: stores)
         addChild(splitVC)
         splitVC.view.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(splitVC.view)
 
-        // Title bar spacer (traffic lights area)
         let titleBarHeight: CGFloat = 28
+        let edgeInset = PanelMetrics.windowEdgeInset
 
         NSLayoutConstraint.activate([
             splitVC.view.topAnchor.constraint(equalTo: container.topAnchor, constant: titleBarHeight),
-            splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: edgeInset),
+            splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -edgeInset),
+            splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -edgeInset),
         ])
 
         view = container

@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - NSColor Tokens
 
 extension NSColor {
+    static let surfaceWindowColor = NSColor(red: 0.027, green: 0.027, blue: 0.027, alpha: 1)
     static let surfacePrimaryColor = NSColor(red: 0.098, green: 0.098, blue: 0.098, alpha: 1)
     static let textPrimaryColor = NSColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1)
     static let accentAmberColor = NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1)
@@ -13,6 +14,7 @@ extension NSColor {
 
 extension Color {
     // Backgrounds
+    static let surfaceWindow = Color(nsColor: .surfaceWindowColor)
     static let surfaceBase = Color(nsColor: NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1))
     static let surfacePrimary = Color(nsColor: .surfacePrimaryColor)
     static let surfaceElevated = Color(nsColor: NSColor(red: 0.133, green: 0.133, blue: 0.133, alpha: 1))
@@ -68,29 +70,43 @@ extension Font {
 enum PanelMetrics {
     static let cornerRadius: CGFloat = 8
     static let itemCornerRadius: CGFloat = 5
+    static let panelCornerRadius: CGFloat = 10
+    static let panelGap: CGFloat = 3
+    static let windowEdgeInset: CGFloat = 4
 }
 
 // MARK: - View Modifiers
 
-struct PanelBackground: ViewModifier {
+struct FloatingPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(Color.surfacePrimary)
+            .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.panelCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: PanelMetrics.panelCornerRadius)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 2)
+            .padding(PanelMetrics.panelGap)
+            .background(Color.surfaceWindow)
+    }
+}
+
+struct PanelBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        content.modifier(FloatingPanel())
     }
 }
 
 struct ContentPanel: ViewModifier {
     func body(content: Content) -> some View {
-        content
-            .background(Color.surfacePrimary)
-            .padding(.leading, 1)
+        content.modifier(FloatingPanel())
     }
 }
 
 struct BottomPanel: ViewModifier {
     func body(content: Content) -> some View {
-        content
-            .background(Color.surfacePrimary)
+        content.modifier(FloatingPanel())
     }
 }
 
@@ -117,6 +133,7 @@ struct SectionHeader: ViewModifier {
 }
 
 extension View {
+    func floatingPanel() -> some View { modifier(FloatingPanel()) }
     func panelBackground() -> some View { modifier(PanelBackground()) }
     func contentPanel() -> some View { modifier(ContentPanel()) }
     func bottomPanel() -> some View { modifier(BottomPanel()) }

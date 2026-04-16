@@ -23,6 +23,8 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
         let splitView = NSSplitView()
         splitView.isVertical = false
         splitView.dividerStyle = .thin
+        splitView.wantsLayer = true
+        splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
         splitView.delegate = self
 
         // Top: ContentAreaViewController (content + right panel split)

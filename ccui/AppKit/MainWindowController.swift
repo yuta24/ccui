@@ -16,6 +16,7 @@ final class MainWindowController: NSWindowController {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.appearance = NSAppearance(named: .darkAqua)
+        window.backgroundColor = NSColor.surfaceWindowColor
         window.isRestorable = false
         window.minSize = NSSize(width: 900, height: 600)
         window.center()
