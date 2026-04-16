@@ -19,6 +19,7 @@ final class ContentAreaViewController: NSViewController {
     private let stores: StoreContainer
     private var isUpdatingFromState = false
     private var isObserving = false
+    private var hasLockedMinimumThickness = false
 
     private var splitVC: ContentSplitViewController!
     private var rightPanelItem: NSSplitViewItem!
@@ -66,7 +67,7 @@ final class ContentAreaViewController: NSViewController {
         let rightVC = NSHostingController(rootView: rightView)
         rightVC.safeAreaRegions = []
         rightPanelItem = NSSplitViewItem(viewController: rightVC)
-        rightPanelItem.minimumThickness = 220
+        rightPanelItem.minimumThickness = 280
         rightPanelItem.canCollapse = true
         rightPanelItem.isCollapsed = true
         splitVC.addSplitViewItem(rightPanelItem)
@@ -144,7 +145,15 @@ final class ContentAreaViewController: NSViewController {
             rightPanelItem.isCollapsed = false
         }, completionHandler: {
             Task { @MainActor [weak self] in
-                self?.isUpdatingFromState = false
+                guard let self else { return }
+                self.isUpdatingFromState = false
+                if !self.hasLockedMinimumThickness {
+                    self.hasLockedMinimumThickness = true
+                    let initialWidth = self.rightPanelItem.viewController.view.frame.width
+                    if initialWidth > 0 {
+                        self.rightPanelItem.minimumThickness = initialWidth
+                    }
+                }
             }
         })
     }

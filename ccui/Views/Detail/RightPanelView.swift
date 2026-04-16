@@ -9,13 +9,16 @@ struct RightPanelView: View {
     @Environment(DiffStore.self) private var diffStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            tabBar
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(height: 1)
-            tabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { _ in
+            VStack(spacing: 0) {
+                tabBar
+                Rectangle()
+                    .fill(Color.borderSubtle)
+                    .frame(height: 1)
+                tabContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color.surfacePrimary)
         .onAppear {

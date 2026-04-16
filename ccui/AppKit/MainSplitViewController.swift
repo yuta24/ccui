@@ -25,6 +25,7 @@ final class MainSplitViewController: NSSplitViewController {
         let sidebarItem = NSSplitViewItem(viewController: sidebarVC)
         sidebarItem.minimumThickness = 200
         sidebarItem.maximumThickness = 400
+        sidebarItem.holdingPriority = .init(490)
         addSplitViewItem(sidebarItem)
 
         let detailVC = DetailPaneViewController(stores: stores)
