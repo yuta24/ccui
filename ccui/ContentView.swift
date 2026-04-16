@@ -98,56 +98,6 @@ struct ContentView: View {
                 claudeEventStore: claudeEventStore
             )
         }
-        .sheet(item: $coordinator.showingAddWorktree) { wtStore in
-            AddWorktreeView(
-                worktreeStore: wtStore,
-                repositoryPath: wtStore.repositoryPath,
-                initialBaseBranch: coordinator.initialBaseBranch
-            )
-        }
-        .sheet(isPresented: Binding(
-            get: { detailUIState.showingConfiguration && coordinator.selectedWorktree != nil },
-            set: { detailUIState.showingConfiguration = $0 }
-        )) {
-            if let worktree = coordinator.selectedWorktree {
-                let repoPath = coordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
-                ConfigurationSheet(
-                    worktreePath: worktree.path,
-                    repositoryPath: repoPath,
-                    isPresented: Binding(
-                        get: { detailUIState.showingConfiguration },
-                        set: { detailUIState.showingConfiguration = $0 }
-                    )
-                )
-            }
-        }
-        .alert("Uncommitted Changes", isPresented: $coordinator.showForceDeleteAlert) {
-            Button("Force Delete", role: .destructive) {
-                coordinator.forceDeleteWorktree(terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore)
-            }
-            Button("Cancel", role: .cancel) {
-                coordinator.forceDeleteTarget = nil
-            }
-        } message: {
-            Text("This worktree has uncommitted changes. Force delete will discard them.")
-        }
-        .alert("Error", isPresented: $coordinator.showErrorAlert) {
-            Button("OK", role: .cancel) {
-                coordinator.errorMessage = nil
-            }
-        } message: {
-            Text(coordinator.errorMessage ?? "An unknown error occurred.")
-        }
-        .alert("Error", isPresented: Binding(
-            get: { store.lastError != nil },
-            set: { if !$0 { store.clearError() } }
-        )) {
-            Button("OK", role: .cancel) {
-                store.clearError()
-            }
-        } message: {
-            Text(store.lastError ?? "An unknown error occurred.")
-        }
         .onAppear {
             coordinator.ensureWorktreeStores(
                 for: store.repositories,

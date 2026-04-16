@@ -4,6 +4,7 @@ import SwiftUI
 final class RootContainerViewController: NSViewController {
     private let stores: StoreContainer
     private var keyMonitor: Any?
+    private var isShowingSheet = false
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -53,6 +54,8 @@ final class RootContainerViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         installKeyMonitor()
+        observeSheetState()
+        observeAlertState()
     }
 
     override func viewWillDisappear() {
@@ -61,6 +64,172 @@ final class RootContainerViewController: NSViewController {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
         }
+    }
+
+    // MARK: - Sheet Observation
+
+    private func observeSheetState() {
+        withObservationTracking {
+            _ = stores.appCoordinator.showingAddWorktree
+            _ = stores.detailUIState.showingConfiguration
+        } onChange: {
+            Task { @MainActor [weak self] in
+                self?.handleSheetStateChanged()
+                self?.observeSheetState()
+            }
+        }
+    }
+
+    private func handleSheetStateChanged() {
+        // Present AddWorktree sheet
+        if let wtStore = stores.appCoordinator.showingAddWorktree, !isShowingSheet {
+            presentAddWorktreeSheet(wtStore: wtStore)
+            return
+        }
+
+        // Present Configuration sheet
+        if stores.detailUIState.showingConfiguration,
+           let worktree = stores.appCoordinator.selectedWorktree,
+           !isShowingSheet {
+            presentConfigurationSheet(worktree: worktree)
+            return
+        }
+
+        // Dismiss if state says closed
+        if stores.appCoordinator.showingAddWorktree == nil && !stores.detailUIState.showingConfiguration && isShowingSheet {
+            dismissSheet()
+        }
+    }
+
+    private func presentAddWorktreeSheet(wtStore: WorktreeStore) {
+        let sheetView = stores.injectEnvironment(into:
+            AddWorktreeView(
+                worktreeStore: wtStore,
+                repositoryPath: wtStore.repositoryPath,
+                initialBaseBranch: stores.appCoordinator.initialBaseBranch
+            )
+        )
+        .preferredColorScheme(.dark)
+
+        let hostingVC = NSHostingController(rootView: sheetView)
+        isShowingSheet = true
+        presentAsSheet(hostingVC)
+    }
+
+    private func presentConfigurationSheet(worktree: Worktree) {
+        let repoPath = stores.appCoordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
+        let sheetView = stores.injectEnvironment(into:
+            ConfigurationSheet(
+                worktreePath: worktree.path,
+                repositoryPath: repoPath,
+                isPresented: Binding(
+                    get: { [weak self] in self?.stores.detailUIState.showingConfiguration ?? false },
+                    set: { [weak self] in self?.stores.detailUIState.showingConfiguration = $0 }
+                )
+            )
+        )
+        .preferredColorScheme(.dark)
+
+        let hostingVC = NSHostingController(rootView: sheetView)
+        isShowingSheet = true
+        presentAsSheet(hostingVC)
+    }
+
+    private func dismissSheet() {
+        guard let presented = presentedViewControllers?.first else {
+            isShowingSheet = false
+            return
+        }
+        dismiss(presented)
+        isShowingSheet = false
+    }
+
+    override func dismiss(_ viewController: NSViewController) {
+        super.dismiss(viewController)
+        isShowingSheet = false
+        // Clean up state when sheet is dismissed by user (e.g. Esc key)
+        if stores.appCoordinator.showingAddWorktree != nil {
+            stores.appCoordinator.showingAddWorktree = nil
+        }
+        if stores.detailUIState.showingConfiguration {
+            stores.detailUIState.showingConfiguration = false
+        }
+    }
+
+    // MARK: - Alert Observation
+
+    private func observeAlertState() {
+        withObservationTracking {
+            _ = stores.appCoordinator.showForceDeleteAlert
+            _ = stores.appCoordinator.showErrorAlert
+            _ = stores.repositoryStore.lastError
+        } onChange: {
+            Task { @MainActor [weak self] in
+                self?.handleAlertStateChanged()
+                self?.observeAlertState()
+            }
+        }
+    }
+
+    private func handleAlertStateChanged() {
+        if stores.appCoordinator.showForceDeleteAlert {
+            showForceDeleteAlert()
+        } else if stores.appCoordinator.showErrorAlert {
+            showCoordinatorErrorAlert()
+        } else if stores.repositoryStore.lastError != nil {
+            showStoreErrorAlert()
+        }
+    }
+
+    private func showForceDeleteAlert() {
+        guard let window = view.window else { return }
+        let alert = NSAlert()
+        alert.messageText = "Uncommitted Changes"
+        alert.informativeText = "This worktree has uncommitted changes. Force delete will discard them."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Force Delete")
+        alert.addButton(withTitle: "Cancel")
+
+        stores.appCoordinator.showForceDeleteAlert = false
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self else { return }
+            if response == .alertFirstButtonReturn {
+                self.stores.appCoordinator.forceDeleteWorktree(
+                    terminalSessionStore: self.stores.terminalSessionStore,
+                    shellSessionStore: self.stores.shellSessionStore
+                )
+            } else {
+                self.stores.appCoordinator.forceDeleteTarget = nil
+            }
+        }
+    }
+
+    private func showCoordinatorErrorAlert() {
+        guard let window = view.window else { return }
+        let message = stores.appCoordinator.errorMessage ?? "An unknown error occurred."
+        stores.appCoordinator.showErrorAlert = false
+        stores.appCoordinator.errorMessage = nil
+
+        let alert = NSAlert()
+        alert.messageText = "Error"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window)
+    }
+
+    private func showStoreErrorAlert() {
+        guard let window = view.window else { return }
+        let message = stores.repositoryStore.lastError ?? "An unknown error occurred."
+        stores.repositoryStore.clearError()
+
+        let alert = NSAlert()
+        alert.messageText = "Error"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window)
     }
 
     // MARK: - Keyboard Shortcuts
