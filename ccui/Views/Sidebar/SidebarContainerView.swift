@@ -45,6 +45,7 @@ struct SidebarContainerView: View {
             }
         )
         .background(Color.surfaceBase)
+        .ignoresSafeArea()
     }
 
     private func setupSessionHandlers(for worktree: Worktree, sessionId: String) {

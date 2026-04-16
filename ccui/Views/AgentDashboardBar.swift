@@ -1,9 +1,9 @@
 import SwiftUI
 
-struct AgentDashboardBar: View {
+// MARK: - Global Agent Status (Sidebar top)
+
+struct AgentStatusBar: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
-    @Environment(AppCoordinator.self) private var coordinator
-    @Environment(DetailUIState.self) private var detailUIState
 
     var body: some View {
         let active = claudeEventStore.activeAgentCount
@@ -11,43 +11,50 @@ struct AgentDashboardBar: View {
         let notified = claudeEventStore.notifiedAgentCount
         let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || notified > 0)
 
-        HStack(spacing: 12) {
-            // Agent status (left)
+        HStack(spacing: 10) {
             if let loadError = claudeEventStore.loadError {
-                statusItem(
-                    icon: "exclamationmark.triangle.fill",
-                    color: .diffDeletion,
-                    label: loadError
-                )
+                statusItem(icon: "exclamationmark.triangle.fill", color: .diffDeletion, label: loadError)
             } else if hasStatus {
                 if active > 0 {
-                    statusItem(
-                        icon: "hammer",
-                        color: .statusRenamed,
-                        label: "\(active) active"
-                    )
+                    statusItem(icon: "hammer", color: .statusRenamed, label: "\(active)")
                 }
-
                 if notified > 0 {
-                    statusItem(
-                        icon: "bell.fill",
-                        color: .accent,
-                        label: "\(notified) notified"
-                    )
+                    statusItem(icon: "bell.fill", color: .accent, label: "\(notified)")
                 }
-
                 if done > 0 {
-                    statusItem(
-                        icon: "checkmark.circle.fill",
-                        color: .statusClean,
-                        label: "\(done) done"
-                    )
+                    statusItem(icon: "checkmark.circle.fill", color: .statusClean, label: "\(done)")
                 }
             }
-
             Spacer()
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 32)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.borderSubtle).frame(height: 1)
+        }
+    }
 
-            // Session title (center-right)
+    private func statusItem(icon: String, color: Color, label: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.uiCaptionMono)
+                .foregroundStyle(Color.textSecondary)
+        }
+    }
+}
+
+// MARK: - Content Toolbar (Content panel top)
+
+struct ContentToolbar: View {
+    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(DetailUIState.self) private var detailUIState
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Branch name (left)
             if let worktree = coordinator.selectedWorktree {
                 HStack(spacing: 5) {
                     Image(systemName: "arrow.triangle.branch")
@@ -61,8 +68,8 @@ struct AgentDashboardBar: View {
             Spacer()
 
             // Actions (right)
-            HStack(spacing: 4) {
-                if coordinator.selectedWorktree != nil {
+            if coordinator.selectedWorktree != nil {
+                HStack(spacing: 4) {
                     Button {
                         detailUIState.isRightPanelVisible.toggle()
                     } label: {
@@ -88,24 +95,11 @@ struct AgentDashboardBar: View {
                     .help("Configuration")
                 }
             }
-            .padding(.trailing, 8)
         }
         .padding(.horizontal, 14)
-        .frame(height: 36)
-        .background(Color.surfaceBase)
+        .frame(height: 32)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.borderSubtle).frame(height: 1)
-        }
-    }
-
-    private func statusItem(icon: String, color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.uiCaption)
-                .foregroundStyle(Color.textSecondary)
         }
     }
 }

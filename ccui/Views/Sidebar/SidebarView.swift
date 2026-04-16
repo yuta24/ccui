@@ -11,8 +11,7 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Color.clear
-                .frame(height: 12)
+            AgentStatusBar()
 
             SidebarHeaderView(onAddRepository: {
                 coordinator.addRepository(store: store)

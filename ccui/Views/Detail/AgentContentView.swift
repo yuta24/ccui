@@ -35,7 +35,6 @@ struct AgentContentView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.surfacePrimary)
     }
 }
 

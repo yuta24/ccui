@@ -19,6 +19,8 @@ struct ContentView: View {
 
         ZStack {
             VStack(spacing: 0) {
+                ContentToolbar()
+
                 if let worktree = coordinator.selectedWorktree {
                     DetailView(
                         worktree: worktree,
@@ -30,12 +32,11 @@ struct ContentView: View {
                     )
                     .environment(detailUIState)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.surfacePrimary)
                 } else {
                     emptyState
                 }
             }
-            .background(Color.surfaceBase)
+            .contentPanel()
 
             if sessionComparisonStore.isVisible {
                 SessionComparisonView(store: sessionComparisonStore)
@@ -120,6 +121,5 @@ struct ContentView: View {
                 .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.surfacePrimary)
     }
 }

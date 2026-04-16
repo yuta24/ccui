@@ -21,16 +21,10 @@ final class RootContainerViewController: NSViewController {
 
     override func loadView() {
         let container = NSView()
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.surfacePrimaryColor.withAlphaComponent(0).cgColor
 
-        // Dashboard bar (top, spans full width including sidebar)
-        let dashboardView = stores.injectEnvironment(into: AgentDashboardBar())
-            .preferredColorScheme(.dark)
-        let dashboardVC = NSHostingController(rootView: dashboardView)
-        addChild(dashboardVC)
-        dashboardVC.view.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(dashboardVC.view)
-
-        // Split view (below dashboard bar)
+        // Split view (below titlebar)
         let splitVC = MainSplitViewController(stores: stores)
         addChild(splitVC)
         splitVC.view.translatesAutoresizingMaskIntoConstraints = false
@@ -40,12 +34,7 @@ final class RootContainerViewController: NSViewController {
         let titleBarHeight: CGFloat = 28
 
         NSLayoutConstraint.activate([
-            dashboardVC.view.topAnchor.constraint(equalTo: container.topAnchor, constant: titleBarHeight),
-            dashboardVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            dashboardVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            dashboardVC.view.heightAnchor.constraint(equalToConstant: 36),
-
-            splitVC.view.topAnchor.constraint(equalTo: dashboardVC.view.bottomAnchor),
+            splitVC.view.topAnchor.constraint(equalTo: container.topAnchor, constant: titleBarHeight),
             splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),

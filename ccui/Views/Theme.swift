@@ -63,9 +63,31 @@ extension Font {
     static let uiCaptionMono = Font.system(.subheadline, design: .monospaced)
 }
 
+// MARK: - Panel Metrics
+
+enum PanelMetrics {
+    static let cornerRadius: CGFloat = 8
+    static let itemCornerRadius: CGFloat = 5
+}
+
 // MARK: - View Modifiers
 
 struct PanelBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(Color.surfacePrimary)
+    }
+}
+
+struct ContentPanel: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(Color.surfacePrimary)
+            .padding(.leading, 1)
+    }
+}
+
+struct BottomPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(Color.surfacePrimary)
@@ -96,6 +118,8 @@ struct SectionHeader: ViewModifier {
 
 extension View {
     func panelBackground() -> some View { modifier(PanelBackground()) }
+    func contentPanel() -> some View { modifier(ContentPanel()) }
+    func bottomPanel() -> some View { modifier(BottomPanel()) }
     func elevatedPanel() -> some View { modifier(ElevatedPanel()) }
     func sectionHeader() -> some View { modifier(SectionHeader()) }
 }

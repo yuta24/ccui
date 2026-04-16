@@ -23,7 +23,6 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.delegate = self
-
         // Left: ContentView (dashboard bar + main content + overlays)
         let leftView = stores.injectEnvironment(into: ContentView())
             .preferredColorScheme(.dark)
