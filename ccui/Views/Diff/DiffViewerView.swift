@@ -90,45 +90,16 @@ struct DiffViewerView: View {
         .background(Color.surfacePrimary)
     }
 
-    // MARK: - Split View
+    // MARK: - Unified Diff View
 
     private func diffSplitView(entries: [DiffFileEntry]) -> some View {
-        HSplitView {
-            fileList(entries: entries)
-                .frame(minWidth: 180, idealWidth: 240, maxWidth: 350)
-
-            if let path = store.selectedFilePath,
-               let entry = entries.first(where: { $0.newPath == path || $0.oldPath == path }) {
-                DiffFileContentView(entry: entry)
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 28, weight: .ultraLight))
-                        .foregroundStyle(Color.textTertiary)
-                    Text("Select a file")
-                        .font(.uiLabel)
-                        .foregroundStyle(Color.textTertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.surfacePrimary)
-            }
-        }
-    }
-
-    private func fileList(entries: [DiffFileEntry]) -> some View {
         ScrollView {
-            LazyVStack(spacing: 1) {
+            LazyVStack(spacing: 0) {
                 ForEach(entries) { entry in
-                    DiffFileRowView(
-                        entry: entry,
-                        isSelected: store.selectedFilePath == entry.newPath,
-                        onSelect: { store.selectFile(entry.newPath) }
-                    )
+                    DiffFileSection(entry: entry)
                 }
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 4)
         }
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 }
