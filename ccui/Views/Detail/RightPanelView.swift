@@ -27,6 +27,8 @@ struct RightPanelView: View {
                 tabContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(width: panelWidth)
+            .clipped()
         }
         .frame(width: effectiveWidth)
         .background(Color.surfacePrimary)
