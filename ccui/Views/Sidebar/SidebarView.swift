@@ -11,11 +11,10 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            AgentStatusBar()
-
             SidebarHeaderView(onAddRepository: {
                 coordinator.addRepository(store: store)
             })
+            .padding(.top, 10)
             .padding(.bottom, 8)
 
             if store.repositories.isEmpty {

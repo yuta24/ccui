@@ -21,9 +21,7 @@ final class MainSplitViewController: NSSplitViewController {
         splitView.wantsLayer = true
         splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
 
-        let sidebarView = stores.injectEnvironment(into: SidebarContainerView())
-        let sidebarVC = NSHostingController(rootView: sidebarView)
-        sidebarVC.safeAreaRegions = []
+        let sidebarVC = SidebarAreaViewController(stores: stores)
         let sidebarItem = NSSplitViewItem(viewController: sidebarVC)
         sidebarItem.minimumThickness = 200
         sidebarItem.maximumThickness = 400
