@@ -24,14 +24,13 @@ final class RootContainerViewController: NSViewController {
         container.wantsLayer = true
         container.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
 
-        // Split view (below titlebar, inset from window edges)
+        let titleBarHeight: CGFloat = PanelMetrics.titleBarHeight
+        let edgeInset = PanelMetrics.windowEdgeInset
+
         let splitVC = MainSplitViewController(stores: stores)
         addChild(splitVC)
         splitVC.view.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(splitVC.view)
-
-        let titleBarHeight: CGFloat = 28
-        let edgeInset = PanelMetrics.windowEdgeInset
 
         NSLayoutConstraint.activate([
             splitVC.view.topAnchor.constraint(equalTo: container.topAnchor, constant: titleBarHeight),

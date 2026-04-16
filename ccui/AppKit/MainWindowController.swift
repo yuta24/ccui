@@ -26,6 +26,16 @@ final class MainWindowController: NSWindowController {
         let rootVC = RootContainerViewController(stores: stores)
         window.contentViewController = rootVC
 
+        let statusBarView = stores.injectEnvironment(into: AgentStatusBar())
+            .preferredColorScheme(.dark)
+        let hosting = NSHostingView(rootView: statusBarView)
+        hosting.frame = NSRect(x: 0, y: 0, width: 200, height: PanelMetrics.titleBarHeight)
+
+        let accessoryVC = NSTitlebarAccessoryViewController()
+        accessoryVC.layoutAttribute = .trailing
+        accessoryVC.view = hosting
+        window.addTitlebarAccessoryViewController(accessoryVC)
+
         stores.start()
     }
 

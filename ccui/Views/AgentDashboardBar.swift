@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Global Agent Status (Sidebar top)
+// MARK: - Global Agent Status (Titlebar accessory, right-aligned)
 
 struct AgentStatusBar: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
@@ -11,7 +11,8 @@ struct AgentStatusBar: View {
         let notified = claudeEventStore.notifiedAgentCount
         let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || notified > 0)
 
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            Spacer()
             if let loadError = claudeEventStore.loadError {
                 statusItem(icon: "exclamationmark.triangle.fill", color: .diffDeletion, label: loadError)
             } else if hasStatus {
@@ -25,13 +26,9 @@ struct AgentStatusBar: View {
                     statusItem(icon: "checkmark.circle.fill", color: .statusClean, label: "\(done)")
                 }
             }
-            Spacer()
         }
-        .padding(.horizontal, 14)
-        .frame(height: PanelMetrics.toolbarHeight)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.borderSubtle).frame(height: 1)
-        }
+        .padding(.trailing, PanelMetrics.windowEdgeInset + 10)
+        .frame(height: PanelMetrics.titleBarHeight)
     }
 
     private func statusItem(icon: String, color: Color, label: String) -> some View {
