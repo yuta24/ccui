@@ -7,17 +7,14 @@ struct ContentView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(ShellSessionStore.self) private var shellSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
-    @State private var sidebarWidth: CGFloat = 260
-    @GestureState private var dragOffset: CGFloat = 0
-    @State private var sidebarCursorPushed = false
-    @State private var sidebarHandleHovered = false
+    @Environment(DetailUIState.self) private var detailUIState
+    @Environment(SessionComparisonStore.self) private var sessionComparisonStore
+    @Environment(BottomPanelState.self) private var bottomPanelState
+    @Environment(DiffStore.self) private var diffStore
     @State private var fileOverlayStore = FileOverlayStore()
-    @State private var sessionComparisonStore = SessionComparisonStore()
     @State private var codeViewerStore = CodeViewerStore()
-    @State private var diffStore = DiffStore()
     @State private var quickOpenStore = QuickOpenStore()
     @State private var searchStore = SearchStore()
-    @State private var detailUIState = DetailUIState()
     @State private var showingConfiguration = false
     @State private var escMonitor: Any?
 
@@ -31,25 +28,20 @@ struct ContentView: View {
                 )
                 .environment(detailUIState)
 
-                HStack(spacing: 0) {
-                    sidebarSection
-                    sidebarResizeHandle
-
-                    if let worktree = coordinator.selectedWorktree {
-                        DetailView(
-                            worktree: worktree,
-                            fileTreeStore: coordinator.fileTreeStore,
-                            fileOverlayStore: fileOverlayStore,
-                            codeViewerStore: codeViewerStore,
-                            searchStore: searchStore,
-                            sessionComparisonStore: sessionComparisonStore
-                        )
-                        .environment(detailUIState)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.surfacePrimary)
-                    } else {
-                        emptyState
-                    }
+                if let worktree = coordinator.selectedWorktree {
+                    DetailView(
+                        worktree: worktree,
+                        fileTreeStore: coordinator.fileTreeStore,
+                        fileOverlayStore: fileOverlayStore,
+                        codeViewerStore: codeViewerStore,
+                        searchStore: searchStore,
+                        sessionComparisonStore: sessionComparisonStore
+                    )
+                    .environment(detailUIState)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.surfacePrimary)
+                } else {
+                    emptyState
                 }
             }
             .background(Color.surfaceBase)
@@ -69,7 +61,6 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
         }
-        .environment(diffStore)
         .animation(.easeInOut(duration: 0.2), value: sessionComparisonStore.isVisible)
         .animation(.easeInOut(duration: 0.15), value: quickOpenStore.isVisible)
         .onChange(of: fileOverlayStore.selectedFile) { _, newFile in
@@ -82,6 +73,7 @@ struct ContentView: View {
             sessionComparisonStore.close()
             quickOpenStore.close()
             searchStore.deactivate()
+            bottomPanelState.collapse()
             showingConfiguration = false
             if let wt = newValue {
                 claudeEventStore.acknowledge(for: wt.path)
@@ -177,89 +169,6 @@ struct ContentView: View {
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
                 escMonitor = nil
-            }
-        }
-    }
-
-    // MARK: - Sidebar
-
-    private var sidebarSection: some View {
-        SidebarView(
-            onResumeSession: { sessionId in
-                guard let worktree = coordinator.selectedWorktree else { return }
-                detailUIState.contentMode = .agent
-                Task {
-                    await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: true)
-                    setupSessionHandlers(for: worktree, sessionId: sessionId)
-                }
-            },
-            onNewSession: {
-                guard let worktree = coordinator.selectedWorktree else { return }
-                detailUIState.contentMode = .agent
-                let sessionId = worktreeSessionStore.createSession(for: worktree.path)
-                Task {
-                    await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: false)
-                    setupSessionHandlers(for: worktree, sessionId: sessionId)
-                }
-            },
-            onEvaluateSession: { entry in
-                guard let worktree = coordinator.selectedWorktree else { return }
-                if let session = claudeEventStore.sessions[worktree.path]?[entry.sessionId] {
-                    detailUIState.sessionEvaluationStore.open(session: session, title: entry.title)
-                    detailUIState.rightPanelTab = .eval
-                    detailUIState.isRightPanelVisible = true
-                    detailUIState.contentMode = .agent
-                }
-            },
-            onCompareSession: { entryA, entryB in
-                guard let worktree = coordinator.selectedWorktree else { return }
-                if let sessionA = claudeEventStore.sessions[worktree.path]?[entryA.sessionId],
-                   let sessionB = claudeEventStore.sessions[worktree.path]?[entryB.sessionId] {
-                    sessionComparisonStore.open(sessionA: sessionA, titleA: entryA.title, sessionB: sessionB, titleB: entryB.title)
-                }
-            }
-        )
-        .frame(width: max(200, min(400, sidebarWidth + dragOffset)))
-        .background(Color.surfaceBase)
-    }
-
-    private var sidebarResizeHandle: some View {
-        Rectangle()
-            .fill(sidebarHandleHovered ? Color.borderStrong : Color.borderSubtle)
-            .frame(width: sidebarHandleHovered ? 3 : 1)
-            .animation(.easeInOut(duration: 0.15), value: sidebarHandleHovered)
-            .contentShape(Rectangle().inset(by: -3))
-            .gesture(
-                DragGesture()
-                    .updating($dragOffset) { value, state, _ in
-                        state = value.translation.width
-                    }
-                    .onEnded { value in
-                        sidebarWidth = max(200, min(400, sidebarWidth + value.translation.width))
-                    }
-            )
-            .onHover { hovering in
-                sidebarHandleHovered = hovering
-                if hovering {
-                    NSCursor.resizeLeftRight.push()
-                    sidebarCursorPushed = true
-                } else if sidebarCursorPushed {
-                    NSCursor.pop()
-                    sidebarCursorPushed = false
-                }
-            }
-    }
-
-    // MARK: - Session Handlers
-
-    private func setupSessionHandlers(for worktree: Worktree, sessionId: String) {
-        let path = worktree.path
-        if let session = terminalSessionStore.session(for: worktree) {
-            session.onProcessTerminated = { [weak terminalSessionStore] in
-                terminalSessionStore?.remove(for: path)
-            }
-            session.onTitleChanged = { [weak worktreeSessionStore] title in
-                worktreeSessionStore?.updateTitle(for: path, sessionId: sessionId, title: title)
             }
         }
     }

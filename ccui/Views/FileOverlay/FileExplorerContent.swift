@@ -8,7 +8,7 @@ struct FileExplorerContent: View {
     let repositoryPath: String
     @Environment(DiffStore.self) private var diffStore
 
-    @GestureState private var splitDragOffset: CGFloat = 0
+    @State private var splitIsDragging = false
     @State private var isCursorPushed = false
     @State private var cachedChangedFiles: [String: DiffFileEntry.Status] = [:]
 
@@ -72,10 +72,9 @@ struct FileExplorerContent: View {
     // MARK: - Layout Helpers
 
     private func treeWidth(totalWidth: CGFloat) -> CGFloat {
-        let fraction = store.treeFraction + splitDragOffset / totalWidth
         let clampedFraction = min(
             FileOverlayStore.maxTreeFraction,
-            max(FileOverlayStore.minTreeFraction, fraction)
+            max(FileOverlayStore.minTreeFraction, store.treeFraction)
         )
         return totalWidth * clampedFraction
     }
@@ -172,9 +171,9 @@ struct FileExplorerContent: View {
             .frame(width: 4)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture()
-                    .updating($splitDragOffset) { value, state, _ in
-                        state = value.translation.width
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in
+                        if !splitIsDragging { splitIsDragging = true }
                     }
                     .onEnded { value in
                         let delta = value.translation.width / totalWidth
@@ -183,6 +182,7 @@ struct FileExplorerContent: View {
                             FileOverlayStore.maxTreeFraction,
                             max(FileOverlayStore.minTreeFraction, newFraction)
                         )
+                        splitIsDragging = false
                     }
             )
             .onHover { hovering in

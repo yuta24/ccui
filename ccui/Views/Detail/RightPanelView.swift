@@ -7,30 +7,16 @@ struct RightPanelView: View {
     let sessionEvaluationStore: SessionEvaluationStore
     @Binding var selectedTab: RightPanelTab
     @Environment(DiffStore.self) private var diffStore
-    @State private var panelWidth: CGFloat = 280
-    @GestureState private var dragOffset: CGFloat = 0
-    @State private var cursorPushed = false
-    @State private var handleHovered = false
-
-    private var effectiveWidth: CGFloat {
-        max(220, min(600, panelWidth - dragOffset))
-    }
 
     var body: some View {
-        HStack(spacing: 0) {
-            resizeHandle
-            VStack(spacing: 0) {
-                tabBar
-                Rectangle()
-                    .fill(Color.borderSubtle)
-                    .frame(height: 1)
-                tabContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(width: panelWidth)
-            .clipped()
+        VStack(spacing: 0) {
+            tabBar
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
+            tabContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: effectiveWidth)
         .background(Color.surfacePrimary)
         .onAppear {
             if selectedTab == .changes, diffStore.needsLoad {
@@ -76,41 +62,6 @@ struct RightPanelView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Resize Handle
-
-    private var resizeHandle: some View {
-        Rectangle()
-            .fill(handleHovered ? Color.borderStrong : Color.borderSubtle)
-            .frame(width: handleHovered ? 3 : 1)
-            .animation(.easeInOut(duration: 0.15), value: handleHovered)
-            .contentShape(Rectangle().inset(by: -3))
-            .gesture(
-                DragGesture()
-                    .updating($dragOffset) { value, state, _ in
-                        state = value.translation.width
-                    }
-                    .onEnded { value in
-                        panelWidth = max(220, min(600, panelWidth - value.translation.width))
-                    }
-            )
-            .onHover { hovering in
-                handleHovered = hovering
-                if hovering, !cursorPushed {
-                    NSCursor.resizeLeftRight.push()
-                    cursorPushed = true
-                } else if !hovering, cursorPushed {
-                    NSCursor.pop()
-                    cursorPushed = false
-                }
-            }
-            .onDisappear {
-                if cursorPushed {
-                    NSCursor.pop()
-                    cursorPushed = false
-                }
-            }
     }
 
     // MARK: - Tab Content

@@ -1,8 +1,22 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    var stores: StoreContainer!
+    var mainWindowController: MainWindowController?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        stores = StoreContainer()
+        let controller = MainWindowController(stores: stores)
+        controller.showWindow(nil)
+        mainWindowController = controller
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        stores?.shutdown()
     }
 }
 
@@ -10,61 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct ccuiApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
-    @State private var appSettingsStore: AppSettingsStore
-    @State private var repositoryStore: RepositoryStore
-    @State private var terminalSessionStore: TerminalSessionStore
-    @State private var claudeEventStore: ClaudeEventStore
-    @State private var worktreeSessionStore: WorktreeSessionStore
-    @State private var shellSessionStore: ShellSessionStore
-    @State private var appCoordinator: AppCoordinator
-
-    init() {
-        let settingsStore = AppSettingsStore(persistence: JSONFileAppSettingsPersistence())
-        _appSettingsStore = State(wrappedValue: settingsStore)
-        _repositoryStore = State(wrappedValue: RepositoryStore(persistence: JSONFileRepositoryPersistence()))
-        _terminalSessionStore = State(wrappedValue: TerminalSessionStore(appSettingsStore: settingsStore))
-        _claudeEventStore = State(wrappedValue: ClaudeEventStore())
-        _worktreeSessionStore = State(wrappedValue: WorktreeSessionStore())
-        _shellSessionStore = State(wrappedValue: ShellSessionStore(appSettingsStore: settingsStore))
-        _appCoordinator = State(wrappedValue: AppCoordinator())
-    }
-
     var body: some Scene {
-        Window("ccui", id: "main") {
-            ContentView()
-                .environment(appSettingsStore)
-                .environment(repositoryStore)
-                .environment(terminalSessionStore)
-                .environment(claudeEventStore)
-                .environment(worktreeSessionStore)
-                .environment(shellSessionStore)
-                .environment(appCoordinator)
-                .preferredColorScheme(.dark)
-                .task {
-                    claudeEventStore.start()
-                    terminalSessionStore.startResolvingClaudePath()
-                }
-                .onReceive(
-                    NotificationCenter.default.publisher(
-                        for: NSApplication.willTerminateNotification
-                    )
-                ) { _ in
-                    shutdown()
-                }
-        }
-        .defaultSize(width: 1280, height: 860)
-        .windowStyle(.hiddenTitleBar)
-
         Settings {
-            AppSettingsView()
-                .environment(appSettingsStore)
+            if let stores = appDelegate.stores {
+                AppSettingsView()
+                    .environment(stores.appSettingsStore)
+            }
         }
-    }
-
-    private func shutdown() {
-        terminalSessionStore.terminateAll()
-        shellSessionStore.terminateAll()
-        claudeEventStore.stop()
-        worktreeSessionStore.save()
     }
 }

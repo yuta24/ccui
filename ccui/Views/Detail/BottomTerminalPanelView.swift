@@ -1,27 +1,42 @@
 import SwiftUI
 
 struct BottomTerminalPanelView: View {
-    let worktreePath: String
-    @Binding var isExpanded: Bool
+    @Environment(AppCoordinator.self) private var coordinator
     @Environment(ShellSessionStore.self) private var shellStore
+    @Environment(BottomPanelState.self) private var panelState
 
     var body: some View {
+        if let worktree = coordinator.selectedWorktree {
+            content(worktreePath: worktree.path)
+        } else {
+            placeholderTabBar
+        }
+    }
+
+    private var placeholderTabBar: some View {
+        HStack(spacing: 0) {
+            Image(systemName: "chevron.up")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(Color.textTertiary)
+                .frame(width: 24, height: 24)
+                .padding(.leading, 8)
+            Spacer()
+        }
+        .frame(height: 32)
+        .background(Color.surfaceBase)
+    }
+
+    private func content(worktreePath: String) -> some View {
         let tabs = shellStore.tabs(for: worktreePath)
         let activeTabID = shellStore.activeTabID(for: worktreePath)
 
-        VStack(spacing: 0) {
-            if !isExpanded {
-                Rectangle()
-                    .fill(Color.borderSubtle)
-                    .frame(height: 1)
-            }
-
+        return VStack(spacing: 0) {
             // Tab bar (always visible)
             HStack(spacing: 0) {
                 Button {
-                    isExpanded.toggle()
+                    panelState.toggle()
                 } label: {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
+                    Image(systemName: panelState.isExpanded ? "chevron.down" : "chevron.up")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Color.textTertiary)
                         .frame(width: 24, height: 24)
@@ -33,7 +48,7 @@ struct BottomTerminalPanelView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 1) {
                         ForEach(tabs) { tab in
-                            tabChip(tab: tab, isActive: tab.id == activeTabID)
+                            tabChip(tab: tab, isActive: tab.id == activeTabID, worktreePath: worktreePath)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -44,8 +59,8 @@ struct BottomTerminalPanelView: View {
                 Button {
                     let isFirst = tabs.isEmpty
                     shellStore.addTab(for: worktreePath)
-                    if isFirst {
-                        isExpanded = true
+                    if isFirst, !panelState.isExpanded {
+                        panelState.isExpanded = true
                     }
                 } label: {
                     Image(systemName: "plus")
@@ -61,13 +76,13 @@ struct BottomTerminalPanelView: View {
             .background(Color.surfaceBase)
 
             // Terminal content (only when expanded)
-            if isExpanded {
+            if panelState.isExpanded {
                 Rectangle()
                     .fill(Color.borderSubtle)
                     .frame(height: 1)
 
                 if tabs.isEmpty {
-                    emptyState
+                    emptyState(worktreePath: worktreePath)
                 } else {
                     ZStack {
                         ForEach(tabs) { tab in
@@ -81,7 +96,7 @@ struct BottomTerminalPanelView: View {
         }
     }
 
-    private func tabChip(tab: ShellTab, isActive: Bool) -> some View {
+    private func tabChip(tab: ShellTab, isActive: Bool, worktreePath: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: "terminal")
                 .font(.system(size: 9, weight: .medium))
@@ -110,13 +125,13 @@ struct BottomTerminalPanelView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             shellStore.setActiveTab(id: tab.id, worktreePath: worktreePath)
-            if !isExpanded {
-                isExpanded = true
+            if !panelState.isExpanded {
+                panelState.isExpanded = true
             }
         }
     }
 
-    private var emptyState: some View {
+    private func emptyState(worktreePath: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "terminal")
                 .font(.system(size: 24))
