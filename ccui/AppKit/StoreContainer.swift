@@ -12,6 +12,8 @@ final class StoreContainer {
     let detailUIState: DetailUIState
     let sessionComparisonStore: SessionComparisonStore
     let diffStore: DiffStore
+    let quickOpenStore: QuickOpenStore
+    let searchStore: SearchStore
 
     init() {
         let settingsStore = AppSettingsStore(persistence: JSONFileAppSettingsPersistence())
@@ -25,6 +27,8 @@ final class StoreContainer {
         self.detailUIState = DetailUIState()
         self.sessionComparisonStore = SessionComparisonStore()
         self.diffStore = DiffStore()
+        self.quickOpenStore = QuickOpenStore()
+        self.searchStore = SearchStore()
     }
 
     func start() {
@@ -51,5 +55,7 @@ final class StoreContainer {
             .environment(detailUIState)
             .environment(sessionComparisonStore)
             .environment(diffStore)
+            .environment(quickOpenStore)
+            .environment(searchStore)
     }
 }

@@ -10,11 +10,10 @@ struct ContentView: View {
     @Environment(DetailUIState.self) private var detailUIState
     @Environment(SessionComparisonStore.self) private var sessionComparisonStore
     @Environment(BottomPanelState.self) private var bottomPanelState
+    @Environment(QuickOpenStore.self) private var quickOpenStore
+    @Environment(SearchStore.self) private var searchStore
     @State private var fileOverlayStore = FileOverlayStore()
     @State private var codeViewerStore = CodeViewerStore()
-    @State private var quickOpenStore = QuickOpenStore()
-    @State private var searchStore = SearchStore()
-    @State private var escMonitor: Any?
 
     var body: some View {
         @Bindable var coordinator = coordinator
@@ -158,88 +157,6 @@ struct ContentView: View {
                 quickOpenStore.buildIndex(rootPath: wt.path)
                 searchStore.buildIndex(rootPath: wt.path)
             }
-            installKeyMonitor()
-        }
-        .onDisappear {
-            if let monitor = escMonitor {
-                NSEvent.removeMonitor(monitor)
-                escMonitor = nil
-            }
-        }
-    }
-
-    // MARK: - Key Monitor
-
-    private func installKeyMonitor() {
-        if let existing = escMonitor {
-            NSEvent.removeMonitor(existing)
-            escMonitor = nil
-        }
-
-        escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [detailUIState, quickOpenStore, searchStore, coordinator, sessionComparisonStore] event in
-            let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
-            let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-
-            // Cmd+Shift+E → toggle Agent/Files mode
-            if chars == "e" && mods.contains(.command) && mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
-                detailUIState.contentMode = detailUIState.contentMode == .agent ? .files : .agent
-                return nil
-            }
-
-            // Cmd+I → toggle Right Panel (Agent mode only)
-            if chars == "i" && mods.contains(.command) && !mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
-                guard detailUIState.contentMode == .agent else { return event }
-                detailUIState.isRightPanelVisible.toggle()
-                return nil
-            }
-
-            // Cmd+Shift+F → content search (switch to Files mode) — check before Cmd+F
-            if chars == "f" && mods.contains(.command) && mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
-                quickOpenStore.close()
-                detailUIState.contentMode = .files
-                searchStore.activate(mode: .content)
-                return nil
-            }
-
-            // Cmd+F → file search (switch to Files mode)
-            if chars == "f" && mods.contains(.command) && !mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
-                quickOpenStore.close()
-                detailUIState.contentMode = .files
-                searchStore.activate(mode: .files)
-                return nil
-            }
-
-            // Cmd+P → quick open
-            if chars == "p" && mods.contains(.command) {
-                guard coordinator.selectedWorktree != nil else { return event }
-                if !quickOpenStore.isVisible {
-                    searchStore.deactivate()
-                    quickOpenStore.open()
-                }
-                return nil
-            }
-
-            // Esc
-            if event.keyCode == 53 {
-                if sessionComparisonStore.isVisible {
-                    sessionComparisonStore.close()
-                    return nil
-                }
-                if quickOpenStore.isVisible {
-                    quickOpenStore.close()
-                    return nil
-                }
-                if searchStore.isActive {
-                    searchStore.deactivate()
-                    return nil
-                }
-            }
-
-            return event
         }
     }
 
