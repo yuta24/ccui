@@ -25,29 +25,7 @@ final class BottomTerminalViewController: NSViewController {
     }
 
     override func loadView() {
-        let outer = NSView()
-        outer.wantsLayer = true
-        // Window background color shows in the gaps around the floating panel
-        outer.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
-
-        // Floating panel with rounded corners
-        let panel = NSView()
-        panel.wantsLayer = true
-        panel.layer?.cornerRadius = PanelMetrics.panelCornerRadius
-        panel.layer?.masksToBounds = true
-        panel.layer?.backgroundColor = NSColor.surfacePrimaryColor.cgColor
-        panel.layer?.borderWidth = 0.5
-        panel.layer?.borderColor = NSColor.white.withAlphaComponent(0.08).cgColor
-        panel.translatesAutoresizingMaskIntoConstraints = false
-        outer.addSubview(panel)
-
-        let gap = PanelMetrics.panelGap
-        NSLayoutConstraint.activate([
-            panel.topAnchor.constraint(equalTo: outer.topAnchor, constant: gap),
-            panel.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: gap),
-            panel.trailingAnchor.constraint(equalTo: outer.trailingAnchor, constant: -gap),
-            panel.bottomAnchor.constraint(equalTo: outer.bottomAnchor, constant: -gap),
-        ])
+        let (outer, panel) = PanelMetrics.makeFloatingPanel()
 
         // Tab bar (SwiftUI, fixed 32px)
         let tabBarView = stores.injectEnvironment(into: BottomTerminalTabBarView())

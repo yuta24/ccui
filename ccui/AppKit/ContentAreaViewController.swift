@@ -34,16 +34,16 @@ final class ContentAreaViewController: NSViewController {
     }
 
     override func loadView() {
-        let container = NSView()
-        container.wantsLayer = true
+        let (outer, panel) = PanelMetrics.makeFloatingPanel()
 
-        // Toolbar (full width, above the split)
+        // Toolbar (full width inside the panel, stable position)
         let toolbarView = stores.injectEnvironment(into: ContentToolbar())
             .preferredColorScheme(.dark)
         let toolbarHosting = NSHostingView(rootView: toolbarView)
         toolbarHosting.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(toolbarHosting)
 
-        // Split view controller
+        // Split view below toolbar
         splitVC = ContentSplitViewController()
         splitVC.splitView.isVertical = true
         splitVC.splitView.dividerStyle = .thin
@@ -53,7 +53,6 @@ final class ContentAreaViewController: NSViewController {
             self?.handleSplitViewResize()
         }
 
-        // Left: ContentView (main content + overlays, no toolbar)
         let leftView = stores.injectEnvironment(into: ContentView())
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
@@ -62,7 +61,6 @@ final class ContentAreaViewController: NSViewController {
         leftItem.minimumThickness = 300
         splitVC.addSplitViewItem(leftItem)
 
-        // Right: RightPanelView
         let rightView = stores.injectEnvironment(into: RightPanelContainerView())
             .preferredColorScheme(.dark)
         let rightVC = NSHostingController(rootView: rightView)
@@ -76,23 +74,21 @@ final class ContentAreaViewController: NSViewController {
         addChild(splitVC)
         let splitViewContainer = splitVC.view
         splitViewContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        container.addSubview(toolbarHosting)
-        container.addSubview(splitViewContainer)
+        panel.addSubview(splitViewContainer)
 
         NSLayoutConstraint.activate([
-            toolbarHosting.topAnchor.constraint(equalTo: container.topAnchor),
-            toolbarHosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            toolbarHosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            toolbarHosting.topAnchor.constraint(equalTo: panel.topAnchor),
+            toolbarHosting.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
+            toolbarHosting.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
             toolbarHosting.heightAnchor.constraint(equalToConstant: PanelMetrics.toolbarHeight),
 
             splitViewContainer.topAnchor.constraint(equalTo: toolbarHosting.bottomAnchor),
-            splitViewContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            splitViewContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            splitViewContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            splitViewContainer.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
+            splitViewContainer.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            splitViewContainer.bottomAnchor.constraint(equalTo: panel.bottomAnchor),
         ])
 
-        view = container
+        view = outer
     }
 
     override func viewDidAppear() {

@@ -75,6 +75,50 @@ enum PanelMetrics {
     static let windowEdgeInset: CGFloat = 4
     static let titleBarHeight: CGFloat = 28
     static let toolbarHeight: CGFloat = 32
+
+    /// Creates an AppKit floating panel container: outer (window bg + shadow + gap) → inner (rounded, bordered).
+    /// Returns `(outer, panel)` — add content as subviews of `panel`.
+    static func makeFloatingPanel() -> (outer: NSView, panel: NSView) {
+        let outer = NSView()
+        outer.wantsLayer = true
+        outer.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
+
+        let panel = NSView()
+        panel.wantsLayer = true
+        panel.layer?.cornerRadius = panelCornerRadius
+        panel.layer?.masksToBounds = true
+        panel.layer?.backgroundColor = NSColor.surfacePrimaryColor.cgColor
+        panel.layer?.borderWidth = 0.5
+        panel.layer?.borderColor = NSColor.white.withAlphaComponent(0.08).cgColor
+
+        // Shadow on a wrapper to avoid masksToBounds clipping it
+        let shadowHost = NSView()
+        shadowHost.wantsLayer = true
+        shadowHost.shadow = NSShadow()
+        shadowHost.layer?.shadowColor = NSColor.black.withAlphaComponent(0.5).cgColor
+        shadowHost.layer?.shadowOpacity = 1
+        shadowHost.layer?.shadowRadius = 10
+        shadowHost.layer?.shadowOffset = CGSize(width: 0, height: -2)
+        shadowHost.translatesAutoresizingMaskIntoConstraints = false
+        outer.addSubview(shadowHost)
+
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        shadowHost.addSubview(panel)
+
+        NSLayoutConstraint.activate([
+            shadowHost.topAnchor.constraint(equalTo: outer.topAnchor, constant: panelGap),
+            shadowHost.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: panelGap),
+            shadowHost.trailingAnchor.constraint(equalTo: outer.trailingAnchor, constant: -panelGap),
+            shadowHost.bottomAnchor.constraint(equalTo: outer.bottomAnchor, constant: -panelGap),
+
+            panel.topAnchor.constraint(equalTo: shadowHost.topAnchor),
+            panel.leadingAnchor.constraint(equalTo: shadowHost.leadingAnchor),
+            panel.trailingAnchor.constraint(equalTo: shadowHost.trailingAnchor),
+            panel.bottomAnchor.constraint(equalTo: shadowHost.bottomAnchor),
+        ])
+
+        return (outer, panel)
+    }
 }
 
 // MARK: - View Modifiers
@@ -91,24 +135,6 @@ struct FloatingPanel: ViewModifier {
             .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 2)
             .padding(PanelMetrics.panelGap)
             .background(Color.surfaceWindow)
-    }
-}
-
-struct PanelBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        content.modifier(FloatingPanel())
-    }
-}
-
-struct ContentPanel: ViewModifier {
-    func body(content: Content) -> some View {
-        content.modifier(FloatingPanel())
-    }
-}
-
-struct BottomPanel: ViewModifier {
-    func body(content: Content) -> some View {
-        content.modifier(FloatingPanel())
     }
 }
 
@@ -136,9 +162,6 @@ struct SectionHeader: ViewModifier {
 
 extension View {
     func floatingPanel() -> some View { modifier(FloatingPanel()) }
-    func panelBackground() -> some View { modifier(PanelBackground()) }
-    func contentPanel() -> some View { modifier(ContentPanel()) }
-    func bottomPanel() -> some View { modifier(BottomPanel()) }
     func elevatedPanel() -> some View { modifier(ElevatedPanel()) }
     func sectionHeader() -> some View { modifier(SectionHeader()) }
 }

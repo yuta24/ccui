@@ -34,7 +34,6 @@ struct ContentView: View {
                     emptyState
                 }
             }
-            .contentPanel()
 
             if sessionComparisonStore.isVisible {
                 SessionComparisonView(store: sessionComparisonStore)

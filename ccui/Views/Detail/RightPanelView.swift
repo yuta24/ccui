@@ -17,7 +17,7 @@ struct RightPanelView: View {
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .contentPanel()
+        .background(Color.surfacePrimary)
         .onAppear {
             if selectedTab == .changes, diffStore.needsLoad {
                 Task { await diffStore.load(repositoryPath: repositoryPath) }
