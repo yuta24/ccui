@@ -1,12 +1,12 @@
 import SwiftUI
 
 @MainActor
-final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
+final class ContentAreaViewController: NSSplitViewController {
     private let stores: StoreContainer
     private var isUpdatingFromState = false
-    private var rightPanelCollapsed = true
-    private var didInitialLayout = false
     private var isObserving = false
+
+    private var rightPanelItem: NSSplitViewItem!
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -18,50 +18,39 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func loadView() {
-        let splitView = NSSplitView()
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.wantsLayer = true
         splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
-        splitView.delegate = self
+
         // Left: ContentView (dashboard bar + main content + overlays)
         let leftView = stores.injectEnvironment(into: ContentView())
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
         leftVC.safeAreaRegions = []
-        addChild(leftVC)
+        let leftItem = NSSplitViewItem(viewController: leftVC)
+        leftItem.minimumThickness = 300
+        addSplitViewItem(leftItem)
 
         // Right: RightPanelView
         let rightView = stores.injectEnvironment(into: RightPanelContainerView())
             .preferredColorScheme(.dark)
         let rightVC = NSHostingController(rootView: rightView)
         rightVC.safeAreaRegions = []
-        addChild(rightVC)
-
-        splitView.addArrangedSubview(leftVC.view)
-        splitView.addArrangedSubview(rightVC.view)
-
-        view = splitView
-    }
-
-    override func viewDidLayout() {
-        super.viewDidLayout()
-        guard let splitView = view as? NSSplitView else { return }
-        if !didInitialLayout, splitView.frame.width > 0 {
-            didInitialLayout = true
-            splitView.setPosition(splitView.frame.width, ofDividerAt: 0)
-        }
+        rightPanelItem = NSSplitViewItem(viewController: rightVC)
+        rightPanelItem.minimumThickness = 220
+        rightPanelItem.canCollapse = true
+        rightPanelItem.isCollapsed = true
+        addSplitViewItem(rightPanelItem)
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
         if !isObserving {
             isObserving = true
-            // Ensure right panel is collapsed on first appear
-            if let splitView = view as? NSSplitView {
-                splitView.setPosition(splitView.frame.width, ofDividerAt: 0)
-            }
             observeRightPanelState()
         }
     }
@@ -83,21 +72,19 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
     private func handleRightPanelStateChanged() {
         let shouldShow = stores.detailUIState.isRightPanelVisible
             && stores.detailUIState.contentMode == .agent
-        if shouldShow && rightPanelCollapsed {
+        if shouldShow && rightPanelItem.isCollapsed {
             expandRightPanel()
-        } else if !shouldShow && !rightPanelCollapsed {
+        } else if !shouldShow && !rightPanelItem.isCollapsed {
             collapseRightPanel()
         }
     }
 
     private func collapseRightPanel() {
-        guard let splitView = view as? NSSplitView else { return }
-        rightPanelCollapsed = true
         isUpdatingFromState = true
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.2
             context.allowsImplicitAnimation = true
-            splitView.setPosition(splitView.frame.width, ofDividerAt: 0)
+            rightPanelItem.isCollapsed = true
         }, completionHandler: {
             Task { @MainActor [weak self] in
                 self?.isUpdatingFromState = false
@@ -106,13 +93,11 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
     }
 
     private func expandRightPanel() {
-        guard let splitView = view as? NSSplitView else { return }
-        rightPanelCollapsed = false
         isUpdatingFromState = true
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.2
             context.allowsImplicitAnimation = true
-            splitView.setPosition(splitView.frame.width - 280, ofDividerAt: 0)
+            rightPanelItem.isCollapsed = false
         }, completionHandler: {
             Task { @MainActor [weak self] in
                 self?.isUpdatingFromState = false
@@ -122,29 +107,13 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
 
     // MARK: - NSSplitViewDelegate
 
-    func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-        300
-    }
-
-    func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-        splitView.frame.width - 220
-    }
-
-    func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
-        guard children.count > 1 else { return false }
-        return subview === children[1].view
-    }
-
-    func splitViewDidResizeSubviews(_ notification: Notification) {
-        guard !isUpdatingFromState, children.count > 1 else { return }
-        let rightWidth = children[1].view.frame.width
-        let collapsed = rightWidth < 10
-        if rightPanelCollapsed != collapsed {
-            rightPanelCollapsed = collapsed
+    override func splitViewDidResizeSubviews(_ notification: Notification) {
+        guard !isUpdatingFromState else { return }
+        let collapsed = rightPanelItem.isCollapsed
+        let visible = stores.detailUIState.isRightPanelVisible
+        if visible == collapsed {
             isUpdatingFromState = true
-            if stores.detailUIState.isRightPanelVisible != !collapsed {
-                stores.detailUIState.isRightPanelVisible = !collapsed
-            }
+            stores.detailUIState.isRightPanelVisible = !collapsed
             isUpdatingFromState = false
         }
     }
