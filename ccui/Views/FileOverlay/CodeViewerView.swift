@@ -13,9 +13,7 @@ struct CodeViewerView: View {
             case .idle:
                 idleView
             case .loading:
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(Color.accent)
+                PulsingDotsView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.surfacePrimary)
             case .loaded(let content, let path):

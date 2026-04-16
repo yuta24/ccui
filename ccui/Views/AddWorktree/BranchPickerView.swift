@@ -9,8 +9,7 @@ struct BranchPickerView: View {
     var body: some View {
         if isLoading {
             HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
+                PulsingDotsView(dotSize: 4)
                 Text("Loading branches…")
                     .font(.uiCaption)
                     .foregroundStyle(Color.textTertiary)

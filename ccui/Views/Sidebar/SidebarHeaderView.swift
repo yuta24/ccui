@@ -20,7 +20,7 @@ struct SidebarHeaderView: View {
                     .background(Color.surfaceElevated)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverScale)
             .help("Add Repository")
         }
         .padding(.horizontal, 14)

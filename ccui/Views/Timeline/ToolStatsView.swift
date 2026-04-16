@@ -57,7 +57,7 @@ struct ToolStatsView: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Color.textTertiary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverScale)
             }
             Picker("", selection: $scope) {
                 ForEach(Scope.allCases, id: \.self) { s in
@@ -76,12 +76,11 @@ struct ToolStatsView: View {
     private var loadingState: some View {
         VStack {
             Spacer()
-            ProgressView()
-                .controlSize(.small)
+            PulsingDotsView()
+                .padding(.bottom, 8)
             Text("Loading...")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textTertiary)
-                .padding(.top, 8)
             Spacer()
         }
         .frame(maxWidth: .infinity)

@@ -16,9 +16,7 @@ struct DiffViewerView: View {
             case .idle:
                 idleView
             case .loading:
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(Color.accent)
+                PulsingDotsView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.surfacePrimary)
             case .loaded(let entries):

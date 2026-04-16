@@ -80,8 +80,7 @@ struct RepositorySectionView: View {
     @ViewBuilder
     private var worktreeList: some View {
         if worktreeStore.isLoading && worktreeStore.worktrees.isEmpty {
-            ProgressView()
-                .controlSize(.small)
+            PulsingDotsView()
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 12)
         } else if let error = worktreeStore.errorMessage, worktreeStore.worktrees.isEmpty {

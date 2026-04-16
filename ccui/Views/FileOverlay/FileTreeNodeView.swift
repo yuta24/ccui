@@ -64,8 +64,7 @@ struct FileTreeNodeList: View {
             if isExpanded {
                 if store.loadingIDs.contains(node.id) {
                     HStack {
-                        ProgressView()
-                            .controlSize(.small)
+                        PulsingDotsView(dotSize: 4)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, CGFloat(depth + 1) * 14 + 24)

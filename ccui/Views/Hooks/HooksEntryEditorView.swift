@@ -280,8 +280,7 @@ struct HooksEntryEditorView: View {
 
                 case .running:
                     HStack(spacing: 4) {
-                        ProgressView()
-                            .controlSize(.small)
+                        PulsingDotsView(dotSize: 4)
                         Button {
                             testRunner.cancel()
                         } label: {

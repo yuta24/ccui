@@ -40,7 +40,7 @@ struct BottomTerminalTabBarView: View {
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverScale)
             .padding(.leading, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -67,7 +67,7 @@ struct BottomTerminalTabBarView: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverScale)
             .padding(.trailing, 8)
         }
         .frame(height: 32)
@@ -91,7 +91,7 @@ struct BottomTerminalTabBarView: View {
                     .frame(width: 14, height: 14)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverScale)
         }
         .foregroundStyle(isActive ? Color.textPrimary : Color.textSecondary)
         .padding(.horizontal, 10)

@@ -61,7 +61,7 @@ struct SessionComparisonView: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.textTertiary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverScale)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

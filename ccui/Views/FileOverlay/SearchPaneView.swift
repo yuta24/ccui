@@ -136,9 +136,7 @@ struct SearchPaneView: View {
         if searchStore.isSearching {
             VStack {
                 Spacer()
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(Color.accent)
+                PulsingDotsView()
                 Spacer()
             }
             .frame(maxWidth: .infinity)

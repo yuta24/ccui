@@ -79,7 +79,7 @@ struct ContentToolbar: View {
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverScale)
                     .help("Inspector (⌘I)")
 
                     Button {
@@ -91,7 +91,7 @@ struct ContentToolbar: View {
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverScale)
                     .help("Configuration")
                 }
             }

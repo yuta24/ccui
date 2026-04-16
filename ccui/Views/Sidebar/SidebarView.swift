@@ -65,8 +65,7 @@ struct SidebarView: View {
                 .font(.uiCaption)
                 .foregroundStyle(Color.textSecondary)
                 .padding(.horizontal, 8)
-            ProgressView()
-                .controlSize(.small)
+            PulsingDotsView()
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
         }

@@ -195,8 +195,7 @@ struct AddWorktreeView: View {
             Spacer()
 
             if isAdding {
-                ProgressView()
-                    .controlSize(.small)
+                PulsingDotsView(dotSize: 4)
                     .padding(.trailing, 6)
             }
 

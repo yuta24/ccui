@@ -95,9 +95,7 @@ struct QuickOpenPaletteView: View {
         Group {
             if quickOpenStore.isIndexing && quickOpenStore.results.isEmpty {
                 VStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(Color.accent)
+                    PulsingDotsView()
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)

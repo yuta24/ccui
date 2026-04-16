@@ -140,3 +140,59 @@ extension View {
     func elevatedPanel() -> some View { modifier(ElevatedPanel()) }
     func sectionHeader() -> some View { modifier(SectionHeader()) }
 }
+
+// MARK: - Hover Scale Button Style
+
+struct HoverScaleButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : isHovered ? 1.08 : 1.0)
+            .opacity(configuration.isPressed ? 0.7 : isHovered ? 1.0 : 0.85)
+            .animation(.easeOut(duration: 0.15), value: isHovered)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+    }
+}
+
+extension ButtonStyle where Self == HoverScaleButtonStyle {
+    static var hoverScale: HoverScaleButtonStyle { HoverScaleButtonStyle() }
+}
+
+// MARK: - Pulsing Dots Loading Indicator
+
+struct PulsingDotsView: View {
+    let color: Color
+    let dotSize: CGFloat
+    let count: Int
+
+    @State private var isAnimating = false
+
+    init(color: Color = .accent, dotSize: CGFloat = 5, count: Int = 3) {
+        self.color = color
+        self.dotSize = dotSize
+        self.count = count
+    }
+
+    var body: some View {
+        HStack(spacing: dotSize * 0.8) {
+            ForEach(0..<count, id: \.self) { index in
+                Circle()
+                    .fill(color)
+                    .frame(width: dotSize, height: dotSize)
+                    .scaleEffect(isAnimating ? 1.0 : 0.4)
+                    .opacity(isAnimating ? 1.0 : 0.3)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.2),
+                        value: isAnimating
+                    )
+            }
+        }
+        .onAppear { isAnimating = true }
+    }
+}

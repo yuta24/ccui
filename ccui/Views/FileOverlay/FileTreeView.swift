@@ -10,9 +10,7 @@ struct FileTreeView: View {
         VStack(spacing: 0) {
             if store.isLoading && store.nodes.isEmpty {
                 Spacer()
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(Color.accent)
+                PulsingDotsView()
                 Spacer()
             } else if let errorMessage = store.errorMessage, store.nodes.isEmpty {
                 Spacer()

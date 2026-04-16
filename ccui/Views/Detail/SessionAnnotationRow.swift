@@ -62,7 +62,7 @@ struct SessionAnnotationRow: View {
                                     .frame(width: 28, height: 28)
                                     .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.hoverScale)
                             .popover(isPresented: $showAnnotationPopover, arrowEdge: .trailing) {
                                 annotationPopover
                             }
