@@ -2,6 +2,10 @@ import SwiftUI
 
 @MainActor
 final class BottomTerminalViewController: NSViewController {
+    private static let tabBarHeight: CGFloat = 32
+    private static let separatorHeight: CGFloat = 1
+    static let collapsedHeight: CGFloat = tabBarHeight + separatorHeight + PanelMetrics.panelGap * 2
+
     private let stores: StoreContainer
     private let bottomPanelState: BottomPanelState
     private let terminalContainer = NSView()
@@ -67,12 +71,12 @@ final class BottomTerminalViewController: NSViewController {
             tabBarVC.view.topAnchor.constraint(equalTo: panel.topAnchor),
             tabBarVC.view.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
             tabBarVC.view.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
-            tabBarVC.view.heightAnchor.constraint(equalToConstant: 32),
+            tabBarVC.view.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),
 
             separator.topAnchor.constraint(equalTo: tabBarVC.view.bottomAnchor),
             separator.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
-            separator.heightAnchor.constraint(equalToConstant: 1),
+            separator.heightAnchor.constraint(equalToConstant: Self.separatorHeight),
 
             terminalContainer.topAnchor.constraint(equalTo: separator.bottomAnchor),
             terminalContainer.leadingAnchor.constraint(equalTo: panel.leadingAnchor),

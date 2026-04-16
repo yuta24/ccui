@@ -28,7 +28,7 @@ struct AgentStatusBar: View {
             Spacer()
         }
         .padding(.horizontal, 14)
-        .frame(height: 32)
+        .frame(height: PanelMetrics.toolbarHeight)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.borderSubtle).frame(height: 1)
         }
@@ -97,7 +97,7 @@ struct ContentToolbar: View {
             }
         }
         .padding(.horizontal, 14)
-        .frame(height: 32)
+        .frame(height: PanelMetrics.toolbarHeight)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.borderSubtle).frame(height: 1)
         }

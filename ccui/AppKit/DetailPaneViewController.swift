@@ -4,7 +4,7 @@ import SwiftUI
 final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private let stores: StoreContainer
     private var bottomPanelState: BottomPanelState { stores.bottomPanelState }
-    private let collapsedHeight: CGFloat = 32
+    private var collapsedHeight: CGFloat { BottomTerminalViewController.collapsedHeight }
     private let defaultExpandedHeight: CGFloat = 220
     private var isUpdatingSplitFromState = false
     private var isObserving = false

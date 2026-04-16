@@ -1,11 +1,26 @@
 import SwiftUI
 
+// MARK: - Inner split view controller with resize callback
+
 @MainActor
-final class ContentAreaViewController: NSSplitViewController {
+final class ContentSplitViewController: NSSplitViewController {
+    var onResizeSubviews: (() -> Void)?
+
+    override func splitViewDidResizeSubviews(_ notification: Notification) {
+        super.splitViewDidResizeSubviews(notification)
+        onResizeSubviews?()
+    }
+}
+
+// MARK: - Content Area (toolbar + left/right split)
+
+@MainActor
+final class ContentAreaViewController: NSViewController {
     private let stores: StoreContainer
     private var isUpdatingFromState = false
     private var isObserving = false
 
+    private var splitVC: ContentSplitViewController!
     private var rightPanelItem: NSSplitViewItem!
 
     init(stores: StoreContainer) {
@@ -18,22 +33,34 @@ final class ContentAreaViewController: NSSplitViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func loadView() {
+        let container = NSView()
+        container.wantsLayer = true
 
-        splitView.isVertical = true
-        splitView.dividerStyle = .thin
-        splitView.wantsLayer = true
-        splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
+        // Toolbar (full width, above the split)
+        let toolbarView = stores.injectEnvironment(into: ContentToolbar())
+            .preferredColorScheme(.dark)
+        let toolbarHosting = NSHostingView(rootView: toolbarView)
+        toolbarHosting.translatesAutoresizingMaskIntoConstraints = false
 
-        // Left: ContentView (dashboard bar + main content + overlays)
+        // Split view controller
+        splitVC = ContentSplitViewController()
+        splitVC.splitView.isVertical = true
+        splitVC.splitView.dividerStyle = .thin
+        splitVC.splitView.wantsLayer = true
+        splitVC.splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
+        splitVC.onResizeSubviews = { [weak self] in
+            self?.handleSplitViewResize()
+        }
+
+        // Left: ContentView (main content + overlays, no toolbar)
         let leftView = stores.injectEnvironment(into: ContentView())
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
         leftVC.safeAreaRegions = []
         let leftItem = NSSplitViewItem(viewController: leftVC)
         leftItem.minimumThickness = 300
-        addSplitViewItem(leftItem)
+        splitVC.addSplitViewItem(leftItem)
 
         // Right: RightPanelView
         let rightView = stores.injectEnvironment(into: RightPanelContainerView())
@@ -44,7 +71,28 @@ final class ContentAreaViewController: NSSplitViewController {
         rightPanelItem.minimumThickness = 220
         rightPanelItem.canCollapse = true
         rightPanelItem.isCollapsed = true
-        addSplitViewItem(rightPanelItem)
+        splitVC.addSplitViewItem(rightPanelItem)
+
+        addChild(splitVC)
+        let splitViewContainer = splitVC.view
+        splitViewContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        container.addSubview(toolbarHosting)
+        container.addSubview(splitViewContainer)
+
+        NSLayoutConstraint.activate([
+            toolbarHosting.topAnchor.constraint(equalTo: container.topAnchor),
+            toolbarHosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            toolbarHosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            toolbarHosting.heightAnchor.constraint(equalToConstant: PanelMetrics.toolbarHeight),
+
+            splitViewContainer.topAnchor.constraint(equalTo: toolbarHosting.bottomAnchor),
+            splitViewContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            splitViewContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            splitViewContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        view = container
     }
 
     override func viewDidAppear() {
@@ -105,9 +153,9 @@ final class ContentAreaViewController: NSSplitViewController {
         })
     }
 
-    // MARK: - NSSplitViewDelegate
+    // MARK: - Split View Resize Sync
 
-    override func splitViewDidResizeSubviews(_ notification: Notification) {
+    private func handleSplitViewResize() {
         guard !isUpdatingFromState else { return }
         let collapsed = rightPanelItem.isCollapsed
         let visible = stores.detailUIState.isRightPanelVisible

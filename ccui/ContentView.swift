@@ -19,8 +19,6 @@ struct ContentView: View {
 
         ZStack {
             VStack(spacing: 0) {
-                ContentToolbar()
-
                 if let worktree = coordinator.selectedWorktree {
                     DetailView(
                         worktree: worktree,

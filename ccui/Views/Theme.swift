@@ -73,6 +73,7 @@ enum PanelMetrics {
     static let panelCornerRadius: CGFloat = 10
     static let panelGap: CGFloat = 3
     static let windowEdgeInset: CGFloat = 4
+    static let toolbarHeight: CGFloat = 32
 }
 
 // MARK: - View Modifiers
