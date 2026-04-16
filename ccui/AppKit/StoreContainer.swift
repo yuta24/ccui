@@ -14,6 +14,7 @@ final class StoreContainer {
     let diffStore: DiffStore
     let quickOpenStore: QuickOpenStore
     let searchStore: SearchStore
+    let bottomPanelState: BottomPanelState
 
     init() {
         let settingsStore = AppSettingsStore(persistence: JSONFileAppSettingsPersistence())
@@ -29,6 +30,7 @@ final class StoreContainer {
         self.diffStore = DiffStore()
         self.quickOpenStore = QuickOpenStore()
         self.searchStore = SearchStore()
+        self.bottomPanelState = BottomPanelState()
     }
 
     func start() {
@@ -57,5 +59,6 @@ final class StoreContainer {
             .environment(diffStore)
             .environment(quickOpenStore)
             .environment(searchStore)
+            .environment(bottomPanelState)
     }
 }

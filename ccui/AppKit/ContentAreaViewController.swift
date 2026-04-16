@@ -3,14 +3,12 @@ import SwiftUI
 @MainActor
 final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
     private let stores: StoreContainer
-    private let bottomPanelState: BottomPanelState
     private var isUpdatingFromState = false
     private var rightPanelCollapsed = true
     private var didInitialLayout = false
 
-    init(stores: StoreContainer, bottomPanelState: BottomPanelState) {
+    init(stores: StoreContainer) {
         self.stores = stores
-        self.bottomPanelState = bottomPanelState
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -27,7 +25,6 @@ final class ContentAreaViewController: NSViewController, NSSplitViewDelegate {
 
         // Left: ContentView (dashboard bar + main content + overlays)
         let leftView = stores.injectEnvironment(into: ContentView())
-            .environment(bottomPanelState)
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
         addChild(leftVC)

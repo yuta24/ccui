@@ -3,7 +3,7 @@ import SwiftUI
 @MainActor
 final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private let stores: StoreContainer
-    private let bottomPanelState = BottomPanelState()
+    private var bottomPanelState: BottomPanelState { stores.bottomPanelState }
     private let collapsedHeight: CGFloat = 32
     private let defaultExpandedHeight: CGFloat = 220
     private var isUpdatingSplitFromState = false
@@ -26,11 +26,11 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
         splitView.delegate = self
 
         // Top: ContentAreaViewController (content + right panel split)
-        let topVC = ContentAreaViewController(stores: stores, bottomPanelState: bottomPanelState)
+        let topVC = ContentAreaViewController(stores: stores)
         addChild(topVC)
 
         // Bottom: BottomTerminalViewController (AppKit-managed terminal)
-        let bottomVC = BottomTerminalViewController(stores: stores, bottomPanelState: bottomPanelState)
+        let bottomVC = BottomTerminalViewController(stores: stores, bottomPanelState: stores.bottomPanelState)
         addChild(bottomVC)
 
         splitView.addArrangedSubview(topVC.view)

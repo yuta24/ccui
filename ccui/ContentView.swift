@@ -6,7 +6,6 @@ struct ContentView: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(ShellSessionStore.self) private var shellSessionStore
-    @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
     @Environment(DetailUIState.self) private var detailUIState
     @Environment(SessionComparisonStore.self) private var sessionComparisonStore
     @Environment(BottomPanelState.self) private var bottomPanelState
