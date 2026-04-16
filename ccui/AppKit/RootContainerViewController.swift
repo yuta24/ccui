@@ -7,6 +7,7 @@ final class RootContainerViewController: NSViewController {
     private var isShowingSheet = false
     private var isShowingAlert = false
     private var presentedSheetVC: NSViewController?
+    private var isObserving = false
 
     init(stores: StoreContainer) {
         self.stores = stores
@@ -56,8 +57,11 @@ final class RootContainerViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         installKeyMonitor()
-        observeSheetState()
-        observeAlertState()
+        if !isObserving {
+            isObserving = true
+            observeSheetState()
+            observeAlertState()
+        }
     }
 
     override func viewWillDisappear() {
@@ -139,24 +143,29 @@ final class RootContainerViewController: NSViewController {
         presentAsSheet(hostingVC)
     }
 
+    private var isDismissingProgrammatically = false
+
     private func dismissSheet() {
         guard let presented = presentedSheetVC else {
             isShowingSheet = false
             return
         }
-        // Set flag before dismiss to prevent re-entry from observeSheetState
+        isDismissingProgrammatically = true
+        dismiss(presented)
+        isDismissingProgrammatically = false
         isShowingSheet = false
         presentedSheetVC = nil
-        dismiss(presented)
     }
 
     override func dismiss(_ viewController: NSViewController) {
         super.dismiss(viewController)
         // Only clean up state when dismissing our sheet (not child VCs)
-        guard viewController === presentedSheetVC || presentedSheetVC == nil else { return }
+        guard viewController === presentedSheetVC else { return }
         isShowingSheet = false
         presentedSheetVC = nil
-        // Clean up state when sheet is dismissed by user (e.g. Esc key)
+        // Clean up state when sheet is dismissed by user (e.g. Esc key),
+        // but skip when we're dismissing programmatically (state already correct)
+        guard !isDismissingProgrammatically else { return }
         if stores.appCoordinator.showingAddWorktree != nil {
             stores.appCoordinator.showingAddWorktree = nil
         }
