@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DiffFileSection: View {
     let entry: DiffFileEntry
+    let contentWidth: CGFloat
 
     @State private var isExpanded = true
 
@@ -98,15 +99,18 @@ struct DiffFileSection: View {
         let gutterWidth = lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
         let items = displayItems
 
-        return LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(items) { item in
-                switch item {
-                case .header(_, let text):
-                    hunkHeaderRow(text)
-                case .line(let line):
-                    diffLineRow(line: line, gutterWidth: gutterWidth)
+        return ScrollView(.horizontal, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(items) { item in
+                    switch item {
+                    case .header(_, let text):
+                        hunkHeaderRow(text)
+                    case .line(let line):
+                        diffLineRow(line: line, gutterWidth: gutterWidth)
+                    }
                 }
             }
+            .frame(minWidth: contentWidth, alignment: .leading)
         }
         .background(Color.surfacePrimary)
     }
@@ -140,9 +144,9 @@ struct DiffFileSection: View {
                 .font(.monoCaption)
                 .foregroundStyle(Color.textTertiary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
+        .frame(minWidth: contentWidth, alignment: .leading)
         .background(Color.surfaceElevated)
     }
 
@@ -177,6 +181,7 @@ struct DiffFileSection: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 1)
+        .frame(minWidth: contentWidth, alignment: .leading)
         .background(lineBackground(line.kind))
     }
 

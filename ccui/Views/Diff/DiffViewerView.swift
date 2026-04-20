@@ -91,13 +91,15 @@ struct DiffViewerView: View {
     // MARK: - Unified Diff View
 
     private func diffSplitView(entries: [DiffFileEntry]) -> some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(entries) { entry in
-                    DiffFileSection(entry: entry)
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(entries) { entry in
+                        DiffFileSection(entry: entry, contentWidth: proxy.size.width)
+                    }
                 }
             }
+            .background(Color.surfacePrimary)
         }
-        .background(Color.surfacePrimary)
     }
 }
