@@ -15,6 +15,7 @@ final class ClaudeEventStore {
 
     private let listenerService = UDSListenerService()
     private let persistenceActor: PersistenceActor
+    private let notificationService: NotificationService?
     private var knownWorktreePaths: Set<String> = []
     /// worktree パス → リポジトリパスのマッピング
     private var worktreeToRepository: [String: String] = [:]
@@ -24,8 +25,12 @@ final class ClaudeEventStore {
     /// ディスク上に保持するワークツリーごとのセッション数上限
     private let maxDiskSessionsPerWorktree = 100
 
-    init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
+    init(
+        persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence(),
+        notificationService: NotificationService? = nil
+    ) {
         self.persistenceActor = PersistenceActor(persistence: persistence)
+        self.notificationService = notificationService
     }
 
     // MARK: - Lifecycle
@@ -172,6 +177,8 @@ final class ClaudeEventStore {
         }
 
         sessions[resolvedPath] = worktreeSessions
+
+        notificationService?.dispatch(event: event)
 
         // addKnownPaths 前にイベントが到着した場合は保存を遅延させない（セッションデータは保存する）が、
         // repositoryPath は判明次第 updateIndex で補完される

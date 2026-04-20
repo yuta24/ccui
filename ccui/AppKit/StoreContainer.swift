@@ -5,6 +5,7 @@ final class StoreContainer {
     let appSettingsStore: AppSettingsStore
     let repositoryStore: RepositoryStore
     let terminalSessionStore: TerminalSessionStore
+    let notificationService: NotificationService
     let claudeEventStore: ClaudeEventStore
     let worktreeSessionStore: WorktreeSessionStore
     let shellSessionStore: ShellSessionStore
@@ -21,7 +22,9 @@ final class StoreContainer {
         self.appSettingsStore = settingsStore
         self.repositoryStore = RepositoryStore(persistence: JSONFileRepositoryPersistence())
         self.terminalSessionStore = TerminalSessionStore(appSettingsStore: settingsStore)
-        self.claudeEventStore = ClaudeEventStore()
+        let notificationService = NotificationService()
+        self.notificationService = notificationService
+        self.claudeEventStore = ClaudeEventStore(notificationService: notificationService)
         self.worktreeSessionStore = WorktreeSessionStore()
         self.shellSessionStore = ShellSessionStore(appSettingsStore: settingsStore)
         self.appCoordinator = AppCoordinator()
