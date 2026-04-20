@@ -19,7 +19,6 @@ final class ContentAreaViewController: NSViewController {
     private let stores: StoreContainer
     private var isUpdatingFromState = false
     private var isObserving = false
-    private var hasLockedMinimumThickness = false
 
     private var splitVC: ContentSplitViewController!
     private var rightPanelItem: NSSplitViewItem!
@@ -58,6 +57,8 @@ final class ContentAreaViewController: NSViewController {
             .preferredColorScheme(.dark)
         let leftVC = NSHostingController(rootView: leftView)
         leftVC.safeAreaRegions = []
+        // Disable SwiftUI → AppKit intrinsic size propagation; AppKit owns the width.
+        leftVC.sizingOptions = []
         let leftItem = NSSplitViewItem(viewController: leftVC)
         leftItem.minimumThickness = 300
         splitVC.addSplitViewItem(leftItem)
@@ -66,6 +67,9 @@ final class ContentAreaViewController: NSViewController {
             .preferredColorScheme(.dark)
         let rightVC = NSHostingController(rootView: rightView)
         rightVC.safeAreaRegions = []
+        // Critical: prevents tab content (Timeline / Changes / Stats / Eval) from
+        // pushing different intrinsic widths into NSSplitView on tab switch.
+        rightVC.sizingOptions = []
         rightPanelItem = NSSplitViewItem(viewController: rightVC)
         rightPanelItem.minimumThickness = 280
         rightPanelItem.canCollapse = true
@@ -145,15 +149,7 @@ final class ContentAreaViewController: NSViewController {
             rightPanelItem.isCollapsed = false
         }, completionHandler: {
             Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.isUpdatingFromState = false
-                if !self.hasLockedMinimumThickness {
-                    self.hasLockedMinimumThickness = true
-                    let initialWidth = self.rightPanelItem.viewController.view.frame.width
-                    if initialWidth > 0 {
-                        self.rightPanelItem.minimumThickness = initialWidth
-                    }
-                }
+                self?.isUpdatingFromState = false
             }
         })
     }

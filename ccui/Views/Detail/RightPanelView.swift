@@ -9,28 +9,17 @@ struct RightPanelView: View {
     @Environment(DiffStore.self) private var diffStore
 
     var body: some View {
-        GeometryReader { _ in
-            VStack(spacing: 0) {
-                tabBar
-                Rectangle()
-                    .fill(Color.borderSubtle)
-                    .frame(height: 1)
-                tabContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 0) {
+            tabBar
+            Rectangle()
+                .fill(Color.borderSubtle)
+                .frame(height: 1)
+            tabContent
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.surfacePrimary)
-        .onAppear {
-            if selectedTab == .changes, diffStore.needsLoad {
-                Task { await diffStore.load(repositoryPath: repositoryPath) }
-            }
-        }
-        .onChange(of: selectedTab) { _, newTab in
-            if newTab == .changes, diffStore.needsLoad {
-                Task { await diffStore.load(repositoryPath: repositoryPath) }
-            }
-        }
+        .onAppear { loadDiffIfNeeded(for: selectedTab) }
+        .onChange(of: selectedTab) { _, newTab in loadDiffIfNeeded(for: newTab) }
     }
 
     // MARK: - Tab Bar
@@ -43,6 +32,7 @@ struct RightPanelView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func tabButton(_ tab: RightPanelTab) -> some View {
@@ -67,30 +57,34 @@ struct RightPanelView: View {
 
     @ViewBuilder
     private var tabContent: some View {
-        switch selectedTab {
-        case .timeline:
-            TimelineView(worktreePath: worktreePath)
-                .frame(maxWidth: .infinity)
-        case .changes:
-            DiffViewerView(repositoryPath: repositoryPath)
-                .frame(maxWidth: .infinity)
-        case .stats:
-            ToolStatsView(repositoryPath: statsRepositoryPath)
-                .frame(maxWidth: .infinity)
-        case .eval:
-            SessionEvaluationView(
-                store: sessionEvaluationStore,
-                isVisible: Binding(
-                    get: { true },
-                    set: { newValue in
-                        if !newValue {
-                            sessionEvaluationStore.close()
-                            selectedTab = .timeline
+        ZStack {
+            switch selectedTab {
+            case .timeline:
+                TimelineView(worktreePath: worktreePath)
+            case .changes:
+                DiffViewerView(repositoryPath: repositoryPath)
+            case .stats:
+                ToolStatsView(repositoryPath: statsRepositoryPath)
+            case .eval:
+                SessionEvaluationView(
+                    store: sessionEvaluationStore,
+                    isVisible: Binding(
+                        get: { true },
+                        set: { newValue in
+                            if !newValue {
+                                sessionEvaluationStore.close()
+                                selectedTab = .timeline
+                            }
                         }
-                    }
+                    )
                 )
-            )
-            .frame(maxWidth: .infinity)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func loadDiffIfNeeded(for tab: RightPanelTab) {
+        guard tab == .changes, diffStore.needsLoad else { return }
+        Task { await diffStore.load(repositoryPath: repositoryPath) }
     }
 }
