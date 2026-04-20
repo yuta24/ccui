@@ -4,7 +4,7 @@ struct AddWorktreeView: View {
     let worktreeStore: WorktreeStore
     let repositoryPath: String
     let initialBaseBranch: String?
-    @Environment(\.dismiss) private var dismiss
+    @Environment(AppCoordinator.self) private var appCoordinator
 
     @State private var branch = ""
     @State private var destinationPath = ""
@@ -177,7 +177,7 @@ struct AddWorktreeView: View {
     private var actions: some View {
         HStack {
             Button("Cancel") {
-                dismiss()
+                dismissSheet()
             }
             .keyboardShortcut(.cancelAction)
             .buttonStyle(.plain)
@@ -218,6 +218,10 @@ struct AddWorktreeView: View {
 
     // MARK: - Logic
 
+    private func dismissSheet() {
+        appCoordinator.showingAddWorktree = nil
+    }
+
     private func updateDestinationPath(from branchName: String) {
         guard !branchName.isEmpty else {
             destinationPath = ""
@@ -247,7 +251,7 @@ struct AddWorktreeView: View {
                         createBranch: false
                     )
                 }
-                dismiss()
+                dismissSheet()
             } catch {
                 errorMessage = error.localizedDescription
             }
