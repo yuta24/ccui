@@ -29,11 +29,8 @@ struct ToolStatsView: View {
                 statsContent
             }
         }
-        .frame(width: 280)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.surfacePrimary)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(Color.borderSubtle).frame(width: 1)
-        }
         .onAppear {
             toolStatsStore.loadStats(repositoryPath: effectiveRepositoryPath)
         }
