@@ -78,8 +78,8 @@ final class BottomTerminalViewController: NSViewController {
 
     private func observeTerminalState() {
         withObservationTracking {
-            _ = bottomPanelState.isExpanded
             if let wt = stores.appCoordinator.selectedWorktree {
+                _ = bottomPanelState.isExpanded(for: wt.path)
                 _ = stores.shellSessionStore.tabs(for: wt.path)
                 _ = stores.shellSessionStore.activeTabID(for: wt.path)
             } else {
@@ -94,8 +94,8 @@ final class BottomTerminalViewController: NSViewController {
     }
 
     private func updateTerminal() {
-        guard bottomPanelState.isExpanded,
-              let worktree = stores.appCoordinator.selectedWorktree else {
+        guard let worktree = stores.appCoordinator.selectedWorktree,
+              bottomPanelState.isExpanded(for: worktree.path) else {
             removeCurrentTerminal()
             removeEmptyState()
             return

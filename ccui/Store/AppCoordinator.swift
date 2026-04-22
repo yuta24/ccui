@@ -33,7 +33,8 @@ final class AppCoordinator {
         with repositories: [Repository],
         terminalSessionStore: TerminalSessionStore,
         shellSessionStore: ShellSessionStore,
-        claudeEventStore: ClaudeEventStore
+        claudeEventStore: ClaudeEventStore,
+        bottomPanelState: BottomPanelState
     ) {
         let validIDs = Set(repositories.map(\.id))
 
@@ -54,6 +55,7 @@ final class AppCoordinator {
         let allWorktreePaths = Set(worktreeStores.values.flatMap(\.worktrees).map(\.path))
         terminalSessionStore.removeExcept(paths: allWorktreePaths)
         shellSessionStore.removeExcept(paths: allWorktreePaths)
+        bottomPanelState.removeExcept(paths: allWorktreePaths)
 
         // リポジトリ削除時のみディスクからセッションデータを削除（worktree 削除時は保持）
         if !removedRepoPaths.isEmpty {
@@ -122,13 +124,15 @@ final class AppCoordinator {
         _ wt: Worktree,
         from wtStore: WorktreeStore,
         terminalSessionStore: TerminalSessionStore,
-        shellSessionStore: ShellSessionStore
+        shellSessionStore: ShellSessionStore,
+        bottomPanelState: BottomPanelState
     ) {
         Task {
             do {
                 try await wtStore.remove(wt)
                 terminalSessionStore.remove(for: wt.path)
                 shellSessionStore.removeAll(for: wt.path)
+                bottomPanelState.removeAll(for: wt.path)
                 if selectedWorktree == wt {
                     selectedWorktree = nil
                     fileTreeStore = nil
@@ -150,13 +154,18 @@ final class AppCoordinator {
         }
     }
 
-    func forceDeleteWorktree(terminalSessionStore: TerminalSessionStore, shellSessionStore: ShellSessionStore) {
+    func forceDeleteWorktree(
+        terminalSessionStore: TerminalSessionStore,
+        shellSessionStore: ShellSessionStore,
+        bottomPanelState: BottomPanelState
+    ) {
         guard let (wt, wtStore) = forceDeleteTarget else { return }
         Task {
             do {
                 try await wtStore.remove(wt, force: true)
                 terminalSessionStore.remove(for: wt.path)
                 shellSessionStore.removeAll(for: wt.path)
+                bottomPanelState.removeAll(for: wt.path)
                 if selectedWorktree == wt {
                     selectedWorktree = nil
                     fileTreeStore = nil

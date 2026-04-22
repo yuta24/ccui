@@ -29,12 +29,13 @@ struct BottomTerminalTabBarView: View {
     private func tabBar(worktreePath: String) -> some View {
         let tabs = shellStore.tabs(for: worktreePath)
         let activeTabID = shellStore.activeTabID(for: worktreePath)
+        let isExpanded = panelState.isExpanded(for: worktreePath)
 
         return HStack(spacing: 0) {
             Button {
-                panelState.toggle()
+                panelState.toggle(for: worktreePath)
             } label: {
-                Image(systemName: panelState.isExpanded ? "chevron.down" : "chevron.up")
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 24, height: 24)
@@ -57,8 +58,8 @@ struct BottomTerminalTabBarView: View {
             Button {
                 let isFirst = tabs.isEmpty
                 shellStore.addTab(for: worktreePath)
-                if isFirst, !panelState.isExpanded {
-                    panelState.isExpanded = true
+                if isFirst, !isExpanded {
+                    panelState.setExpanded(true, for: worktreePath)
                 }
             } label: {
                 Image(systemName: "plus")
@@ -103,8 +104,8 @@ struct BottomTerminalTabBarView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             shellStore.setActiveTab(id: tab.id, worktreePath: worktreePath)
-            if !panelState.isExpanded {
-                panelState.isExpanded = true
+            if !panelState.isExpanded(for: worktreePath) {
+                panelState.setExpanded(true, for: worktreePath)
             }
         }
     }

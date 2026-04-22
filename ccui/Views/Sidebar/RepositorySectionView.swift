@@ -8,6 +8,7 @@ struct RepositorySectionView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(ShellSessionStore.self) private var shellSessionStore
+    @Environment(BottomPanelState.self) private var bottomPanelState
 
     private var isMissing: Bool {
         !store.exists(repository)
@@ -139,7 +140,7 @@ struct RepositorySectionView: View {
         if !wt.isMain {
             Divider()
             Button("Remove Worktree", role: .destructive) {
-                coordinator.removeWorktree(wt, from: worktreeStore, terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore)
+                coordinator.removeWorktree(wt, from: worktreeStore, terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore, bottomPanelState: bottomPanelState)
             }
         }
     }

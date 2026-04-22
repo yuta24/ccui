@@ -206,7 +206,8 @@ final class RootContainerViewController: NSViewController {
             if response == .alertFirstButtonReturn {
                 self.stores.appCoordinator.forceDeleteWorktree(
                     terminalSessionStore: self.stores.terminalSessionStore,
-                    shellSessionStore: self.stores.shellSessionStore
+                    shellSessionStore: self.stores.shellSessionStore,
+                    bottomPanelState: self.stores.bottomPanelState
                 )
             } else {
                 self.stores.appCoordinator.forceDeleteTarget = nil

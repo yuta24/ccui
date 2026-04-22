@@ -62,7 +62,6 @@ struct ContentView: View {
             sessionComparisonStore.close()
             quickOpenStore.close()
             searchStore.deactivate()
-            bottomPanelState.collapse()
             if let wt = newValue {
                 claudeEventStore.acknowledge(for: wt.path)
                 quickOpenStore.buildIndex(rootPath: wt.path)
@@ -92,7 +91,8 @@ struct ContentView: View {
                 with: newValue,
                 terminalSessionStore: terminalSessionStore,
                 shellSessionStore: shellSessionStore,
-                claudeEventStore: claudeEventStore
+                claudeEventStore: claudeEventStore,
+                bottomPanelState: bottomPanelState
             )
         }
         .onAppear {

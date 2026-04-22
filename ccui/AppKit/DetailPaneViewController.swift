@@ -9,6 +9,14 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private var isUpdatingSplitFromState = false
     private var isObserving = false
 
+    private var currentWorktreePath: String? {
+        stores.appCoordinator.selectedWorktree?.path
+    }
+
+    private var isExpandedForCurrent: Bool {
+        bottomPanelState.isExpanded(for: currentWorktreePath)
+    }
+
     init(stores: StoreContainer) {
         self.stores = stores
         super.init(nibName: nil, bundle: nil)
@@ -53,7 +61,8 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
 
     private func observeBottomPanelState() {
         withObservationTracking {
-            _ = bottomPanelState.isExpanded
+            _ = isExpandedForCurrent
+            _ = stores.appCoordinator.selectedWorktree
         } onChange: {
             Task { @MainActor [weak self] in
                 self?.handleExpandedChanged()
@@ -66,7 +75,7 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
         guard let splitView = view as? NSSplitView else { return }
         let totalHeight = splitView.frame.height
         let targetPosition: CGFloat
-        if bottomPanelState.isExpanded {
+        if isExpandedForCurrent {
             targetPosition = totalHeight - defaultExpandedHeight
         } else {
             targetPosition = totalHeight - collapsedHeight
@@ -111,11 +120,12 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     func splitViewDidResizeSubviews(_ notification: Notification) {
         guard !isUpdatingSplitFromState else { return }
         guard children.count > 1 else { return }
+        guard let path = currentWorktreePath else { return }
         let bottomHeight = children[1].view.frame.height
         let expanded = bottomHeight > collapsedHeight + 10
-        if bottomPanelState.isExpanded != expanded {
+        if bottomPanelState.isExpanded(for: path) != expanded {
             isUpdatingSplitFromState = true
-            bottomPanelState.isExpanded = expanded
+            bottomPanelState.setExpanded(expanded, for: path)
             isUpdatingSplitFromState = false
         }
     }
