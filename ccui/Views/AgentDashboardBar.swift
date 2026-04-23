@@ -1,29 +1,57 @@
+import Combine
 import SwiftUI
 
 // MARK: - Global Agent Status (Titlebar accessory, right-aligned)
 
 struct AgentStatusBar: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
+    // staleness しきい値の境界を跨いだタイミングでも再評価されるよう、
+    // 60 秒ごとに body を再評価するためのトリガ。
+    @State private var staleTick: Int = 0
+
+    private let staleTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        content
+            .onReceive(staleTimer) { _ in
+                staleTick &+= 1
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         let active = claudeEventStore.activeAgentCount
         let done = claudeEventStore.doneAgentCount
         let notified = claudeEventStore.notifiedAgentCount
         let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || notified > 0)
+        let canClear = notified > 0 || done > 0
 
         HStack(spacing: 8) {
             Spacer()
             if let loadError = claudeEventStore.loadError {
                 statusItem(icon: "exclamationmark.triangle.fill", color: .diffDeletion, label: loadError)
             } else if hasStatus {
-                if active > 0 {
-                    statusItem(icon: "hammer", color: .statusRenamed, label: "\(active)")
+                let counters = HStack(spacing: 8) {
+                    if active > 0 {
+                        statusItem(icon: "hammer", color: .statusRenamed, label: "\(active)")
+                    }
+                    if notified > 0 {
+                        statusItem(icon: "bell.fill", color: .accent, label: "\(notified)")
+                    }
+                    if done > 0 {
+                        statusItem(icon: "checkmark.circle.fill", color: .statusClean, label: "\(done)")
+                    }
                 }
-                if notified > 0 {
-                    statusItem(icon: "bell.fill", color: .accent, label: "\(notified)")
-                }
-                if done > 0 {
-                    statusItem(icon: "checkmark.circle.fill", color: .statusClean, label: "\(done)")
+                if canClear {
+                    Button {
+                        claudeEventStore.acknowledgeAll()
+                    } label: {
+                        counters.contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Mark all as read")
+                } else {
+                    counters
                 }
             }
         }

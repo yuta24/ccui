@@ -24,6 +24,10 @@ final class ClaudeEventStore {
     private let maxSessionsPerWorktree = 20
     /// ディスク上に保持するワークツリーごとのセッション数上限
     private let maxDiskSessionsPerWorktree = 100
+    /// active 状態でこの期間以上イベント更新がないセッションは stale とみなし active から除外
+    private let activeStaleness: TimeInterval = 5 * 60
+    /// notified 状態でこの期間以上更新がないペンディングは stale とみなし通知カウントから除外
+    private let notifiedStaleness: TimeInterval = 60 * 60
 
     init(
         persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence(),
@@ -88,7 +92,12 @@ final class ClaudeEventStore {
     }
 
     var activeAgentCount: Int {
-        sessions.values.flatMap(\.values).filter(\.state.isActive).count
+        let cutoff = Date().addingTimeInterval(-activeStaleness)
+        return sessions.values.flatMap(\.values).filter { session in
+            guard session.state.isActive else { return false }
+            guard let last = session.lastEventAt else { return false }
+            return last > cutoff
+        }.count
     }
 
     var doneAgentCount: Int {
@@ -100,12 +109,12 @@ final class ClaudeEventStore {
     }
 
     var notifiedAgentCount: Int {
-        sessions.values.flatMap { worktreeSessions in
+        let cutoff = Date().addingTimeInterval(-notifiedStaleness)
+        return sessions.values.flatMap { worktreeSessions in
             worktreeSessions.values.filter { session in
-                if case .notified = session.state {
-                    return isSessionUnacknowledged(session)
-                }
-                return false
+                guard case .notified = session.state else { return false }
+                guard let last = session.lastEventAt, last > cutoff else { return false }
+                return isSessionUnacknowledged(session)
             }
         }.count
     }
@@ -118,6 +127,14 @@ final class ClaudeEventStore {
             .compactMap(\.lastEventAt)
             .max() ?? Date()
         acknowledgedUpTo[worktreePath] = latest
+    }
+
+    /// 既知の全 worktree を現時点で既読にする（ステータスバークリック等で呼び出す）
+    func acknowledgeAll() {
+        let now = Date()
+        for path in sessions.keys {
+            acknowledgedUpTo[path] = now
+        }
     }
 
     func annotateSession(
@@ -235,6 +252,12 @@ final class ClaudeEventStore {
                 loaded[path] = mutable
             }
             sessions = loaded
+            // 起動時点で既存セッションは全て既読扱い。ステータスバーは「このアプリ
+            // セッション中に新規発生したもの」だけを積み上げる。
+            let now = Date()
+            for path in sessions.keys {
+                acknowledgedUpTo[path] = now
+            }
         } catch {
             Logger.store.error("Failed to load claude events from disk: \(error)")
             sessions = [:]

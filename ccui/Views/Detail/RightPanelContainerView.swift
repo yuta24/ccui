@@ -12,6 +12,7 @@ struct RightPanelContainerView: View {
                 repositoryPath: worktree.path,
                 statsRepositoryPath: repoPath,
                 sessionEvaluationStore: uiState.sessionEvaluationStore,
+                sessionAnalyticsStore: uiState.sessionAnalyticsStore,
                 selectedTab: Binding(
                     get: { uiState.rightPanelTab },
                     set: { uiState.rightPanelTab = $0 }

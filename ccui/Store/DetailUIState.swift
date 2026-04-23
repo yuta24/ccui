@@ -29,6 +29,7 @@ final class DetailUIState {
     var rightPanelTab: RightPanelTab = .timeline
     var showingConfiguration = false
     var sessionEvaluationStore = SessionEvaluationStore()
+    var sessionAnalyticsStore = SessionAnalyticsStore()
 
     func resetForWorktreeChange() {
         contentMode = .agent

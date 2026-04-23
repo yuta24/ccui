@@ -1,5 +1,11 @@
 import Foundation
 
+struct ToolUsageStat: Identifiable, Sendable {
+    let id: String
+    let toolName: String
+    let count: Int
+}
+
 nonisolated struct SessionEvaluation: Sendable {
     let sessionId: String
     let autonomyScore: Double

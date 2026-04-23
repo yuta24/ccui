@@ -5,6 +5,7 @@ struct RightPanelView: View {
     let repositoryPath: String
     let statsRepositoryPath: String
     let sessionEvaluationStore: SessionEvaluationStore
+    let sessionAnalyticsStore: SessionAnalyticsStore
     @Binding var selectedTab: RightPanelTab
     @Environment(DiffStore.self) private var diffStore
 
@@ -64,7 +65,10 @@ struct RightPanelView: View {
             case .changes:
                 DiffViewerView(repositoryPath: repositoryPath)
             case .stats:
-                ToolStatsView(repositoryPath: statsRepositoryPath)
+                AnalyticsDashboardView(
+                    store: sessionAnalyticsStore,
+                    repositoryPath: statsRepositoryPath
+                )
             case .eval:
                 SessionEvaluationView(
                     store: sessionEvaluationStore,
