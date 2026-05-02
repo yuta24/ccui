@@ -70,21 +70,49 @@ final class ClaudeEventStore {
 
     func agentState(for worktreePath: String) -> AgentState {
         guard let worktreeSessions = sessions[worktreePath] else { return .idle }
-        let states = worktreeSessions.values.map(\.state)
+        return Self.aggregateAgentState(from: worktreeSessions.values)
+    }
 
-        // 優先度: toolUse > thinking > notified > done > idle
-        if let toolUseSession = worktreeSessions.values
-            .filter({ if case .toolUse = $0.state { return true }; return false })
-            .max(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) }) {
-            return toolUseSession.state
+    /// 複数セッションの `state` から worktree 全体としての state を 1 パスで決定する。
+    /// 優先度: toolUse > thinking > notified > done > idle。
+    /// toolUse / notified は同種が複数あれば lastEventAt が最も新しいものの state を返す。
+    nonisolated static func aggregateAgentState(
+        from sessions: some Collection<AgentSession>
+    ) -> AgentState {
+        var latestToolUse: AgentState?
+        var latestToolUseAt: Date = .distantPast
+        var latestNotified: AgentState?
+        var latestNotifiedAt: Date = .distantPast
+        var hasThinking = false
+        var hasDone = false
+
+        for session in sessions {
+            let state = session.state
+            let at = session.lastEventAt ?? .distantPast
+            switch state {
+            case .toolUse:
+                if at > latestToolUseAt {
+                    latestToolUseAt = at
+                    latestToolUse = state
+                }
+            case .thinking:
+                hasThinking = true
+            case .notified:
+                if at > latestNotifiedAt {
+                    latestNotifiedAt = at
+                    latestNotified = state
+                }
+            case .done:
+                hasDone = true
+            case .idle:
+                break
+            }
         }
-        if states.contains(where: { $0 == .thinking }) { return .thinking }
-        if let notifiedSession = worktreeSessions.values
-            .filter({ if case .notified = $0.state { return true }; return false })
-            .max(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) }) {
-            return notifiedSession.state
-        }
-        if states.contains(where: { $0 == .done }) { return .done }
+
+        if let latestToolUse { return latestToolUse }
+        if hasThinking { return .thinking }
+        if let latestNotified { return latestNotified }
+        if hasDone { return .done }
         return .idle
     }
 

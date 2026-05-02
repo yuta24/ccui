@@ -45,9 +45,7 @@ final class SearchStore {
         self.rootPath = rootPath
         indexTask?.cancel()
         indexTask = Task {
-            let flat = await Task.detached(priority: .userInitiated) {
-                return GitFileIndex.build(repositoryPath: rootPath).searchableFiles
-            }.value
+            let flat = await GitFileIndexCache.shared.index(for: rootPath).searchableFiles
             guard !Task.isCancelled else { return }
             fileIndex = flat
         }
