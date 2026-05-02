@@ -108,11 +108,9 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         let dirName = Self.directoryName(for: worktreePath)
         let worktreeDir = baseDirectory.appendingPathComponent(dirName)
 
-        if fm.fileExists(atPath: worktreeDir.path) {
-            try fm.removeItem(at: worktreeDir)
-        }
-
-        // index は read-modify-write なので static lock で直列化する
+        // index は read-modify-write なので static lock で直列化する。
+        // index 更新を先に試行し、失敗したらディレクトリ削除も行わないことで
+        // 「セッションファイル削除済みなのに index には残る」中途半端な状態を防ぐ。
         Self.indexLock.lock()
         defer { Self.indexLock.unlock() }
         let indexURL = baseDirectory.appendingPathComponent("index.json")
@@ -123,6 +121,10 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
             index.removeValue(forKey: worktreePath)
             let newData = try JSONEncoder().encode(index)
             try newData.write(to: indexURL, options: .atomic)
+        }
+
+        if fm.fileExists(atPath: worktreeDir.path) {
+            try fm.removeItem(at: worktreeDir)
         }
     }
 
