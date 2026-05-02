@@ -35,6 +35,11 @@ final class AgentTerminalViewController: NSViewController {
         guard self.worktree != worktree else { return }
         self.worktree = worktree
         updateTerminal()
+        // 旧 worktree に対して張られた observation は新 worktree のセッション変化を
+        // 検知できないため、新しい worktree で再登録する。
+        if isObserving {
+            observeSession()
+        }
     }
 
     // MARK: - Observation
