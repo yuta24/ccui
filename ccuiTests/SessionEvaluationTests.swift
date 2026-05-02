@@ -10,7 +10,7 @@ struct SessionEvaluationTests {
         let eval = SessionEvaluation(
             sessionId: "s", autonomyScore: 1, toolStats: [], duration: nil,
             eventCount: 0, interventionCount: 0, interventionsByTool: [:],
-            outcome: nil, failureReasons: []
+            outcome: nil, failureReasons: [], isTruncated: false
         )
         #expect(eval.formattedDuration == "< 1s")
     }
@@ -19,7 +19,7 @@ struct SessionEvaluationTests {
         let eval = SessionEvaluation(
             sessionId: "s", autonomyScore: 1, toolStats: [], duration: 45,
             eventCount: 0, interventionCount: 0, interventionsByTool: [:],
-            outcome: nil, failureReasons: []
+            outcome: nil, failureReasons: [], isTruncated: false
         )
         #expect(eval.formattedDuration == "45s")
     }
@@ -28,7 +28,7 @@ struct SessionEvaluationTests {
         let eval = SessionEvaluation(
             sessionId: "s", autonomyScore: 1, toolStats: [], duration: 125,
             eventCount: 0, interventionCount: 0, interventionsByTool: [:],
-            outcome: nil, failureReasons: []
+            outcome: nil, failureReasons: [], isTruncated: false
         )
         #expect(eval.formattedDuration == "2m 5s")
     }
@@ -37,7 +37,7 @@ struct SessionEvaluationTests {
         let eval = SessionEvaluation(
             sessionId: "s", autonomyScore: 1, toolStats: [], duration: 3725,
             eventCount: 0, interventionCount: 0, interventionsByTool: [:],
-            outcome: nil, failureReasons: []
+            outcome: nil, failureReasons: [], isTruncated: false
         )
         #expect(eval.formattedDuration == "1h 2m")
     }
