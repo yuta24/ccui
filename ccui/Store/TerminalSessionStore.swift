@@ -33,10 +33,16 @@ final class TerminalSessionStore {
 
             // ユーザーの ~/.zshrc が重い場合に hang して ensureSession 全体を
             // ブロックしないよう、上限 10 秒でプロセスを terminate する。
+            // SIGTERM をハンドルしているシェルが終了しないケースに備えて
+            // さらに 2 秒待っても生きていたら SIGKILL でエスカレートする。
             let timeoutTask = Task {
                 try? await Task.sleep(for: .seconds(10))
                 if !Task.isCancelled, process.isRunning {
                     process.terminate()
+                    try? await Task.sleep(for: .seconds(2))
+                    if !Task.isCancelled, process.isRunning {
+                        kill(process.processIdentifier, SIGKILL)
+                    }
                 }
             }
 
