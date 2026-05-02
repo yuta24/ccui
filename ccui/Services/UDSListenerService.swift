@@ -95,15 +95,17 @@ final class UDSListenerService {
             guard clientFd >= 0 else { break }
 
             // フックスクリプトが close せずに hang した場合に detached Task が
-                // 蓄積するのを防ぐため、クライアント側にも受信タイムアウトを設定する。
-                var timeout = timeval(tv_sec: 5, tv_usec: 0)
-                _ = Darwin.setsockopt(
-                    clientFd,
-                    SOL_SOCKET,
-                    SO_RCVTIMEO,
-                    &timeout,
-                    socklen_t(MemoryLayout<timeval>.size)
-                )
+            // 蓄積するのを防ぐため、クライアント側にも受信タイムアウトを設定する。
+            // SO_RCVTIMEO は read() 1 回ごとの待機時間に対してかかるため、大きい
+            // ペイロードの分割受信を打ち切らないよう余裕を持たせる（30 秒）。
+            var timeout = timeval(tv_sec: 30, tv_usec: 0)
+            _ = Darwin.setsockopt(
+                clientFd,
+                SOL_SOCKET,
+                SO_RCVTIMEO,
+                &timeout,
+                socklen_t(MemoryLayout<timeval>.size)
+            )
 
             Task.detached(priority: .utility) { [weak self] in
                 defer { Darwin.close(clientFd) }
@@ -134,10 +136,15 @@ final class UDSListenerService {
                 guard !data.isEmpty else { return }
 
                 let decoder = JSONDecoder()
-                if let payload = try? decoder.decode(ClaudeHookPayload.self, from: data) {
+                do {
+                    let payload = try decoder.decode(ClaudeHookPayload.self, from: data)
                     Task { @MainActor [weak self] in
                         self?.onEvent?(payload)
                     }
+                } catch {
+                    // タイムアウト等で受信が途中で切れて不完全 JSON になった場合に
+                    // サイレントドロップせず原因をログに残す。
+                    Logger.services.warning("UDS: failed to decode payload (\(data.count) bytes): \(error.localizedDescription)")
                 }
             }
         }
