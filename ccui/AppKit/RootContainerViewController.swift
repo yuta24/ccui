@@ -273,6 +273,14 @@ final class RootContainerViewController: NSViewController {
                 return nil
             }
 
+            // Cmd+U → toggle WebView split (Agent mode only)
+            if chars == "u" && mods.contains(.command) && !mods.contains(.shift) {
+                guard coordinator.selectedWorktree != nil else { return event }
+                guard detailUIState.contentMode == .agent else { return event }
+                detailUIState.agentLayoutMode = detailUIState.agentLayoutMode == .full ? .split : .full
+                return nil
+            }
+
             // Cmd+I → toggle Right Panel (Agent mode only)
             if chars == "i" && mods.contains(.command) && !mods.contains(.shift) {
                 guard coordinator.selectedWorktree != nil else { return event }

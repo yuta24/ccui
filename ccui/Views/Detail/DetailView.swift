@@ -54,8 +54,7 @@ struct DetailView: View {
     private var mainContent: some View {
         switch uiState.contentMode {
         case .agent:
-            AgentContentView(worktree: worktree)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            AgentMainContentView(worktree: worktree)
 
         case .files:
             FilesContentView(

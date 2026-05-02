@@ -5,6 +5,11 @@ enum DetailContentMode {
     case files
 }
 
+enum AgentLayoutMode {
+    case full
+    case split
+}
+
 enum RightPanelTab: String, CaseIterable {
     case timeline = "Timeline"
     case changes = "Changes"
@@ -25,17 +30,21 @@ enum RightPanelTab: String, CaseIterable {
 @MainActor
 final class DetailUIState {
     var contentMode: DetailContentMode = .agent
+    var agentLayoutMode: AgentLayoutMode = .full
     var isRightPanelVisible = false
     var rightPanelTab: RightPanelTab = .timeline
     var showingConfiguration = false
     var sessionEvaluationStore = SessionEvaluationStore()
     var sessionAnalyticsStore = SessionAnalyticsStore()
+    var webViewStore = WebViewStore()
 
     func resetForWorktreeChange() {
         contentMode = .agent
+        agentLayoutMode = .full
         isRightPanelVisible = false
         rightPanelTab = .timeline
         showingConfiguration = false
         sessionEvaluationStore.close()
+        webViewStore.reset()
     }
 }

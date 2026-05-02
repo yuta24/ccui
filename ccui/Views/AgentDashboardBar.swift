@@ -95,6 +95,23 @@ struct ContentToolbar: View {
             // Actions (right)
             if coordinator.selectedWorktree != nil {
                 HStack(spacing: 4) {
+                    // Split toggle (Agent mode only)
+                    if detailUIState.contentMode == .agent {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                detailUIState.agentLayoutMode = detailUIState.agentLayoutMode == .full ? .split : .full
+                            }
+                        } label: {
+                            Image(systemName: detailUIState.agentLayoutMode == .split ? "rectangle.split.1x2.fill" : "rectangle.split.1x2")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(detailUIState.agentLayoutMode == .split ? Color.accent : Color.textSecondary)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.hoverScale)
+                        .help("Toggle WebView Split (⌘U)")
+                    }
+
                     Button {
                         detailUIState.isRightPanelVisible.toggle()
                     } label: {
