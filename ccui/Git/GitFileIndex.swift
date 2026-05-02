@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 nonisolated struct GitFileIndex: Sendable {
     let rootPath: String
@@ -43,6 +44,7 @@ nonisolated struct GitFileIndex: Sendable {
         do {
             output = try GitClient.lsFiles(["--cached", "--others", "--exclude-standard", "-z"], at: repositoryPath)
         } catch {
+            Logger.store.warning("GitFileIndex: ls-files (non-ignored) failed at \(repositoryPath, privacy: .public): \(error.localizedDescription)")
             return []
         }
         let rootPrefix = repositoryPath + "/"
@@ -60,6 +62,7 @@ nonisolated struct GitFileIndex: Sendable {
         do {
             dirOutput = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "--directory", "-z"], at: repositoryPath)
         } catch {
+            Logger.store.warning("GitFileIndex: ls-files (ignored dirs) failed at \(repositoryPath, privacy: .public): \(error.localizedDescription)")
             return ([], [])
         }
 
@@ -83,6 +86,7 @@ nonisolated struct GitFileIndex: Sendable {
         do {
             fileOutput = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "-z"], at: repositoryPath)
         } catch {
+            Logger.store.warning("GitFileIndex: ls-files (ignored files) failed at \(repositoryPath, privacy: .public): \(error.localizedDescription)")
             return (paths, dirPrefixes)
         }
 

@@ -92,11 +92,11 @@ struct FileTreeNodeList: View {
 
                 Image(systemName: FileTreeHelpers.fileIcon(for: node.name))
                     .font(.system(size: 11))
-                    .foregroundStyle(isSelected ? Color.accent : (changeStatus != nil ? FileTreeHelpers.statusColor(changeStatus!) : Color.textTertiary))
+                    .foregroundStyle(iconColor(isSelected: isSelected, changeStatus: changeStatus))
 
                 Text(node.name)
                     .font(.uiLabel)
-                    .foregroundStyle(isSelected ? Color.textPrimary : (changeStatus != nil ? FileTreeHelpers.statusColor(changeStatus!) : Color.textSecondary))
+                    .foregroundStyle(labelColor(isSelected: isSelected, changeStatus: changeStatus))
                     .lineLimit(1)
 
                 Spacer()
@@ -124,5 +124,17 @@ struct FileTreeNodeList: View {
         .onHover { hovering in
             hoveredNode = hovering ? node.id : nil
         }
+    }
+
+    private func iconColor(isSelected: Bool, changeStatus: DiffFileEntry.Status?) -> Color {
+        if isSelected { return Color.accent }
+        if let changeStatus { return FileTreeHelpers.statusColor(changeStatus) }
+        return Color.textTertiary
+    }
+
+    private func labelColor(isSelected: Bool, changeStatus: DiffFileEntry.Status?) -> Color {
+        if isSelected { return Color.textPrimary }
+        if let changeStatus { return FileTreeHelpers.statusColor(changeStatus) }
+        return Color.textSecondary
     }
 }

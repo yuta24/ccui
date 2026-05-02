@@ -124,7 +124,6 @@ final class WorktreeStore: Identifiable {
     func remove(_ worktree: Worktree, force: Bool = false) async throws {
         let repoPath = repository.path
         let wtPath = worktree.path
-        let branch = worktree.branch
 
         try await Task.detached(priority: .userInitiated) {
             if !force {
