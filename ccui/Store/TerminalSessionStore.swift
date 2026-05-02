@@ -31,15 +31,26 @@ final class TerminalSessionStore {
                 return "claude"
             }
 
+            // ユーザーの ~/.zshrc が重い場合に hang して ensureSession 全体を
+            // ブロックしないよう、上限 10 秒でプロセスを terminate する。
+            let timeoutTask = Task {
+                try? await Task.sleep(for: .seconds(10))
+                if !Task.isCancelled, process.isRunning {
+                    process.terminate()
+                }
+            }
+
             return await withTaskCancellationHandler {
                 await withCheckedContinuation { continuation in
                     process.terminationHandler = { _ in
+                        timeoutTask.cancel()
                         let data = pipe.fileHandleForReading.readDataToEndOfFile()
                         let resolved = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         continuation.resume(returning: resolved.isEmpty ? "claude" : resolved)
                     }
                 }
             } onCancel: {
+                timeoutTask.cancel()
                 process.terminate()
             }
         }
