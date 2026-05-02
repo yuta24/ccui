@@ -56,6 +56,7 @@ final class WorktreeStore: Identifiable {
         }
 
         await loadStatus()
+        guard loadToken == token else { return }
 
         let paths = worktrees.map(\.path)
         let installErrors: [(String, Error)] = await Task.detached(priority: .utility) {
@@ -69,6 +70,7 @@ final class WorktreeStore: Identifiable {
             }
             return errors
         }.value
+        guard loadToken == token else { return }
 
         for (path, error) in installErrors {
             Logger.store.error("Failed to install hooks for \(path, privacy: .public): \(error)")
