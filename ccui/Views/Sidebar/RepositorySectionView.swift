@@ -39,6 +39,12 @@ struct RepositorySectionView: View {
                 await worktreeStore.load()
                 worktreeStore.startWatching()
             }
+            // task がキャンセルされる（view 消失 / id 変化）まで待機し、
+            // キャンセル時に watcher を停止して GitDirectoryWatcher の fd リークを防ぐ。
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+            }
+            worktreeStore.stopWatching()
         }
 
         sectionDivider
