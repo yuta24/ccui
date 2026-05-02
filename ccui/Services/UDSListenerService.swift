@@ -94,17 +94,40 @@ final class UDSListenerService {
             }
             guard clientFd >= 0 else { break }
 
+            // フックスクリプトが close せずに hang した場合に detached Task が
+                // 蓄積するのを防ぐため、クライアント側にも受信タイムアウトを設定する。
+                var timeout = timeval(tv_sec: 5, tv_usec: 0)
+                _ = Darwin.setsockopt(
+                    clientFd,
+                    SOL_SOCKET,
+                    SO_RCVTIMEO,
+                    &timeout,
+                    socklen_t(MemoryLayout<timeval>.size)
+                )
+
             Task.detached(priority: .utility) { [weak self] in
                 defer { Darwin.close(clientFd) }
 
                 var data = Data()
                 var buffer = [UInt8](repeating: 0, count: 4096)
-                while true {
+                readLoop: while true {
                     let n = Darwin.read(clientFd, &buffer, buffer.count)
                     if n > 0 {
                         data.append(contentsOf: buffer[..<n])
+                    } else if n == 0 {
+                        break  // EOF: フック側が close した
                     } else {
-                        break
+                        // n == -1: errno を確認してリトライ可能なケースのみ continue
+                        switch errno {
+                        case EINTR:
+                            // シグナル割り込み: 受信途中でドロップしないようリトライ
+                            continue
+                        case EAGAIN, EWOULDBLOCK:
+                            // SO_RCVTIMEO 経過。これ以上のデータは来ない前提で抜ける
+                            break readLoop
+                        default:
+                            break readLoop
+                        }
                     }
                 }
 
