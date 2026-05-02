@@ -65,6 +65,7 @@ final class AppCoordinator {
 
         if let selected = selectedWorktree, !validIDs.contains(selected.repositoryID) {
             selectedWorktree = nil
+            fileTreeStore = nil
         }
     }
 
