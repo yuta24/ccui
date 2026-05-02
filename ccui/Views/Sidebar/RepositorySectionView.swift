@@ -37,8 +37,12 @@ struct RepositorySectionView: View {
             guard !isMissing else { return }
             if worktreeStore.worktrees.isEmpty && !worktreeStore.isLoading {
                 await worktreeStore.load()
-                worktreeStore.startWatching()
             }
+            // LazyVStack のスクロールアウトで view が再生成されると worktrees は既にロード済みで
+            // load() が走らない。startWatching を if 内に置くと watcher が起動されず、
+            // 末尾の stopWatching だけ走って前回の watcher を止めてしまうので、必ず起動する。
+            // GitDirectoryWatcher.start は内部で stop してから start するため再呼び出しも安全。
+            worktreeStore.startWatching()
             // task がキャンセルされる（view 消失 / id 変化）まで待機し、
             // キャンセル時に watcher を停止して GitDirectoryWatcher の fd リークを防ぐ。
             while !Task.isCancelled {
