@@ -32,10 +32,33 @@ nonisolated struct GitFileIndex: Sendable {
 
     // MARK: - Build
 
-    nonisolated static func build(repositoryPath: String) -> GitFileIndex {
-        let nonIgnored = nonIgnoredFiles(at: repositoryPath)
-        let (files, dirPrefixes) = ignoredFilesAndDirs(at: repositoryPath)
-        return GitFileIndex(rootPath: repositoryPath, nonIgnoredPaths: nonIgnored, ignoredPaths: files, ignoredDirPrefixes: dirPrefixes)
+    /// 3 回の `git ls-files` を並列実行して構築する。
+    nonisolated static func build(repositoryPath: String) async -> GitFileIndex {
+        async let nonIgnoredTask = Task.detached(priority: .userInitiated) {
+            nonIgnoredFiles(at: repositoryPath)
+        }.value
+        async let ignoredDirsTask = Task.detached(priority: .userInitiated) {
+            ignoredDirectories(at: repositoryPath)
+        }.value
+        async let ignoredFilesTask = Task.detached(priority: .userInitiated) {
+            ignoredIndividualFiles(at: repositoryPath)
+        }.value
+
+        let nonIgnored = await nonIgnoredTask
+        let (dirFiles, dirPrefixes) = await ignoredDirsTask
+        let extraFiles = await ignoredFilesTask
+
+        var files = dirFiles
+        for path in extraFiles where !dirPrefixes.contains(where: { path.hasPrefix($0) }) {
+            files.insert(path)
+        }
+
+        return GitFileIndex(
+            rootPath: repositoryPath,
+            nonIgnoredPaths: nonIgnored,
+            ignoredPaths: files,
+            ignoredDirPrefixes: dirPrefixes
+        )
     }
 
     /// Returns absolute paths of all tracked + untracked non-ignored files.
@@ -55,12 +78,11 @@ nonisolated struct GitFileIndex: Sendable {
         return paths
     }
 
-    /// Returns ignored file paths and ignored directory prefixes (for ancestor matching).
-    private static func ignoredFilesAndDirs(at repositoryPath: String) -> (files: Set<String>, dirPrefixes: [String]) {
-        // First pass: get ignored directories efficiently
-        let dirOutput: String
+    /// Returns ignored directories as both absolute paths and trailing-slash prefixes for ancestor matching.
+    private static func ignoredDirectories(at repositoryPath: String) -> (files: Set<String>, dirPrefixes: [String]) {
+        let output: String
         do {
-            dirOutput = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "--directory", "-z"], at: repositoryPath)
+            output = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "--directory", "-z"], at: repositoryPath)
         } catch {
             Logger.store.warning("GitFileIndex: ls-files (ignored dirs) failed at \(repositoryPath, privacy: .public): \(error.localizedDescription)")
             return ([], [])
@@ -70,7 +92,7 @@ nonisolated struct GitFileIndex: Sendable {
         var paths = Set<String>()
         var dirPrefixes: [String] = []
 
-        for rel in dirOutput.components(separatedBy: "\0") where !rel.isEmpty {
+        for rel in output.components(separatedBy: "\0") where !rel.isEmpty {
             if rel.hasSuffix("/") {
                 let dirPath = rootPrefix + String(rel.dropLast())
                 paths.insert(dirPath)
@@ -80,24 +102,25 @@ nonisolated struct GitFileIndex: Sendable {
             }
         }
 
-        // Second pass: get individual ignored files not inside ignored directories
-        // (e.g. *.log matched by pattern in a tracked directory)
-        let fileOutput: String
+        return (paths, dirPrefixes)
+    }
+
+    /// Returns individually ignored files (e.g. *.log matched by pattern in a tracked directory).
+    /// Caller is responsible for filtering out paths that fall under an ignored directory prefix.
+    private static func ignoredIndividualFiles(at repositoryPath: String) -> Set<String> {
+        let output: String
         do {
-            fileOutput = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "-z"], at: repositoryPath)
+            output = try GitClient.lsFiles(["--others", "--ignored", "--exclude-standard", "-z"], at: repositoryPath)
         } catch {
             Logger.store.warning("GitFileIndex: ls-files (ignored files) failed at \(repositoryPath, privacy: .public): \(error.localizedDescription)")
-            return (paths, dirPrefixes)
+            return []
         }
 
-        for rel in fileOutput.components(separatedBy: "\0") where !rel.isEmpty {
-            let absPath = rootPrefix + rel
-            let alreadyCovered = dirPrefixes.contains { absPath.hasPrefix($0) }
-            if !alreadyCovered {
-                paths.insert(absPath)
-            }
+        let rootPrefix = repositoryPath + "/"
+        var paths = Set<String>()
+        for rel in output.components(separatedBy: "\0") where !rel.isEmpty {
+            paths.insert(rootPrefix + rel)
         }
-
-        return (paths, dirPrefixes)
+        return paths
     }
 }

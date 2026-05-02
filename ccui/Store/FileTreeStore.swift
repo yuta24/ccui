@@ -41,9 +41,7 @@ final class FileTreeStore {
 
         // Phase 2: Build git index in background, then re-apply ignore status
         loadTask = Task {
-            let index = await Task.detached(priority: .utility) {
-                GitFileIndex.build(repositoryPath: path)
-            }.value
+            let index = await GitFileIndexCache.shared.index(for: path)
             guard !Task.isCancelled else { return }
             fileIndex = index
 

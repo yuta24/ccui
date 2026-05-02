@@ -43,9 +43,7 @@ final class QuickOpenStore {
         indexTask?.cancel()
         indexTask = Task {
             isIndexing = true
-            let flat = await Task.detached(priority: .userInitiated) {
-                return GitFileIndex.build(repositoryPath: rootPath).searchableFiles
-            }.value
+            let flat = await GitFileIndexCache.shared.index(for: rootPath).searchableFiles
             guard !Task.isCancelled else {
                 isIndexing = false
                 return
