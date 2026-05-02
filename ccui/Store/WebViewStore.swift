@@ -29,10 +29,6 @@ final class WebViewStore {
         installObservations()
     }
 
-    deinit {
-        observations.forEach { $0.invalidate() }
-    }
-
     private func installObservations() {
         observations.append(webView.observe(\.isLoading, options: [.new]) { _, change in
             let value = change.newValue ?? false

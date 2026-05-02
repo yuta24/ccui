@@ -6,35 +6,42 @@ final class SessionAnalyticsStore {
     private(set) var points: [SessionAnalyticsPoint] = []
     private(set) var isLoading = false
 
-    private let persistence: any ClaudeEventPersistence
+    private let coordinator: ClaudeEventPersistenceCoordinator
     private var currentTask: Task<Void, Never>?
 
     init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
-        self.persistence = persistence
+        self.coordinator = ClaudeEventPersistenceCoordinator(persistence: persistence)
+    }
+
+    /// 共有 coordinator を受け取るイニシャライザ。`ClaudeEventStore` と同じ
+    /// インスタンスを共有することで、書き込みと読み取りを直列化する。
+    init(coordinator: ClaudeEventPersistenceCoordinator) {
+        self.coordinator = coordinator
     }
 
     func load(repositoryPath: String) {
         currentTask?.cancel()
         isLoading = true
-        let persistence = persistence
-        currentTask = Task.detached { [weak self] in
-            let points = Self.compute(persistence: persistence, repositoryPath: repositoryPath)
+        let coordinator = self.coordinator
+        currentTask = Task { [weak self] in
+            let snapshot = try? await coordinator.loadSessionsForRepository(repositoryPath)
             guard !Task.isCancelled else { return }
-            await MainActor.run {
-                self?.points = points
-                self?.isLoading = false
-            }
+            let points = await Task.detached(priority: .utility) {
+                Self.compute(
+                    allSessions: snapshot?.allSessions ?? [:],
+                    worktreePaths: snapshot?.worktreePaths ?? []
+                )
+            }.value
+            guard !Task.isCancelled else { return }
+            self?.points = points
+            self?.isLoading = false
         }
     }
 
     nonisolated static func compute(
-        persistence: any ClaudeEventPersistence,
-        repositoryPath: String
+        allSessions: [String: [String: AgentSession]],
+        worktreePaths: Set<String>
     ) -> [SessionAnalyticsPoint] {
-        guard let allSessions = try? persistence.loadAll(),
-              let worktreePaths = try? persistence.worktreePathsForRepository(repositoryPath)
-        else { return [] }
-
         return allSessions
             .filter { worktreePaths.contains($0.key) }
             .flatMap { $0.value.values }

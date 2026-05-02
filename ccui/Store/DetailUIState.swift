@@ -35,8 +35,16 @@ final class DetailUIState {
     var rightPanelTab: RightPanelTab = .timeline
     var showingConfiguration = false
     var sessionEvaluationStore = SessionEvaluationStore()
-    var sessionAnalyticsStore = SessionAnalyticsStore()
+    var sessionAnalyticsStore: SessionAnalyticsStore
     var webViewStore = WebViewStore()
+
+    init(persistenceCoordinator: ClaudeEventPersistenceCoordinator? = nil) {
+        if let persistenceCoordinator {
+            self.sessionAnalyticsStore = SessionAnalyticsStore(coordinator: persistenceCoordinator)
+        } else {
+            self.sessionAnalyticsStore = SessionAnalyticsStore()
+        }
+    }
 
     func resetForWorktreeChange() {
         contentMode = .agent

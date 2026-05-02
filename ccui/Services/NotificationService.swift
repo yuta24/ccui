@@ -5,7 +5,7 @@ import UserNotifications
 
 @MainActor
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
-    private var didRequestAuthorization = false
+    private var authorizationTask: Task<Bool, Never>?
 
     override init() {
         super.init()
@@ -95,14 +95,25 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         case .denied:
             return false
         case .notDetermined:
-            guard !didRequestAuthorization else { return false }
-            didRequestAuthorization = true
-            do {
-                return try await center.requestAuthorization(options: [.alert, .sound])
-            } catch {
-                Logger.services.error("Notification authorization failed: \(error)")
-                return false
+            // Concurrent callers share the same authorization request so that
+            // notifications arriving during the system prompt aren't dropped.
+            if let task = authorizationTask {
+                return await task.value
             }
+            let task = Task<Bool, Never> {
+                do {
+                    return try await center.requestAuthorization(options: [.alert, .sound])
+                } catch {
+                    Logger.services.error("Notification authorization failed: \(error)")
+                    return false
+                }
+            }
+            authorizationTask = task
+            let result = await task.value
+            // Clear after completion so a thrown request can be retried instead
+            // of locking us into "false" until the process restarts.
+            authorizationTask = nil
+            return result
         @unknown default:
             return false
         }

@@ -14,7 +14,7 @@ final class ClaudeEventStore {
     private(set) var loadError: String?
 
     private let listenerService = UDSListenerService()
-    private let persistenceActor: PersistenceActor
+    private let persistenceCoordinator: ClaudeEventPersistenceCoordinator
     private let notificationService: NotificationService?
     private var knownWorktreePaths: Set<String> = []
     /// worktree パス → リポジトリパスのマッピング
@@ -33,7 +33,18 @@ final class ClaudeEventStore {
         persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence(),
         notificationService: NotificationService? = nil
     ) {
-        self.persistenceActor = PersistenceActor(persistence: persistence)
+        self.persistenceCoordinator = ClaudeEventPersistenceCoordinator(persistence: persistence)
+        self.notificationService = notificationService
+    }
+
+    /// 共有 `ClaudeEventPersistenceCoordinator` を受け取るイニシャライザ。
+    /// `SessionAnalyticsStore` 等の他ストアと同じディスク領域を読み書きする場合に
+    /// このイニシャライザを使い、index.json の更新を直列化する。
+    init(
+        coordinator: ClaudeEventPersistenceCoordinator,
+        notificationService: NotificationService? = nil
+    ) {
+        self.persistenceCoordinator = coordinator
         self.notificationService = notificationService
     }
 
@@ -42,7 +53,7 @@ final class ClaudeEventStore {
     func start() {
         Task {
             await loadFromDisk()
-            await persistenceActor.pruneOldSessions(maxPerWorktree: maxDiskSessionsPerWorktree)
+            await persistenceCoordinator.pruneOldSessions(maxPerWorktree: maxDiskSessionsPerWorktree)
             listenerService.start { [weak self] payload in
                 self?.handle(payload)
             }
@@ -149,9 +160,9 @@ final class ClaudeEventStore {
         worktreeSessions[sessionId] = session
         sessions[worktreePath] = worktreeSessions
 
-        let actor = persistenceActor
+        let coordinator = persistenceCoordinator
         let repoPath = worktreeToRepository[worktreePath]
-        Task { await actor.saveSession(session, worktreePath: worktreePath, repositoryPath: repoPath) }
+        Task { await coordinator.saveSession(session, worktreePath: worktreePath, repositoryPath: repoPath) }
     }
 
     func addKnownPaths(_ paths: Set<String>, repositoryPath: String) {
@@ -171,9 +182,9 @@ final class ClaudeEventStore {
 
     /// リポジトリ削除時にディスクからもセッションデータを削除する
     func removeRepositorySessions(worktreePaths: Set<String>) {
-        let actor = persistenceActor
+        let coordinator = persistenceCoordinator
         for path in worktreePaths {
-            Task { await actor.removeWorktree(path) }
+            Task { await coordinator.removeWorktree(path) }
         }
     }
 
@@ -199,9 +210,9 @@ final class ClaudeEventStore {
 
         // addKnownPaths 前にイベントが到着した場合は保存を遅延させない（セッションデータは保存する）が、
         // repositoryPath は判明次第 updateIndex で補完される
-        let actor = persistenceActor
+        let coordinator = persistenceCoordinator
         let repoPath = worktreeToRepository[resolvedPath]
-        Task { await actor.saveSession(session, worktreePath: resolvedPath, repositoryPath: repoPath) }
+        Task { await coordinator.saveSession(session, worktreePath: resolvedPath, repositoryPath: repoPath) }
     }
 
     /// 終了済みセッションを古い順にメモリから退避（ディスク上のファイルは保持）
@@ -237,7 +248,7 @@ final class ClaudeEventStore {
 
     private func loadFromDisk() async {
         do {
-            var loaded = try await persistenceActor.loadAll()
+            var loaded = try await persistenceCoordinator.loadAll()
             // メモリ上限を適用（ディスク上は maxDiskSessionsPerWorktree 件まで保持）
             for (path, worktreeSessions) in loaded where worktreeSessions.count > maxSessionsPerWorktree {
                 var mutable = worktreeSessions
@@ -266,55 +277,3 @@ final class ClaudeEventStore {
     }
 }
 
-// MARK: - PersistenceActor
-
-/// 永続化操作を直列化し、index.json への競合書き込みを防ぐ
-private actor PersistenceActor {
-    private let persistence: any ClaudeEventPersistence
-
-    init(persistence: any ClaudeEventPersistence) {
-        self.persistence = persistence
-    }
-
-    func loadAll() async throws -> [String: [String: AgentSession]] {
-        let persistence = self.persistence
-        return try await Task.detached(priority: .utility) {
-            try persistence.loadAll()
-        }.value
-    }
-
-    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) {
-        do {
-            try persistence.saveSession(session, worktreePath: worktreePath, repositoryPath: repositoryPath)
-        } catch {
-            Logger.store.error("Failed to persist session \(session.id): \(error)")
-        }
-    }
-
-    func removeSession(_ sessionId: String, worktreePath: String) {
-        do {
-            try persistence.removeSession(sessionId, worktreePath: worktreePath)
-        } catch {
-            Logger.store.error("Failed to remove session \(sessionId): \(error)")
-        }
-    }
-
-    func removeWorktree(_ worktreePath: String) {
-        do {
-            try persistence.removeWorktree(worktreePath)
-        } catch {
-            Logger.store.error("Failed to remove worktree \(worktreePath, privacy: .public): \(error)")
-        }
-    }
-
-    func pruneOldSessions(maxPerWorktree: Int) async {
-        let persistence = self.persistence
-        do {
-            try await Task.detached(priority: .utility) {
-                try persistence.pruneOldSessions(maxPerWorktree: maxPerWorktree)
-            }.value
-        } catch {
-            Logger.store.error("Failed to prune old sessions: \(error)")
-        }
-    }
-}

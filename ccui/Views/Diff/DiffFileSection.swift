@@ -116,13 +116,13 @@ struct DiffFileSection: View {
     }
 
     private enum DisplayItem: Identifiable {
-        case header(id: Int, text: String)
+        case header(hunkId: Int, text: String)
         case line(DiffLine)
 
-        var id: Int {
+        var id: String {
             switch self {
-            case .header(let id, _): id
-            case .line(let line): line.id
+            case .header(let hunkId, _): "h-\(hunkId)"
+            case .line(let line): "l-\(line.id)"
             }
         }
     }
@@ -130,7 +130,7 @@ struct DiffFileSection: View {
     private var displayItems: [DisplayItem] {
         var items: [DisplayItem] = []
         for hunk in entry.hunks {
-            items.append(.header(id: -hunk.id - 1, text: hunk.header))
+            items.append(.header(hunkId: hunk.id, text: hunk.header))
             for line in hunk.lines {
                 items.append(.line(line))
             }
