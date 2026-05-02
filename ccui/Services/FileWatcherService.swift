@@ -53,7 +53,16 @@ final class FileWatcherService {
     }
 
     deinit {
-        context?.invalidate()
+        // @MainActor クラスでも Swift 6 の deinit は非 isolated。
+        // FSEventStream API はメインキューで scheduling されているため、
+        // 別スレッドから Stop/Invalidate/Release を呼ぶと crash しうる。
+        // 通常は stop() で context が nil 化されているが、保険として
+        // 残っていた場合は MainActor に hop してから invalidate を実行する。
+        if let ctx = context {
+            Task { @MainActor in
+                ctx.invalidate()
+            }
+        }
     }
 }
 
