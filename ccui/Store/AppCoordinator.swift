@@ -138,16 +138,19 @@ final class AppCoordinator {
                     selectedWorktree = nil
                     fileTreeStore = nil
                 }
+                forceDeleteTarget = nil
             } catch let error as GitError {
                 if case .worktreeDirty = error {
                     forceDeleteTarget = (wt, wtStore)
                     showForceDeleteAlert = true
                 } else {
+                    forceDeleteTarget = nil
                     Logger.store.error("Failed to remove worktree: \(error)")
                     errorMessage = error.localizedDescription
                     showErrorAlert = true
                 }
             } catch {
+                forceDeleteTarget = nil
                 Logger.store.error("Failed to remove worktree: \(error)")
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
@@ -173,6 +176,7 @@ final class AppCoordinator {
                 }
                 forceDeleteTarget = nil
             } catch {
+                forceDeleteTarget = nil
                 Logger.store.error("Failed to force remove worktree: \(error)")
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
