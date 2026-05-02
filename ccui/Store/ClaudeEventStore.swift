@@ -51,12 +51,14 @@ final class ClaudeEventStore {
     // MARK: - Lifecycle
 
     func start() {
+        // ディスク読み込み中に届いたフックイベントを取りこぼさないため、UDS は先に listen を開始する。
+        // handle(_:) は @MainActor なので、loadFromDisk の sessions 上書きと到着イベントの追記は直列化される。
+        listenerService.start { [weak self] payload in
+            self?.handle(payload)
+        }
         Task {
             await loadFromDisk()
             await persistenceCoordinator.pruneOldSessions(maxPerWorktree: maxDiskSessionsPerWorktree)
-            listenerService.start { [weak self] payload in
-                self?.handle(payload)
-            }
         }
     }
 
@@ -262,6 +264,22 @@ final class ClaudeEventStore {
                 }
                 loaded[path] = mutable
             }
+            // start() でリスナーを先に開始しているため、loadFromDisk の完了前に
+            // フックイベントが届いて sessions に書き込まれている可能性がある。
+            // 単純な代入で上書きするとそれらが消えるので、in-memory 側を優先してマージする。
+            for (path, inMemorySessions) in sessions {
+                var target = loaded[path] ?? [:]
+                for (sid, memSession) in inMemorySessions {
+                    if let diskSession = target[sid],
+                       (diskSession.lastEventAt ?? .distantPast) > (memSession.lastEventAt ?? .distantPast) {
+                        // ディスク側の方が新しい（saveSession が先行した）場合のみディスクを優先
+                        target[sid] = diskSession
+                    } else {
+                        target[sid] = memSession
+                    }
+                }
+                loaded[path] = target
+            }
             sessions = loaded
             // 起動時点で既存セッションは全て既読扱い。ステータスバーは「このアプリ
             // セッション中に新規発生したもの」だけを積み上げる。
@@ -271,7 +289,7 @@ final class ClaudeEventStore {
             }
         } catch {
             Logger.store.error("Failed to load claude events from disk: \(error)")
-            sessions = [:]
+            // sessions は in-memory に届いたイベントを保持するため空代入しない
             loadError = "Failed to load session history: \(error.localizedDescription)"
         }
     }
