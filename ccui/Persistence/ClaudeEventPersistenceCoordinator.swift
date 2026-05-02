@@ -31,25 +31,36 @@ actor ClaudeEventPersistenceCoordinator {
         }.value
     }
 
-    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) {
+    /// I/O は actor のスレッドで実行するとキューが詰まるため `Task.detached` に逃がす。
+    /// `JSONFileClaudeEventPersistence` 内の `indexLock` で並行書き込みは直列化される。
+    func saveSession(_ session: AgentSession, worktreePath: String, repositoryPath: String?) async {
+        let persistence = self.persistence
         do {
-            try persistence.saveSession(session, worktreePath: worktreePath, repositoryPath: repositoryPath)
+            try await Task.detached(priority: .utility) {
+                try persistence.saveSession(session, worktreePath: worktreePath, repositoryPath: repositoryPath)
+            }.value
         } catch {
             Logger.store.error("Failed to persist session \(session.id): \(error)")
         }
     }
 
-    func removeSession(_ sessionId: String, worktreePath: String) {
+    func removeSession(_ sessionId: String, worktreePath: String) async {
+        let persistence = self.persistence
         do {
-            try persistence.removeSession(sessionId, worktreePath: worktreePath)
+            try await Task.detached(priority: .utility) {
+                try persistence.removeSession(sessionId, worktreePath: worktreePath)
+            }.value
         } catch {
             Logger.store.error("Failed to remove session \(sessionId): \(error)")
         }
     }
 
-    func removeWorktree(_ worktreePath: String) {
+    func removeWorktree(_ worktreePath: String) async {
+        let persistence = self.persistence
         do {
-            try persistence.removeWorktree(worktreePath)
+            try await Task.detached(priority: .utility) {
+                try persistence.removeWorktree(worktreePath)
+            }.value
         } catch {
             Logger.store.error("Failed to remove worktree \(worktreePath, privacy: .public): \(error)")
         }

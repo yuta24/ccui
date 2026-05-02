@@ -19,8 +19,18 @@ struct WorktreeIndexEntry: Codable, Sendable {
     let repositoryPath: String?
 }
 
+enum ClaudeEventPersistenceError: Error {
+    /// index.json は存在するが decode 不能。空でないため破損とみなす。
+    case corruptIndex
+}
+
 struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
     private let baseDirectory: URL
+
+    /// index.json の read-modify-write を直列化する。
+    /// 並行 saveSession 同士、および saveSession と removeWorktree の lost update を防ぐ。
+    /// 同 baseDirectory を指す全インスタンスで共有する static lock。
+    private static let indexLock = NSLock()
 
     init(baseDirectory: URL = JSONFileClaudeEventPersistence.defaultBaseDirectory) {
         self.baseDirectory = baseDirectory
@@ -76,7 +86,9 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
         let fileURL = worktreeDir.appendingPathComponent("\(session.id).json")
         try data.write(to: fileURL, options: .atomic)
 
-        // index を更新
+        // index は read-modify-write なので static lock で直列化する
+        Self.indexLock.lock()
+        defer { Self.indexLock.unlock() }
         try updateIndex(worktreePath: worktreePath, dirName: dirName, repositoryPath: repositoryPath)
     }
 
@@ -100,10 +112,14 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
             try fm.removeItem(at: worktreeDir)
         }
 
-        // index から削除
+        // index は read-modify-write なので static lock で直列化する
+        Self.indexLock.lock()
+        defer { Self.indexLock.unlock() }
         let indexURL = baseDirectory.appendingPathComponent("index.json")
         if fm.fileExists(atPath: indexURL.path) {
-            var index = (try? loadIndex()) ?? [:]
+            // 破損 index に対して空 dict を起点に書き戻すと残りエントリを全消失するため
+            // try? で握りつぶさず throw を伝播させる
+            var index = try loadIndex()
             index.removeValue(forKey: worktreePath)
             let newData = try JSONEncoder().encode(index)
             try newData.write(to: indexURL, options: .atomic)
@@ -165,6 +181,9 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
 
         let data = try Data(contentsOf: indexURL)
 
+        // 0 byte ファイル: 初回起動と同等扱い（直前の atomic 書き込み失敗等）
+        if data.isEmpty { return [:] }
+
         // 新フォーマットを試行
         if let index = try? JSONDecoder().decode([String: WorktreeIndexEntry].self, from: data) {
             return index
@@ -179,15 +198,19 @@ struct JSONFileClaudeEventPersistence: ClaudeEventPersistence {
             return migrated
         }
 
-        return [:]
+        // ファイルは存在し非空だが decode 不能 = 破損。
+        // 空 dict を返すと updateIndex が既存エントリを全消失させるため throw する。
+        throw ClaudeEventPersistenceError.corruptIndex
     }
 
+    /// 呼び出し前に `Self.indexLock` を取得していること。
     private func updateIndex(worktreePath: String, dirName: String, repositoryPath: String?) throws {
         let fm = FileManager.default
         try fm.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
 
         let indexURL = baseDirectory.appendingPathComponent("index.json")
-        var index = (try? loadIndex()) ?? [:]
+        // 破損 index に空 dict を起点として書き戻さないよう、try? で握りつぶさず throw を伝播
+        var index = try loadIndex()
 
         let existing = index[worktreePath]
         let effectiveRepoPath = repositoryPath ?? existing?.repositoryPath
