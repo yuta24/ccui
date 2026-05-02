@@ -16,6 +16,9 @@ nonisolated struct SessionEvaluation: Sendable {
     let interventionsByTool: [String: Int]
     let outcome: SessionOutcome?
     let failureReasons: Set<FailureReason>
+    /// 元 session が maxEvents 上限で先頭イベントを失った場合 true。
+    /// duration / interventionCount は実際より過小になる。
+    let isTruncated: Bool
 
     static func compute(from session: AgentSession) -> SessionEvaluation {
         let events = session.events
@@ -67,7 +70,8 @@ nonisolated struct SessionEvaluation: Sendable {
             interventionCount: interventions.count,
             interventionsByTool: interventionsByTool,
             outcome: session.outcome,
-            failureReasons: session.failureReasons
+            failureReasons: session.failureReasons,
+            isTruncated: session.isTruncated
         )
     }
 }
@@ -75,16 +79,19 @@ nonisolated struct SessionEvaluation: Sendable {
 extension SessionEvaluation {
     var formattedDuration: String {
         guard let duration else { return "< 1s" }
+        let body: String
         if duration < 60 {
-            return "\(Int(duration))s"
+            body = "\(Int(duration))s"
         } else if duration < 3600 {
             let minutes = Int(duration) / 60
             let seconds = Int(duration) % 60
-            return "\(minutes)m \(seconds)s"
+            body = "\(minutes)m \(seconds)s"
         } else {
             let hours = Int(duration) / 3600
             let minutes = (Int(duration) % 3600) / 60
-            return "\(hours)h \(minutes)m"
+            body = "\(hours)h \(minutes)m"
         }
+        // truncated session は最古イベントを失っているため duration は下限値。"≥" を付けて明示する。
+        return isTruncated ? "≥ \(body)" : body
     }
 }

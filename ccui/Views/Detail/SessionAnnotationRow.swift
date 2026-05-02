@@ -51,6 +51,14 @@ struct SessionAnnotationRow: View {
                         }
                         .foregroundStyle(Color.interventionColor)
                     }
+                    if session?.isTruncated == true {
+                        Text("\u{00B7}")
+                            .foregroundStyle(Color.textTertiary)
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.orange)
+                            .help("Older events were dropped. Metrics are minimums.")
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
