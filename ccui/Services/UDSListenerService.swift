@@ -5,14 +5,19 @@ import OSLog
 final class UDSListenerService {
     nonisolated static let socketPath = "/tmp/ccui.sock"
 
+    private let socketPath: String
     private var state: ListenerState?
     private var onEvent: (@MainActor (ClaudeHookPayload) -> Void)?
+
+    init(socketPath: String = UDSListenerService.socketPath) {
+        self.socketPath = socketPath
+    }
 
     func start(onEvent: @escaping @MainActor (ClaudeHookPayload) -> Void) {
         stop()
         self.onEvent = onEvent
 
-        Darwin.unlink(Self.socketPath)
+        Darwin.unlink(socketPath)
 
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
@@ -25,7 +30,7 @@ final class UDSListenerService {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
-        let pathBytes = Self.socketPath.utf8CString
+        let pathBytes = socketPath.utf8CString
         withUnsafeMutableBytes(of: &addr.sun_path) { ptr in
             pathBytes.withUnsafeBytes { src in
                 ptr.copyMemory(from: UnsafeRawBufferPointer(start: src.baseAddress, count: min(src.count, ptr.count)))
@@ -44,7 +49,7 @@ final class UDSListenerService {
         }
 
         // Restrict socket permissions to owner only
-        Darwin.chmod(Self.socketPath, 0o600)
+        Darwin.chmod(socketPath, 0o600)
 
         guard Darwin.listen(fd, 5) == 0 else {
             Logger.services.error("listen() failed: \(String(cString: strerror(errno)))")
@@ -55,7 +60,7 @@ final class UDSListenerService {
         // Non-blocking mode to prevent accept() from blocking the main thread
         _ = fcntl(fd, F_SETFL, O_NONBLOCK)
 
-        let newState = ListenerState(serverFd: fd)
+        let newState = ListenerState(serverFd: fd, socketPath: socketPath)
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
         source.setEventHandler { [weak self] in
@@ -158,9 +163,11 @@ final class UDSListenerService {
 private final class ListenerState: @unchecked Sendable {
     var serverFd: Int32
     var acceptSource: DispatchSourceRead?
+    let socketPath: String
 
-    init(serverFd: Int32) {
+    init(serverFd: Int32, socketPath: String) {
         self.serverFd = serverFd
+        self.socketPath = socketPath
     }
 
     func shutdown() {
@@ -170,6 +177,6 @@ private final class ListenerState: @unchecked Sendable {
             Darwin.close(serverFd)
             serverFd = -1
         }
-        Darwin.unlink(UDSListenerService.socketPath)
+        Darwin.unlink(socketPath)
     }
 }
