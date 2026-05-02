@@ -141,6 +141,112 @@ struct UDSListenerServiceTests {
         try await Task.sleep(for: .milliseconds(50))
         #expect(!FileManager.default.fileExists(atPath: path))
     }
+
+    // MARK: - Health check / recovery
+
+    /// start 直後は socket file が自分のものなので isHealthy() == true
+    @Test func freshlyStartedListenerIsHealthy() {
+        let path = makeUniqueSocketPath()
+        let service = UDSListenerService(socketPath: path)
+        defer { service.stop() }
+        service.start { _ in }
+
+        #expect(service.isHealthy() == true)
+    }
+
+    /// 別プロセス相当 (raw syscall) で同名パスを unlink + bind し直すと
+    /// listener の isHealthy() は false になる
+    @Test func detectsExternalSocketReplacement() throws {
+        let path = makeUniqueSocketPath()
+        let service = UDSListenerService(socketPath: path)
+        defer { service.stop() }
+        service.start { _ in }
+        #expect(service.isHealthy() == true)
+
+        // 外部からの "横取り" を模す: 同名パスを unlink → 新規 socket を bind
+        let intruderFd = try bindStaleSocket(at: path)
+        defer { Darwin.close(intruderFd) }
+
+        #expect(service.isHealthy() == false)
+    }
+
+    /// stale 状態を recoverIfStale() が検出して再 listen し、その後の送信が届く
+    @Test func recoverIfStaleRebindsAndAcceptsNewPayloads() async throws {
+        let path = makeUniqueSocketPath()
+        let service = UDSListenerService(socketPath: path)
+        let holder = PayloadHolder()
+        defer { service.stop() }
+        service.start { payload in
+            holder.received = payload
+        }
+
+        // 横取り socket で listener の inode を陳腐化させる
+        let intruderFd = try bindStaleSocket(at: path)
+        Darwin.close(intruderFd)
+        Darwin.unlink(path)
+        #expect(service.isHealthy() == false)
+
+        service.recoverIfStale()
+
+        // 復旧後は再び自分の socket になっているはず
+        #expect(service.isHealthy() == true)
+
+        // 復旧後の listener に送信して届くことを確認
+        let json = """
+        {"hook_event_name":"Stop","cwd":"/tmp/repo","session_id":"after-recover"}
+        """
+        try sendPayload(to: path, Data(json.utf8))
+
+        let payload = await waitForOnEvent(holder, timeoutSeconds: 2.0)
+        #expect(payload?.sessionId == "after-recover")
+    }
+
+    /// stop() は他人の socket file を巻き添え削除しない
+    /// (元コードは無条件 unlink で、横取り後に stop すると侵入者の socket を消していた)
+    @Test func stopDoesNotUnlinkSocketOwnedByAnotherProcess() throws {
+        let path = makeUniqueSocketPath()
+        let service = UDSListenerService(socketPath: path)
+        service.start { _ in }
+
+        // 横取り
+        let intruderFd = try bindStaleSocket(at: path)
+        defer {
+            Darwin.close(intruderFd)
+            Darwin.unlink(path)
+        }
+
+        service.stop()
+
+        // 横取り側の socket file は残っているはず
+        #expect(FileManager.default.fileExists(atPath: path))
+    }
+
+    /// 同名パスを unlink + bind して即捨てる (横取りされた壊れた socket を作る)
+    private func bindStaleSocket(at socketPath: String) throws -> Int32 {
+        Darwin.unlink(socketPath)
+        let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { throw POSIXError(.EINVAL) }
+
+        var addr = sockaddr_un()
+        addr.sun_family = sa_family_t(AF_UNIX)
+        let pathBytes = socketPath.utf8CString
+        withUnsafeMutableBytes(of: &addr.sun_path) { ptr in
+            pathBytes.withUnsafeBytes { src in
+                ptr.copyMemory(from: UnsafeRawBufferPointer(start: src.baseAddress, count: min(src.count, ptr.count)))
+            }
+        }
+
+        let bindResult = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
+                Darwin.bind(fd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard bindResult == 0 else {
+            Darwin.close(fd)
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        return fd
+    }
 }
 
 // MARK: - Helpers

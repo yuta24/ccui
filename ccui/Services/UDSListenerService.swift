@@ -4,10 +4,13 @@ import OSLog
 @MainActor
 final class UDSListenerService {
     nonisolated static let socketPath = "/tmp/ccui.sock"
+    /// 健全性チェックの間隔。socket file が他プロセスに置き換えられてから復旧までの最大遅延に相当する。
+    static let healthCheckInterval: Duration = .seconds(15)
 
     private let socketPath: String
     private var state: ListenerState?
     private var onEvent: (@MainActor (ClaudeHookPayload) -> Void)?
+    private var healthCheckTask: Task<Void, Never>?
 
     init(socketPath: String = UDSListenerService.socketPath) {
         self.socketPath = socketPath
@@ -16,13 +19,21 @@ final class UDSListenerService {
     func start(onEvent: @escaping @MainActor (ClaudeHookPayload) -> Void) {
         stop()
         self.onEvent = onEvent
+        _ = startListener()
+        startHealthCheck()
+    }
 
+    /// listener を bind/listen し、成功すれば true。
+    /// 自身が作った socket file の (st_dev, st_ino) を記録しておき、後段の健全性チェックで
+    /// 「filesystem 上の同名ファイルが置き換わっていないか」を識別できるようにする。
+    @discardableResult
+    private func startListener() -> Bool {
         Darwin.unlink(socketPath)
 
         let fd = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
             Logger.services.error("socket() failed: \(String(cString: strerror(errno)))")
-            return
+            return false
         }
 
         var reuse: Int32 = 1
@@ -45,7 +56,7 @@ final class UDSListenerService {
         guard bindResult == 0 else {
             Logger.services.error("bind() failed: \(String(cString: strerror(errno)))")
             Darwin.close(fd)
-            return
+            return false
         }
 
         // Restrict socket permissions to owner only
@@ -54,13 +65,19 @@ final class UDSListenerService {
         guard Darwin.listen(fd, 5) == 0 else {
             Logger.services.error("listen() failed: \(String(cString: strerror(errno)))")
             Darwin.close(fd)
-            return
+            return false
         }
 
         // Non-blocking mode to prevent accept() from blocking the main thread
         _ = fcntl(fd, F_SETFL, O_NONBLOCK)
 
         let newState = ListenerState(serverFd: fd, socketPath: socketPath)
+        // bind 直後の inode/dev を記録。後で stat() した結果と比較して socket 同一性を判定する。
+        var st = stat()
+        if Darwin.lstat(socketPath, &st) == 0 {
+            newState.boundInode = st.st_ino
+            newState.boundDev = st.st_dev
+        }
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: .main)
         source.setEventHandler { [weak self] in
@@ -73,16 +90,55 @@ final class UDSListenerService {
         newState.acceptSource = source
 
         state = newState
+        return true
+    }
+
+    private func startHealthCheck() {
+        healthCheckTask?.cancel()
+        let interval = Self.healthCheckInterval
+        healthCheckTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: interval)
+                if Task.isCancelled { return }
+                await self?.recoverIfStale()
+            }
+        }
     }
 
     func stop() {
+        healthCheckTask?.cancel()
+        healthCheckTask = nil
         state?.shutdown()
         state = nil
         onEvent = nil
     }
 
     deinit {
+        healthCheckTask?.cancel()
         state?.shutdown()
+    }
+
+    // MARK: - Health Check / Recovery
+
+    /// `start()` 時に bind した socket file が今も同一 inode で存在しているか。
+    /// 別プロセスが同名パスを unlink + bind した場合 false。
+    /// テストや手動診断のため internal 公開。
+    func isHealthy() -> Bool {
+        guard let state else { return false }
+        var st = stat()
+        guard Darwin.lstat(socketPath, &st) == 0 else { return false }
+        return st.st_ino == state.boundInode && st.st_dev == state.boundDev
+    }
+
+    /// 健全性が失われていれば再 listen する。`onEvent` ハンドラはそのまま流用する。
+    /// テストや診断から手動で呼べる。
+    func recoverIfStale() {
+        guard onEvent != nil else { return }  // start されていない場合は何もしない
+        if isHealthy() { return }
+        Logger.services.warning("UDS: socket at \(self.socketPath, privacy: .public) was replaced or removed, restarting listener")
+        state?.shutdown()
+        state = nil
+        _ = startListener()
     }
 
     // MARK: - Connection Handling
@@ -164,6 +220,9 @@ private final class ListenerState: @unchecked Sendable {
     var serverFd: Int32
     var acceptSource: DispatchSourceRead?
     let socketPath: String
+    /// bind 直後に stat() した socket file の inode/dev。健全性チェックで同一性判定に使う。
+    var boundInode: ino_t = 0
+    var boundDev: dev_t = 0
 
     init(serverFd: Int32, socketPath: String) {
         self.serverFd = serverFd
@@ -177,6 +236,12 @@ private final class ListenerState: @unchecked Sendable {
             Darwin.close(serverFd)
             serverFd = -1
         }
-        Darwin.unlink(socketPath)
+        // 自分の inode と異なる socket file (= 他プロセスが置き換えたもの) を巻き添えで unlink しないようにする。
+        var st = stat()
+        if Darwin.lstat(socketPath, &st) == 0,
+           st.st_ino == boundInode,
+           st.st_dev == boundDev {
+            Darwin.unlink(socketPath)
+        }
     }
 }
