@@ -1,7 +1,15 @@
 import Foundation
 
 final class ClaudeHooksInstaller {
+    /// settings.local.json は read-modify-write なので、`WorktreeStore.load` の
+    /// `withTaskGroup` で並行実行されるとユーザー定義 hooks を取り違えて上書きする。
+    /// install 全体を直列化する。
+    private static let installLock = NSLock()
+
     nonisolated static func install(worktreePath: String, socketPath: String = UDSListenerService.socketPath) throws {
+        installLock.lock()
+        defer { installLock.unlock() }
+
         let claudeDir = (worktreePath as NSString).appendingPathComponent(".claude")
         let settingsPath = (claudeDir as NSString).appendingPathComponent("settings.local.json")
 
