@@ -3,6 +3,7 @@ import SwiftUI
 struct SessionAnnotationRow: View {
     let entry: WorktreeSessionEntry
     let worktreePath: String
+    var isRunning: Bool = false
     let onResume: () -> Void
     let onDelete: () -> Void
     var onEvaluate: (() -> Void)?
@@ -21,10 +22,17 @@ struct SessionAnnotationRow: View {
     var body: some View {
         Button(action: onResume) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.title ?? String(entry.sessionId.prefix(8)))
-                    .font(.uiLabel)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if isRunning {
+                        Circle()
+                            .fill(Color.statusClean)
+                            .frame(width: 6, height: 6)
+                    }
+                    Text(entry.title ?? String(entry.sessionId.prefix(8)))
+                        .font(.uiLabel)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+                }
                 HStack(spacing: 4) {
                     if let outcome = session?.outcome {
                         outcomeBadge(outcome)

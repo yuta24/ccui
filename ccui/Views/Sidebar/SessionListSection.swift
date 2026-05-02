@@ -9,6 +9,7 @@ struct SessionListSection: View {
 
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
     @Environment(ClaudeEventStore.self) private var claudeEventStore
+    @Environment(TerminalSessionStore.self) private var terminalSessionStore
 
     private var reversedSessions: [WorktreeSessionEntry] {
         (worktreeSessionStore.entries[worktree.path] ?? []).reversed()
@@ -73,13 +74,18 @@ struct SessionListSection: View {
     // MARK: - Session List
 
     private var sessionList: some View {
-        LazyVStack(spacing: 0) {
+        let runningSessionId = terminalSessionStore.currentSessionId(for: worktree.path)
+        return LazyVStack(spacing: 0) {
             ForEach(reversedSessions, id: \.sessionId) { entry in
                 SessionAnnotationRow(
                     entry: entry,
                     worktreePath: worktree.path,
+                    isRunning: runningSessionId == entry.sessionId,
                     onResume: { onResumeSession(entry.sessionId) },
-                    onDelete: { worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId) },
+                    onDelete: {
+                        terminalSessionStore.removeIfMatches(path: worktree.path, sessionId: entry.sessionId)
+                        worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId)
+                    },
                     onEvaluate: { onEvaluateSession(entry) },
                     onCompare: { otherEntry in onCompareSession(entry, otherEntry) },
                     availableSessions: reversedSessions.filter {

@@ -14,8 +14,12 @@ struct SidebarContainerView: View {
                 guard let worktree = coordinator.selectedWorktree else { return }
                 detailUIState.contentMode = .agent
                 Task {
-                    await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: true)
-                    setupSessionHandlers(for: worktree, sessionId: sessionId)
+                    await terminalSessionStore.ensureSession(
+                        for: worktree,
+                        sessionId: sessionId,
+                        isResume: true,
+                        configureHandlers: makeHandlerConfigurator(worktreePath: worktree.path, sessionId: sessionId)
+                    )
                 }
             },
             onNewSession: {
@@ -23,8 +27,12 @@ struct SidebarContainerView: View {
                 detailUIState.contentMode = .agent
                 let sessionId = worktreeSessionStore.createSession(for: worktree.path)
                 Task {
-                    await terminalSessionStore.ensureSession(for: worktree, sessionId: sessionId, isResume: false)
-                    setupSessionHandlers(for: worktree, sessionId: sessionId)
+                    await terminalSessionStore.ensureSession(
+                        for: worktree,
+                        sessionId: sessionId,
+                        isResume: false,
+                        configureHandlers: makeHandlerConfigurator(worktreePath: worktree.path, sessionId: sessionId)
+                    )
                 }
             },
             onEvaluateSession: { entry in
@@ -47,14 +55,15 @@ struct SidebarContainerView: View {
         .floatingPanel()
     }
 
-    private func setupSessionHandlers(for worktree: Worktree, sessionId: String) {
-        let path = worktree.path
-        if let session = terminalSessionStore.session(for: worktree) {
-            session.onProcessTerminated = { [weak terminalSessionStore] in
-                terminalSessionStore?.remove(for: path)
+    private func makeHandlerConfigurator(worktreePath: String, sessionId: String) -> (any TerminalSession) -> Void {
+        let terminalStore = terminalSessionStore
+        let worktreeStore = worktreeSessionStore
+        return { session in
+            session.onProcessTerminated = { [weak terminalStore] in
+                terminalStore?.removeIfMatches(path: worktreePath, sessionId: sessionId)
             }
-            session.onTitleChanged = { [weak worktreeSessionStore] title in
-                worktreeSessionStore?.updateTitle(for: path, sessionId: sessionId, title: title)
+            session.onTitleChanged = { [weak worktreeStore] title in
+                worktreeStore?.updateTitle(for: worktreePath, sessionId: sessionId, title: title)
             }
         }
     }
