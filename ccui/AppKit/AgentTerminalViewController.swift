@@ -6,6 +6,10 @@ final class AgentTerminalViewController: NSViewController {
     private var worktree: Worktree
     private var embeddedSession: (any TerminalSession)?
     private var isObserving = false
+    /// observeSession の世代番号。worktree 切替時にインクリメントして、
+    /// 旧 worktree に対する withObservationTracking の onChange が発火しても
+    /// 古い世代の Task は guard で抜けるようにする（再帰的な多重観測を防ぐ）。
+    private var observationGeneration = 0
 
     init(worktree: Worktree, terminalSessionStore: TerminalSessionStore) {
         self.worktree = worktree
@@ -36,8 +40,10 @@ final class AgentTerminalViewController: NSViewController {
         self.worktree = worktree
         updateTerminal()
         // 旧 worktree に対して張られた observation は新 worktree のセッション変化を
-        // 検知できないため、新しい worktree で再登録する。
+        // 検知できないため、新しい worktree で再登録する。古い tracking の onChange は
+        // observationGeneration の比較で抜けるようにし、多重観測の指数増加を防ぐ。
         if isObserving {
+            observationGeneration &+= 1
             observeSession()
         }
     }
@@ -45,12 +51,14 @@ final class AgentTerminalViewController: NSViewController {
     // MARK: - Observation
 
     private func observeSession() {
+        let generation = observationGeneration
         withObservationTracking {
             _ = terminalSessionStore.session(for: worktree)
         } onChange: {
             Task { @MainActor [weak self] in
-                self?.updateTerminal()
-                self?.observeSession()
+                guard let self, self.observationGeneration == generation else { return }
+                self.updateTerminal()
+                self.observeSession()
             }
         }
     }
