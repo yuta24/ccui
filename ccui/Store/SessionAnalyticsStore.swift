@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class SessionAnalyticsStore {
     private(set) var points: [SessionAnalyticsPoint] = []
+    private(set) var uniqueToolCount: Int = 0
     private(set) var isLoading = false
 
     private let coordinator: ClaudeEventPersistenceCoordinator
@@ -19,6 +20,11 @@ final class SessionAnalyticsStore {
         self.coordinator = coordinator
     }
 
+    nonisolated struct Result: Sendable {
+        let points: [SessionAnalyticsPoint]
+        let uniqueToolCount: Int
+    }
+
     func load(repositoryPath: String) {
         currentTask?.cancel()
         isLoading = true
@@ -26,14 +32,15 @@ final class SessionAnalyticsStore {
         currentTask = Task { [weak self] in
             let snapshot = try? await coordinator.loadSessionsForRepository(repositoryPath)
             guard !Task.isCancelled else { return }
-            let points = await Task.detached(priority: .utility) {
+            let result = await Task.detached(priority: .utility) {
                 Self.compute(
                     allSessions: snapshot?.allSessions ?? [:],
                     worktreePaths: snapshot?.worktreePaths ?? []
                 )
             }.value
             guard !Task.isCancelled else { return }
-            self?.points = points
+            self?.points = result.points
+            self?.uniqueToolCount = result.uniqueToolCount
             self?.isLoading = false
         }
     }
@@ -41,8 +48,8 @@ final class SessionAnalyticsStore {
     nonisolated static func compute(
         allSessions: [String: [String: AgentSession]],
         worktreePaths: Set<String>
-    ) -> [SessionAnalyticsPoint] {
-        return allSessions
+    ) -> Result {
+        let points = allSessions
             .filter { worktreePaths.contains($0.key) }
             .flatMap { $0.value.values }
             .compactMap { session -> SessionAnalyticsPoint? in
@@ -61,5 +68,11 @@ final class SessionAnalyticsStore {
                 )
             }
             .sorted { $0.sessionStart < $1.sessionStart }
+
+        var tools: Set<String> = []
+        for point in points {
+            tools.formUnion(point.toolCounts.keys)
+        }
+        return Result(points: points, uniqueToolCount: tools.count)
     }
 }

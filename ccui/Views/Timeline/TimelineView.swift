@@ -129,11 +129,23 @@ struct TimelineView: View {
 
     private func recomputeCache() {
         let worktreeSessions = claudeEventStore.sessions[worktreePath] ?? [:]
-        let events = worktreeSessions.values
-            .flatMap(\.events)
-            .sorted(by: { $0.receivedAt < $1.receivedAt })
-        cachedEvents = events
-        cachedInterventionIds = Set(InterventionDetector.interventions(in: events).map(\.id))
-        hasTruncatedSessions = worktreeSessions.values.contains(where: \.isTruncated)
+        let totalCapacity = worktreeSessions.values.reduce(0) { $0 + $1.events.count }
+        var allEvents: [ClaudeEvent] = []
+        allEvents.reserveCapacity(totalCapacity)
+        var interventionIds: Set<UUID> = []
+        var hasTruncated = false
+        for session in worktreeSessions.values {
+            if session.isTruncated { hasTruncated = true }
+            for event in session.events {
+                allEvents.append(event)
+                if InterventionDetector.isIntervention(event) {
+                    interventionIds.insert(event.id)
+                }
+            }
+        }
+        allEvents.sort(by: { $0.receivedAt < $1.receivedAt })
+        cachedEvents = allEvents
+        cachedInterventionIds = interventionIds
+        hasTruncatedSessions = hasTruncated
     }
 }

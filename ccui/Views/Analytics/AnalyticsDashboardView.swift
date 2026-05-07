@@ -104,8 +104,7 @@ struct AnalyticsDashboardView: View {
     }
 
     private var toolChartHeight: CGFloat {
-        let uniqueTools = Set(store.points.flatMap { $0.toolCounts.keys }).count
-        return max(80, CGFloat(uniqueTools) * 26)
+        max(80, CGFloat(store.uniqueToolCount) * 26)
     }
 
     private var summaryStrip: some View {
