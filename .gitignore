@@ -3,3 +3,11 @@
 DerivedData/
 .DS_Store
 xcuserdata/
+
+# Claude Code per-user state — track only project-shared config
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+
+# Coverage / profiling artifacts
+*.profraw
