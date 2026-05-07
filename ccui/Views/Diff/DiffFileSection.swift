@@ -93,96 +93,18 @@ struct DiffFileSection: View {
     }
 
     private var inlineDiffLines: some View {
-        let allLines = entry.hunks.flatMap(\.lines)
-        let maxOldLine = allLines.compactMap(\.oldLineNumber).max() ?? 0
-        let maxNewLine = allLines.compactMap(\.newLineNumber).max() ?? 0
-        let gutterWidth = lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
-        let items = displayItems
+        let gutterWidth = DiffLineStyling.lineNumberWidth(maxLine: entry.maxLineNumber)
 
         return ScrollView(.horizontal, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(items) { item in
-                    switch item {
-                    case .header(_, let text):
-                        hunkHeaderRow(text)
-                    case .line(let line):
-                        diffLineRow(line: line, gutterWidth: gutterWidth)
-                    }
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(entry.hunks) { hunk in
+                    DiffHunkView(hunk: hunk, gutterWidth: gutterWidth, contentWidth: contentWidth)
+                        .equatable()
                 }
             }
             .frame(minWidth: contentWidth, alignment: .leading)
         }
         .background(Color.surfacePrimary)
-    }
-
-    private enum DisplayItem: Identifiable {
-        case header(hunkId: Int, text: String)
-        case line(DiffLine)
-
-        var id: String {
-            switch self {
-            case .header(let hunkId, _): "h-\(hunkId)"
-            case .line(let line): "l-\(line.id)"
-            }
-        }
-    }
-
-    private var displayItems: [DisplayItem] {
-        var items: [DisplayItem] = []
-        for hunk in entry.hunks {
-            items.append(.header(hunkId: hunk.id, text: hunk.header))
-            for line in hunk.lines {
-                items.append(.line(line))
-            }
-        }
-        return items
-    }
-
-    private func hunkHeaderRow(_ header: String) -> some View {
-        HStack(spacing: 0) {
-            Text(header)
-                .font(.monoCaption)
-                .foregroundStyle(Color.textTertiary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .frame(minWidth: contentWidth, alignment: .leading)
-        .background(Color.surfaceElevated)
-    }
-
-    private func diffLineRow(line: DiffLine, gutterWidth: CGFloat) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text(line.oldLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
-                .foregroundStyle(Color.gutterText)
-                .frame(width: gutterWidth, alignment: .trailing)
-
-            Text(line.newLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
-                .foregroundStyle(Color.gutterText)
-                .frame(width: gutterWidth, alignment: .trailing)
-                .padding(.trailing, 4)
-
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(width: 1)
-                .padding(.trailing, 8)
-
-            Text(lineSign(line.kind))
-                .font(.monoCaption)
-                .foregroundStyle(lineColor(line.kind))
-                .frame(width: 12)
-
-            Text(line.content.isEmpty ? " " : line.content)
-                .font(.monoCaption)
-                .foregroundStyle(contentColor(line.kind))
-                .textSelection(.enabled)
-                .fixedSize(horizontal: true, vertical: false)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 1)
-        .frame(minWidth: contentWidth, alignment: .leading)
-        .background(lineBackground(line.kind))
     }
 
     // MARK: - Helpers
@@ -229,42 +151,5 @@ struct DiffFileSection: View {
                     .foregroundStyle(Color.diffDeletion)
             }
         }
-    }
-
-    private func lineSign(_ kind: DiffLineKind) -> String {
-        switch kind {
-        case .addition: "+"
-        case .deletion: "-"
-        case .context: " "
-        }
-    }
-
-    private func lineColor(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAddition
-        case .deletion: .diffDeletion
-        case .context: .textTertiary
-        }
-    }
-
-    private func contentColor(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAddition.opacity(0.9)
-        case .deletion: .diffDeletion.opacity(0.9)
-        case .context: .textSecondary
-        }
-    }
-
-    private func lineBackground(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAdditionBg
-        case .deletion: .diffDeletionBg
-        case .context: .clear
-        }
-    }
-
-    private func lineNumberWidth(maxLine: Int) -> CGFloat {
-        let digits = max(String(maxLine).count, 3)
-        return CGFloat(digits) * 7 + 4
     }
 }

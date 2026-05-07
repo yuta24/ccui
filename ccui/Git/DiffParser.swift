@@ -97,6 +97,7 @@ enum DiffParser {
 
         var additions = 0
         var deletions = 0
+        var maxLineNumber = 0
         for hunk in hunks {
             for line in hunk.lines {
                 switch line.kind {
@@ -105,6 +106,8 @@ enum DiffParser {
                 case .context: break
                 }
             }
+            if hunk.maxOldLine > maxLineNumber { maxLineNumber = hunk.maxOldLine }
+            if hunk.maxNewLine > maxLineNumber { maxLineNumber = hunk.maxNewLine }
         }
 
         let entry = DiffFileEntry(
@@ -115,7 +118,8 @@ enum DiffParser {
             isBinary: isBinary,
             hunks: hunks,
             additions: additions,
-            deletions: deletions
+            deletions: deletions,
+            maxLineNumber: maxLineNumber
         )
         return (entry, i)
     }
@@ -145,6 +149,8 @@ enum DiffParser {
         }
 
         var diffLines: [DiffLine] = []
+        var maxOldLine = 0
+        var maxNewLine = 0
 
         while i < lines.count {
             let line = lines[i]
@@ -152,15 +158,19 @@ enum DiffParser {
 
             if line.hasPrefix("+") {
                 diffLines.append(DiffLine(id: lineIdCounter, kind: .addition, oldLineNumber: nil, newLineNumber: newLine, content: String(line.dropFirst())))
+                if newLine > maxNewLine { maxNewLine = newLine }
                 newLine += 1
                 lineIdCounter += 1
             } else if line.hasPrefix("-") {
                 diffLines.append(DiffLine(id: lineIdCounter, kind: .deletion, oldLineNumber: oldLine, newLineNumber: nil, content: String(line.dropFirst())))
+                if oldLine > maxOldLine { maxOldLine = oldLine }
                 oldLine += 1
                 lineIdCounter += 1
             } else if line.hasPrefix(" ") || line.isEmpty {
                 let content = line.isEmpty ? "" : String(line.dropFirst())
                 diffLines.append(DiffLine(id: lineIdCounter, kind: .context, oldLineNumber: oldLine, newLineNumber: newLine, content: content))
+                if oldLine > maxOldLine { maxOldLine = oldLine }
+                if newLine > maxNewLine { maxNewLine = newLine }
                 oldLine += 1
                 newLine += 1
                 lineIdCounter += 1
@@ -173,7 +183,7 @@ enum DiffParser {
             i += 1
         }
 
-        let hunk = DiffHunk(id: hunkIndex, header: header, lines: diffLines)
+        let hunk = DiffHunk(id: hunkIndex, header: header, lines: diffLines, maxOldLine: maxOldLine, maxNewLine: maxNewLine)
         return (hunk, i)
     }
 }

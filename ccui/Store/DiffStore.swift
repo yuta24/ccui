@@ -42,7 +42,8 @@ final class DiffStore {
                         id: nextID, status: .untracked,
                         oldPath: "", newPath: path,
                         isBinary: false, hunks: [],
-                        additions: 0, deletions: 0
+                        additions: 0, deletions: 0,
+                        maxLineNumber: 0
                     ))
                     nextID += 1
                 }

@@ -18,6 +18,8 @@ nonisolated struct DiffHunk: Identifiable, Hashable, Sendable {
     let id: Int
     let header: String
     let lines: [DiffLine]
+    let maxOldLine: Int
+    let maxNewLine: Int
 }
 
 nonisolated struct DiffFileEntry: Identifiable, Hashable, Sendable {
@@ -33,4 +35,5 @@ nonisolated struct DiffFileEntry: Identifiable, Hashable, Sendable {
     let hunks: [DiffHunk]
     let additions: Int
     let deletions: Int
+    let maxLineNumber: Int
 }
