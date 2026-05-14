@@ -12,6 +12,7 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
         self.label = label
         terminalView = LocalProcessTerminalView(frame: .zero)
+        terminalView.changeScrollback(10_000)
         var env = ProcessInfo.processInfo.environment
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
