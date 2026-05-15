@@ -22,10 +22,10 @@ final class MainSplitViewController: NSSplitViewController {
         splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
 
         let sidebarVC = SidebarAreaViewController(stores: stores)
-        let sidebarItem = NSSplitViewItem(viewController: sidebarVC)
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarVC)
         sidebarItem.minimumThickness = 200
         sidebarItem.maximumThickness = 400
-        sidebarItem.holdingPriority = .init(490)
+        sidebarItem.canCollapse = false
         addSplitViewItem(sidebarItem)
 
         let detailVC = DetailPaneViewController(stores: stores)
