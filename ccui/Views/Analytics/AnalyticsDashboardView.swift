@@ -95,6 +95,11 @@ struct AnalyticsDashboardView: View {
                         .frame(height: toolChartHeight)
                 }
 
+                chartSection(title: "USAGE BY CATEGORY") {
+                    ToolCategoryBreakdownChart(points: store.points)
+                        .frame(height: categoryChartHeight)
+                }
+
                 chartSection(title: "SESSION DURATION") {
                     SessionDurationChart(points: store.points)
                         .frame(height: 120)
@@ -105,6 +110,16 @@ struct AnalyticsDashboardView: View {
 
     private var toolChartHeight: CGFloat {
         max(80, CGFloat(store.uniqueToolCount) * 26)
+    }
+
+    private var categoryChartHeight: CGFloat {
+        var categories: Set<ToolCategory> = []
+        for point in store.points {
+            for toolName in point.toolCounts.keys {
+                categories.insert(ToolCategory.categorize(toolName: toolName))
+            }
+        }
+        return max(60, CGFloat(categories.count) * 26)
     }
 
     private var summaryStrip: some View {
