@@ -70,6 +70,47 @@ struct PermissionRuleTests {
         #expect(rule.specifier == nil) // start < close fails when empty
     }
 
+    // MARK: - isToolNameGlob / isMCPToolNamePattern
+
+    @Test func denyAllToolsGlob() {
+        let rule = PermissionRule(value: "*")
+        #expect(rule.toolName == "*")
+        #expect(rule.isToolNameGlob == true)
+        #expect(rule.isMCPToolNamePattern == false)
+    }
+
+    @Test func mcpToolNameGlobIsRecognized() {
+        let rule = PermissionRule(value: "mcp__github__*")
+        #expect(rule.isToolNameGlob == true)
+        #expect(rule.isMCPToolNamePattern == true)
+    }
+
+    @Test func plainToolNameIsNotGlob() {
+        let rule = PermissionRule(value: "Bash(npm *)")
+        #expect(rule.isToolNameGlob == false)
+    }
+
+    // MARK: - toolNamePatternSamples
+
+    @Test func toolNamePatternSamplesForWildcardMatchesAllCandidates() {
+        let rule = PermissionRule(value: "*")
+        let samples = PermissionRule.toolNamePatternSamples(for: rule)
+        #expect(!samples.isEmpty)
+        #expect(samples.allSatisfy { $0.1 == true })
+    }
+
+    @Test func toolNamePatternSamplesForMCPGlobOnlyMatchesMCPTools() {
+        let rule = PermissionRule(value: "mcp__github__*")
+        let samples = PermissionRule.toolNamePatternSamples(for: rule)
+        #expect(samples.contains { $0.0 == "mcp__github__create_issue" && $0.1 == true })
+        #expect(samples.contains { $0.0 == "Bash" && $0.1 == false })
+    }
+
+    @Test func toolNamePatternSamplesEmptyWithoutGlob() {
+        let rule = PermissionRule(value: "Bash")
+        #expect(PermissionRule.toolNamePatternSamples(for: rule).isEmpty)
+    }
+
     // MARK: - generateSamples
 
     @Test func generateSamplesForBashWithColonWildcard() {

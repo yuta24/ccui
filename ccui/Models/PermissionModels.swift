@@ -46,6 +46,16 @@ struct PermissionRule: Identifiable, Hashable, Sendable {
         guard start < close else { return nil }
         return String(value[start..<close])
     }
+
+    /// グロブパターンを含むツール名か（例: `"*"`, `mcp__github__*`）
+    var isToolNameGlob: Bool {
+        toolName.contains("*")
+    }
+
+    /// MCP ツール名の慣習（`mcp__<server>__<tool>`）に沿ったグロブか
+    var isMCPToolNamePattern: Bool {
+        toolName.hasPrefix("mcp__")
+    }
 }
 
 // MARK: - Default Mode
@@ -109,6 +119,19 @@ extension PermissionRule {
         }
         result += "$"
         return result
+    }
+
+    /// ツール名位置のグロブパターンが、代表的なツール名候補にどうマッチするかのプレビュー
+    static func toolNamePatternSamples(for rule: PermissionRule) -> [(String, Bool)] {
+        guard rule.isToolNameGlob else { return [] }
+
+        let candidates = [
+            "Bash", "Read", "Write", "Edit", "Glob", "Grep",
+            "WebFetch", "Task", "mcp__github__create_issue"
+        ]
+        return candidates.map { candidate in
+            (candidate, wildcardMatches(pattern: rule.toolName, input: candidate))
+        }
     }
 
     static func generateSamples(for rule: PermissionRule) -> [(String, Bool)] {

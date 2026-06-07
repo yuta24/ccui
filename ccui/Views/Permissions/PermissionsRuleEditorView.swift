@@ -171,6 +171,15 @@ struct PermissionsRuleEditorView: View {
                 )
             }
 
+            // Tool-name glob: warn when an allow rule uses a non-MCP pattern, otherwise preview matches
+            if rule.isToolNameGlob {
+                if store.selectedListKind == .allow && !rule.isMCPToolNamePattern {
+                    toolNameGlobWarning
+                } else {
+                    toolNamePatternPreview(rule)
+                }
+            }
+
             // Wildcard preview
             if let spec = rule.specifier, spec.contains("*") {
                 wildcardPreview(rule)
@@ -187,6 +196,48 @@ struct PermissionsRuleEditorView: View {
         let samples = PermissionRule.generateSamples(for: rule)
         return VStack(alignment: .leading, spacing: 3) {
             Text("Pattern preview")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textTertiary)
+
+            ForEach(Array(samples.enumerated()), id: \.offset) { _, pair in
+                HStack(spacing: 6) {
+                    Image(systemName: pair.1 ? "checkmark" : "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(pair.1 ? Color.statusClean : Color.textTertiary)
+                        .frame(width: 12)
+                    Text(pair.0)
+                        .font(.uiCaptionMono)
+                        .foregroundStyle(pair.1 ? Color.textPrimary : Color.textTertiary)
+                }
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    // MARK: - Tool Name Glob
+
+    private var toolNameGlobWarning: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.diffDeletion)
+            Text("Claude Code rejects glob patterns in allow-rule tool names unless they target MCP tools (mcp__server__tool). Use a deny rule or an MCP-style pattern instead.")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .background(Color.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func toolNamePatternPreview(_ rule: PermissionRule) -> some View {
+        let samples = PermissionRule.toolNamePatternSamples(for: rule)
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(rule.toolName == "*" ? "Matches all tools" : "Tool name pattern preview")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textTertiary)
 
