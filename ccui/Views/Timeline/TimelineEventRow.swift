@@ -78,6 +78,8 @@ struct TimelineEventRow: View {
         case .notification: .accent
         case .permissionRequest: .interventionColor
         case .userPromptSubmit: .interventionColor
+        case .sessionStart: .statusClean
+        case .messageDisplay: .accent
         }
     }
 
@@ -91,6 +93,8 @@ struct TimelineEventRow: View {
         case .notification: "bell.fill"
         case .permissionRequest: "lock.shield"
         case .userPromptSubmit: "text.bubble"
+        case .sessionStart: "play.circle"
+        case .messageDisplay: "message"
         }
     }
 
@@ -111,6 +115,8 @@ struct TimelineEventRow: View {
         case .notification: "Notification"
         case .permissionRequest: "Permission Request"
         case .userPromptSubmit: "User Prompt"
+        case .sessionStart: "Session Start"
+        case .messageDisplay: "Message"
         }
     }
 
@@ -118,6 +124,7 @@ struct TimelineEventRow: View {
         switch event.hookEventName {
         case .notification: event.message
         case .permissionRequest: event.toolName
+        case .messageDisplay: event.delta
         default: nil
         }
     }

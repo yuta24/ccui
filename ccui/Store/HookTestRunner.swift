@@ -139,6 +139,11 @@ final class HookTestRunner {
             payload["tool_name"] = "Bash"
         case .userPromptSubmit:
             payload["prompt"] = "test prompt"
+        case .sessionStart:
+            payload["source"] = "startup"
+            payload["model"] = "claude-sonnet-4-6"
+        case .messageDisplay:
+            payload["delta"] = "Sample assistant message"
         case .stop, .subagentStop:
             break
         }

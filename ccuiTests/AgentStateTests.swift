@@ -58,6 +58,18 @@ struct AgentStateTests {
         #expect(state == .thinking)
     }
 
+    @Test func sessionStartReturnsThinking() {
+        let events = [TestHelpers.makeEvent(hookEventName: .sessionStart)]
+        let state = AgentState.from(events: events)
+        #expect(state == .thinking)
+    }
+
+    @Test func messageDisplayReturnsThinking() {
+        let events = [TestHelpers.makeEvent(hookEventName: .messageDisplay)]
+        let state = AgentState.from(events: events)
+        #expect(state == .thinking)
+    }
+
     @Test func lastEventDeterminesState() {
         let events = [
             TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash"),

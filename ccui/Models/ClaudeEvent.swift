@@ -9,6 +9,8 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
         case subagentStop = "SubagentStop"
         case permissionRequest = "PermissionRequest"
         case userPromptSubmit = "UserPromptSubmit"
+        case sessionStart = "SessionStart"
+        case messageDisplay = "MessageDisplay"
     }
 
     let hookEventName: HookEventName
@@ -20,6 +22,8 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
     let sessionId: String?
     let prompt: String?
     let toolInput: String?
+    /// `MessageDisplay` のストリーミングチャンクテキスト
+    let delta: String?
 
     private enum CodingKeys: String, CodingKey {
         case hookEventName = "hook_event_name"
@@ -31,6 +35,7 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
         case sessionId = "session_id"
         case prompt
         case toolInput = "tool_input"
+        case delta
     }
 
     init(from decoder: Decoder) throws {
@@ -43,6 +48,7 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
         toolName = try container.decodeIfPresent(String.self, forKey: .toolName)
         sessionId = try container.decodeIfPresent(String.self, forKey: .sessionId)
         prompt = try container.decodeIfPresent(String.self, forKey: .prompt)
+        delta = try container.decodeIfPresent(String.self, forKey: .delta)
         // tool_input is an arbitrary JSON object — store as a JSON string
         if container.contains(.toolInput) {
             let raw = try container.decode(AnyCodableValue.self, forKey: .toolInput)
@@ -90,6 +96,7 @@ nonisolated struct ClaudeEvent: Identifiable, Hashable, Codable, Sendable {
     let toolName: String?
     let prompt: String?
     let toolInput: String?
+    let delta: String?
     let receivedAt: Date
 
     nonisolated static func == (lhs: ClaudeEvent, rhs: ClaudeEvent) -> Bool {
@@ -110,10 +117,11 @@ nonisolated struct ClaudeEvent: Identifiable, Hashable, Codable, Sendable {
         self.toolName = payload.toolName
         self.prompt = payload.prompt
         self.toolInput = payload.toolInput
+        self.delta = payload.delta
         self.receivedAt = Date()
     }
 
-    init(id: UUID, worktreePath: String, sessionId: String, hookEventName: ClaudeHookPayload.HookEventName, notificationType: String?, message: String?, toolName: String?, prompt: String? = nil, toolInput: String? = nil, receivedAt: Date) {
+    init(id: UUID, worktreePath: String, sessionId: String, hookEventName: ClaudeHookPayload.HookEventName, notificationType: String?, message: String?, toolName: String?, prompt: String? = nil, toolInput: String? = nil, delta: String? = nil, receivedAt: Date) {
         self.id = id
         self.worktreePath = worktreePath
         self.sessionId = sessionId
@@ -123,6 +131,7 @@ nonisolated struct ClaudeEvent: Identifiable, Hashable, Codable, Sendable {
         self.toolName = toolName
         self.prompt = prompt
         self.toolInput = toolInput
+        self.delta = delta
         self.receivedAt = receivedAt
     }
 }

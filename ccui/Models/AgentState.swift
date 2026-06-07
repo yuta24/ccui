@@ -58,7 +58,7 @@ nonisolated enum AgentState: Sendable, Equatable {
             return .notified(last.message)
         case .permissionRequest:
             return .notified(last.toolName)
-        case .userPromptSubmit:
+        case .userPromptSubmit, .sessionStart, .messageDisplay:
             return .thinking
         }
     }

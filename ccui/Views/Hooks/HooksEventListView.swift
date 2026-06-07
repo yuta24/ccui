@@ -71,6 +71,8 @@ struct HooksEventListView: View {
         case .subagentStop: "person.2"
         case .permissionRequest: "lock.shield"
         case .userPromptSubmit: "text.bubble"
+        case .sessionStart: "play.circle"
+        case .messageDisplay: "message"
         }
     }
 }

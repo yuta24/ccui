@@ -32,7 +32,8 @@ final class HooksStore {
 
     static let allEvents: [ClaudeHookPayload.HookEventName] = [
         .preToolUse, .postToolUse, .stop, .notification,
-        .subagentStop, .permissionRequest, .userPromptSubmit
+        .subagentStop, .permissionRequest, .userPromptSubmit,
+        .sessionStart, .messageDisplay
     ]
 
     // MARK: - Lifecycle
