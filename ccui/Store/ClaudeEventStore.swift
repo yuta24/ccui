@@ -70,14 +70,18 @@ final class ClaudeEventStore {
 
     func agentState(for worktreePath: String) -> AgentState {
         guard let worktreeSessions = sessions[worktreePath] else { return .idle }
-        return Self.aggregateAgentState(from: worktreeSessions.values)
+        let notifiedCutoff = Date().addingTimeInterval(-notifiedStaleness)
+        return Self.aggregateAgentState(from: worktreeSessions.values, notifiedCutoff: notifiedCutoff)
     }
 
     /// 複数セッションの `state` から worktree 全体としての state を 1 パスで決定する。
     /// 優先度: toolUse > thinking > notified > done > idle。
     /// toolUse / notified は同種が複数あれば lastEventAt が最も新しいものの state を返す。
+    /// `notifiedCutoff` より古い `notified` セッションは応答が無いまま放置された「ゾンビ」とみなし無視する
+    /// （無視しないと、後続の `done` セッションがあっても古い notified が居座り続け、表示が実態と乖離する）。
     nonisolated static func aggregateAgentState(
-        from sessions: some Collection<AgentSession>
+        from sessions: some Collection<AgentSession>,
+        notifiedCutoff: Date = .distantPast
     ) -> AgentState {
         var latestToolUse: AgentState?
         var latestToolUseAt: Date = .distantPast
@@ -98,6 +102,7 @@ final class ClaudeEventStore {
             case .thinking:
                 hasThinking = true
             case .notified:
+                guard at >= notifiedCutoff else { break }
                 if at > latestNotifiedAt {
                     latestNotifiedAt = at
                     latestNotified = state

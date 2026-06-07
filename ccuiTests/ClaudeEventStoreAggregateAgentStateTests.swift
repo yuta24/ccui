@@ -91,6 +91,31 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         #expect(result == .notified("y"))
     }
 
+    // MARK: - notifiedCutoff によるゾンビ notified の除外
+
+    @Test func staleNotifiedIsIgnoredInFavorOfDone() {
+        let base = Date()
+        let staleNotified = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-3600), message: "stale")
+        let done = session(state: [.stop], id: "b", lastEventAt: base)
+        let result = ClaudeEventStore.aggregateAgentState(from: [staleNotified, done], notifiedCutoff: base.addingTimeInterval(-60))
+        #expect(result == .done)
+    }
+
+    @Test func staleNotifiedIsIgnoredInFavorOfIdle() {
+        let base = Date()
+        let staleNotified = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-3600), message: "stale")
+        let result = ClaudeEventStore.aggregateAgentState(from: [staleNotified], notifiedCutoff: base.addingTimeInterval(-60))
+        #expect(result == .idle)
+    }
+
+    @Test func freshNotifiedStillBeatsDoneWithCutoff() {
+        let base = Date()
+        let freshNotified = session(state: [.notification], id: "a", lastEventAt: base, message: "fresh")
+        let done = session(state: [.stop], id: "b", lastEventAt: base.addingTimeInterval(-10))
+        let result = ClaudeEventStore.aggregateAgentState(from: [freshNotified, done], notifiedCutoff: base.addingTimeInterval(-60))
+        #expect(result == .notified("fresh"))
+    }
+
     @Test func doneBeatsIdle() {
         let done = session(state: [.stop], id: "a")
         let idle = TestHelpers.makeSession(id: "b", events: [])
