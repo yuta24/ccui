@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 import WebKit
@@ -14,6 +15,9 @@ final class WebViewStore {
     var canGoBack = false
     var canGoForward = false
     var title: String = ""
+    /// When true, the panel shows a drag-to-select overlay for capturing a
+    /// region of the page as an image to send to the agent.
+    var isRegionCaptureActive = false
 
     @ObservationIgnored private var observations: [NSKeyValueObservation] = []
     @ObservationIgnored private var didInitialLoad = false
@@ -86,6 +90,15 @@ final class WebViewStore {
         webView.goForward()
     }
 
+    /// Renders the currently visible page content to an image.
+    func captureSnapshot() async -> NSImage? {
+        await withCheckedContinuation { continuation in
+            webView.takeSnapshot(with: nil) { image, _ in
+                continuation.resume(returning: image)
+            }
+        }
+    }
+
     func reload() {
         if isLoading {
             webView.stopLoading()
@@ -101,6 +114,7 @@ final class WebViewStore {
         isLoading = false
         canGoBack = false
         canGoForward = false
+        isRegionCaptureActive = false
 
         // A zero-size WKWebView hasn't established its render-process IPC yet
         // (see WebViewController.viewDidLayout); loading into it here would be

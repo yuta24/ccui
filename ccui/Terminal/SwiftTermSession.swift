@@ -46,6 +46,21 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         terminalView.setNeedsDisplay(terminalView.bounds)
     }
 
+    func pasteImage(_ image: NSImage) {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:]) else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setData(png, forType: .png)
+
+        // Claude Code detects image pastes by watching for Ctrl+V (0x16) and
+        // then reading the image directly from the system pasteboard, rather
+        // than receiving image bytes through the pty stream.
+        terminalView.send(txt: "\u{16}")
+    }
+
     // MARK: - LocalProcessTerminalViewDelegate
 
     nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}

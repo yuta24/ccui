@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct AddressBarView: View {
+    let worktree: Worktree
     @Bindable var store: WebViewStore
+    @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var inputText: String = ""
     @FocusState private var isFocused: Bool
 
@@ -38,6 +40,17 @@ struct AddressBarView: View {
             }
             .buttonStyle(.plain)
             .help(store.isLoading ? "Stop" : "Reload")
+
+            Button {
+                store.isRegionCaptureActive.toggle()
+            } label: {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(store.isRegionCaptureActive ? Color.accent : Color.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(terminalSessionStore.session(for: worktree) == nil)
+            .help("Capture Region to Agent")
 
             TextField("Enter URL", text: $inputText)
                 .font(.system(size: 12, design: .monospaced))

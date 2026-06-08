@@ -15,7 +15,7 @@ struct AgentMainContentView: View {
                 AgentContentView(worktree: worktree)
                     .frame(minWidth: 300, idealWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
 
-                WebViewPanelView(store: uiState.webViewStore)
+                WebViewPanelView(worktree: worktree, store: uiState.webViewStore)
                     .frame(minWidth: 300, idealWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
