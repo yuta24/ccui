@@ -2,7 +2,7 @@
 // - DiffParserTests.swift
 // - FuzzyScoreTests.swift
 // - PermissionRuleTests.swift
-// - AgentStateTests.swift
+// - SessionStateTests.swift
 // - InterventionDetectorTests.swift
 // - SessionEvaluationTests.swift
 // - ModelTests.swift

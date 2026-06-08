@@ -24,19 +24,56 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
         failureReasons = Set(rawReasons.compactMap(FailureReason.init(rawValue:)))
     }
 
-    var state: AgentState {
-        AgentState.from(events: events)
-    }
-
     var lastEventAt: Date? {
         events.last?.receivedAt
     }
 
-    var isTerminal: Bool {
-        switch state {
-        case .done, .idle, .notified: true
-        case .thinking, .toolUse: false
+    /// ある時点 `now` における activity と attention を1回の走査でまとめて確定する。
+    /// staleness 判定はここに集約し、呼び出し側で個別に staleness を比較しないようにする。
+    func snapshot(now: Date, acknowledgedUpTo: Date?, activeTimeout: TimeInterval, attentionTimeout: TimeInterval) -> SessionStateSnapshot {
+        SessionStateSnapshot(
+            activity: activity(now: now, activeTimeout: activeTimeout),
+            attention: attention(now: now, acknowledgedUpTo: acknowledgedUpTo, attentionTimeout: attentionTimeout)
+        )
+    }
+
+    /// これ以上 activity が進展せず、メモリからの退避対象になりうるかどうか
+    func isTerminal(now: Date, activeTimeout: TimeInterval) -> Bool {
+        activity(now: now, activeTimeout: activeTimeout).isTerminal
+    }
+
+    private func activity(now: Date, activeTimeout: TimeInterval) -> SessionActivity {
+        guard let last = events.last else { return .idle }
+
+        let raw: SessionActivity
+        switch last.hookEventName {
+        case .preToolUse: raw = .runningTool(last.toolName ?? "Tool")
+        case .postToolUse, .userPromptSubmit, .sessionStart, .messageDisplay: raw = .thinking
+        case .stop, .subagentStop: raw = .finished
+        case .notification, .permissionRequest: raw = .waitingForUser
         }
+
+        guard raw.isActive, let lastEventAt else { return raw }
+        if now.timeIntervalSince(lastEventAt) > activeTimeout {
+            return .unresponsive
+        }
+        return raw
+    }
+
+    /// 直近の notification / permissionRequest イベントを探し、`events.last` が何であっても
+    /// それとは独立に attention を確定する（エージェントが活動を再開しても消えないようにするため）。
+    private func attention(now: Date, acknowledgedUpTo: Date?, attentionTimeout: TimeInterval) -> SessionAttention? {
+        guard let event = events.last(where: { $0.hookEventName == .notification || $0.hookEventName == .permissionRequest }) else {
+            return nil
+        }
+        guard now.timeIntervalSince(event.receivedAt) <= attentionTimeout else { return nil }
+
+        let reason: SessionAttention.Reason = switch event.hookEventName {
+        case .permissionRequest: .permissionRequest(tool: event.toolName)
+        default: .notification(message: event.message)
+        }
+        let isAcknowledged = acknowledgedUpTo.map { event.receivedAt <= $0 } ?? false
+        return SessionAttention(reason: reason, occurredAt: event.receivedAt, isAcknowledged: isAcknowledged)
     }
 
     var interventionCount: Int {

@@ -102,13 +102,13 @@ struct RepositorySectionView: View {
                 .padding(.vertical, 4)
         } else {
             ForEach(worktreeStore.worktrees) { wt in
-                let agentState = claudeEventStore.agentState(for: wt.path)
-                let isHighlighted = agentState.isActive || claudeEventStore.hasUnacknowledged(for: wt.path)
+                let summary = claudeEventStore.agentSummary(for: wt.path)
+                let isHighlighted = summary.activity.isActive || claudeEventStore.hasUnacknowledged(for: wt.path)
 
                 WorktreeRowView(
                     worktree: wt,
                     isSelected: coordinator.selectedWorktree == wt,
-                    agentState: agentState,
+                    summary: summary,
                     isHighlighted: isHighlighted,
                     statusCount: worktreeStore.statusCounts[wt.path],
                     onSelect: {

@@ -24,10 +24,10 @@ final class ClaudeEventStore {
     private let maxSessionsPerWorktree = 20
     /// ディスク上に保持するワークツリーごとのセッション数上限
     private let maxDiskSessionsPerWorktree = 100
-    /// active 状態でこの期間以上イベント更新がないセッションは stale とみなし active から除外
+    /// この期間以上イベント更新がない進行中セッションは応答停止（unresponsive）とみなす
     private let activeStaleness: TimeInterval = 5 * 60
-    /// notified 状態でこの期間以上更新がないペンディングは stale とみなし通知カウントから除外
-    private let notifiedStaleness: TimeInterval = 60 * 60
+    /// この期間以上経過した attention は zombie とみなし、表示・カウントから除外する
+    private let attentionStaleness: TimeInterval = 60 * 60
 
     init(
         persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence(),
@@ -68,101 +68,142 @@ final class ClaudeEventStore {
 
     // MARK: - Query
 
-    func agentState(for worktreePath: String) -> AgentState {
-        guard let worktreeSessions = sessions[worktreePath] else { return .idle }
-        let notifiedCutoff = Date().addingTimeInterval(-notifiedStaleness)
-        return Self.aggregateAgentState(from: worktreeSessions.values, notifiedCutoff: notifiedCutoff)
+    /// worktree 全体としての activity と attention の集約結果
+    nonisolated struct WorktreeAgentSummary: Sendable, Equatable {
+        let activity: SessionActivity
+        /// 未読の attention を持つセッション数
+        let pendingAttentionCount: Int
+        /// 直近の未読 attention（メッセージ表示用）
+        let latestAttention: SessionAttention?
     }
 
-    /// 複数セッションの `state` から worktree 全体としての state を 1 パスで決定する。
-    /// 優先度: toolUse > thinking > notified > done > idle。
-    /// toolUse / notified は同種が複数あれば lastEventAt が最も新しいものの state を返す。
-    /// `notifiedCutoff` より古い `notified` セッションは応答が無いまま放置された「ゾンビ」とみなし無視する
-    /// （無視しないと、後続の `done` セッションがあっても古い notified が居座り続け、表示が実態と乖離する）。
-    nonisolated static func aggregateAgentState(
+    func agentSummary(for worktreePath: String) -> WorktreeAgentSummary {
+        guard let worktreeSessions = sessions[worktreePath] else {
+            return WorktreeAgentSummary(activity: .idle, pendingAttentionCount: 0, latestAttention: nil)
+        }
+        return Self.aggregateSummary(
+            from: worktreeSessions.values,
+            now: Date(),
+            acknowledgedUpTo: acknowledgedUpTo[worktreePath],
+            activeTimeout: activeStaleness,
+            attentionTimeout: attentionStaleness
+        )
+    }
+
+    /// 複数セッションの `snapshot` から worktree 全体としての状態を 1 パスで決定する。
+    /// activity の優先度: runningTool > thinking > waitingForUser > unresponsive > finished > idle
+    /// （同種が複数あれば lastEventAt が最も新しいものを採用）。
+    /// attention は activity の優先順位とは独立に、未読件数と直近のものを集計する
+    /// （「activity が変わっても attention は残り続ける」という設計のため、片方の優先順位がもう片方を隠さない）。
+    nonisolated static func aggregateSummary(
         from sessions: some Collection<AgentSession>,
-        notifiedCutoff: Date = .distantPast
-    ) -> AgentState {
-        var latestToolUse: AgentState?
-        var latestToolUseAt: Date = .distantPast
-        var latestNotified: AgentState?
-        var latestNotifiedAt: Date = .distantPast
+        now: Date,
+        acknowledgedUpTo: Date?,
+        activeTimeout: TimeInterval,
+        attentionTimeout: TimeInterval
+    ) -> WorktreeAgentSummary {
+        var latestRunningTool: SessionActivity?
+        var latestRunningToolAt: Date = .distantPast
         var hasThinking = false
-        var hasDone = false
+        var hasWaitingForUser = false
+        var hasUnresponsive = false
+        var hasFinished = false
+
+        var pendingAttentionCount = 0
+        var latestAttention: SessionAttention?
+        var latestAttentionAt: Date = .distantPast
 
         for session in sessions {
-            let state = session.state
+            let snapshot = session.snapshot(now: now, acknowledgedUpTo: acknowledgedUpTo, activeTimeout: activeTimeout, attentionTimeout: attentionTimeout)
             let at = session.lastEventAt ?? .distantPast
-            switch state {
-            case .toolUse:
-                if at > latestToolUseAt {
-                    latestToolUseAt = at
-                    latestToolUse = state
+
+            switch snapshot.activity {
+            case .runningTool:
+                if at > latestRunningToolAt {
+                    latestRunningToolAt = at
+                    latestRunningTool = snapshot.activity
                 }
             case .thinking:
                 hasThinking = true
-            case .notified:
-                guard at >= notifiedCutoff else { break }
-                if at > latestNotifiedAt {
-                    latestNotifiedAt = at
-                    latestNotified = state
-                }
-            case .done:
-                hasDone = true
+            case .waitingForUser:
+                hasWaitingForUser = true
+            case .unresponsive:
+                hasUnresponsive = true
+            case .finished:
+                hasFinished = true
             case .idle:
                 break
             }
+
+            if let attention = snapshot.attention, !attention.isAcknowledged {
+                pendingAttentionCount += 1
+                if attention.occurredAt > latestAttentionAt {
+                    latestAttentionAt = attention.occurredAt
+                    latestAttention = attention
+                }
+            }
         }
 
-        if let latestToolUse { return latestToolUse }
-        if hasThinking { return .thinking }
-        if let latestNotified { return latestNotified }
-        if hasDone { return .done }
-        return .idle
+        let activity: SessionActivity = if let latestRunningTool {
+            latestRunningTool
+        } else if hasThinking {
+            .thinking
+        } else if hasWaitingForUser {
+            .waitingForUser
+        } else if hasUnresponsive {
+            .unresponsive
+        } else if hasFinished {
+            .finished
+        } else {
+            .idle
+        }
+
+        return WorktreeAgentSummary(activity: activity, pendingAttentionCount: pendingAttentionCount, latestAttention: latestAttention)
     }
 
-    /// 未読の通知/完了イベントがあるかどうか
+    /// 未読の attention、または未読のまま完了したセッションがあるかどうか
     func hasUnacknowledged(for worktreePath: String) -> Bool {
         guard let worktreeSessions = sessions[worktreePath] else { return false }
+        let now = Date()
         let cutoff = acknowledgedUpTo[worktreePath]
         return worktreeSessions.values.contains { session in
-            session.events.contains { event in
-                let isTerminal = event.hookEventName == .stop
-                    || event.hookEventName == .notification
-                    || event.hookEventName == .subagentStop
-                guard isTerminal else { return false }
-                if let cutoff { return event.receivedAt > cutoff }
-                return true
-            }
+            let snapshot = session.snapshot(now: now, acknowledgedUpTo: cutoff, activeTimeout: activeStaleness, attentionTimeout: attentionStaleness)
+            if let attention = snapshot.attention, !attention.isAcknowledged { return true }
+            guard snapshot.activity == .finished else { return false }
+            return isSessionUnacknowledged(session)
         }
     }
 
     var activeAgentCount: Int {
-        let cutoff = Date().addingTimeInterval(-activeStaleness)
+        let now = Date()
         return sessions.values.flatMap(\.values).filter { session in
-            guard session.state.isActive else { return false }
-            guard let last = session.lastEventAt else { return false }
-            return last > cutoff
+            switch session.snapshot(now: now, acknowledgedUpTo: nil, activeTimeout: activeStaleness, attentionTimeout: attentionStaleness).activity {
+            case .thinking, .runningTool: true
+            case .idle, .waitingForUser, .finished, .unresponsive: false
+            }
         }.count
     }
 
     var doneAgentCount: Int {
-        sessions.values.flatMap { worktreeSessions in
+        let now = Date()
+        return sessions.values.flatMap { worktreeSessions in
             worktreeSessions.values.filter { session in
-                session.state == .done && isSessionUnacknowledged(session)
+                let activity = session.snapshot(now: now, acknowledgedUpTo: nil, activeTimeout: activeStaleness, attentionTimeout: attentionStaleness).activity
+                return activity == .finished && isSessionUnacknowledged(session)
             }
         }.count
     }
 
-    var notifiedAgentCount: Int {
-        let cutoff = Date().addingTimeInterval(-notifiedStaleness)
-        return sessions.values.flatMap { worktreeSessions in
-            worktreeSessions.values.filter { session in
-                guard case .notified = session.state else { return false }
-                guard let last = session.lastEventAt, last > cutoff else { return false }
-                return isSessionUnacknowledged(session)
-            }
-        }.count
+    var attentionAgentCount: Int {
+        let now = Date()
+        return sessions.reduce(into: 0) { count, entry in
+            let (worktreePath, worktreeSessions) = entry
+            let cutoff = acknowledgedUpTo[worktreePath]
+            count += worktreeSessions.values.filter { session in
+                guard let attention = session.snapshot(now: now, acknowledgedUpTo: cutoff, activeTimeout: activeStaleness, attentionTimeout: attentionStaleness).attention else { return false }
+                return !attention.isAcknowledged
+            }.count
+        }
     }
 
     // MARK: - Mutations
@@ -252,8 +293,9 @@ final class ClaudeEventStore {
 
     /// 終了済みセッションを古い順にメモリから退避（ディスク上のファイルは保持）
     private func evictTerminalSessions(_ map: inout [String: AgentSession], excluding currentSessionId: String) {
+        let now = Date()
         let terminalSessions = map.values
-            .filter { $0.isTerminal && $0.id != currentSessionId }
+            .filter { $0.id != currentSessionId && $0.isTerminal(now: now, activeTimeout: activeStaleness) }
             .sorted(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) })
 
         var toEvict = map.count - maxSessionsPerWorktree
@@ -285,10 +327,11 @@ final class ClaudeEventStore {
         do {
             var loaded = try await persistenceCoordinator.loadAll()
             // メモリ上限を適用（ディスク上は maxDiskSessionsPerWorktree 件まで保持）
+            let now = Date()
             for (path, worktreeSessions) in loaded where worktreeSessions.count > maxSessionsPerWorktree {
                 var mutable = worktreeSessions
                 let terminalSessions = mutable.values
-                    .filter(\.isTerminal)
+                    .filter { $0.isTerminal(now: now, activeTimeout: activeStaleness) }
                     .sorted(by: { ($0.lastEventAt ?? .distantPast) < ($1.lastEventAt ?? .distantPast) })
                 var toEvict = mutable.count - maxSessionsPerWorktree
                 for session in terminalSessions where toEvict > 0 {
@@ -316,7 +359,6 @@ final class ClaudeEventStore {
             sessions = loaded
             // 起動時点で既存セッションは全て既読扱い。ステータスバーは「このアプリ
             // セッション中に新規発生したもの」だけを積み上げる。
-            let now = Date()
             for path in sessions.keys {
                 acknowledgedUpTo[path] = now
             }

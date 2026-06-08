@@ -22,9 +22,9 @@ struct AgentStatusBar: View {
     private var content: some View {
         let active = claudeEventStore.activeAgentCount
         let done = claudeEventStore.doneAgentCount
-        let notified = claudeEventStore.notifiedAgentCount
-        let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || notified > 0)
-        let canClear = notified > 0 || done > 0
+        let attention = claudeEventStore.attentionAgentCount
+        let hasStatus = !claudeEventStore.sessions.isEmpty && (active > 0 || done > 0 || attention > 0)
+        let canClear = attention > 0 || done > 0
 
         HStack(spacing: 8) {
             Spacer()
@@ -35,8 +35,8 @@ struct AgentStatusBar: View {
                     if active > 0 {
                         statusItem(icon: "hammer", color: .statusRenamed, label: "\(active)")
                     }
-                    if notified > 0 {
-                        statusItem(icon: "bell.fill", color: .accent, label: "\(notified)")
+                    if attention > 0 {
+                        statusItem(icon: "bell.fill", color: .accent, label: "\(attention)")
                     }
                     if done > 0 {
                         statusItem(icon: "checkmark.circle.fill", color: .statusClean, label: "\(done)")

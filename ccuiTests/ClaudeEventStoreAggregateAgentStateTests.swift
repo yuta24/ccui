@@ -2,10 +2,15 @@ import Foundation
 import Testing
 @testable import ccui
 
-/// `ClaudeEventStore.aggregateAgentState(from:)` の優先順位ロジックを直接検証する。
-/// 優先度: toolUse > thinking > notified > done > idle。
-/// toolUse / notified は同種が複数あれば lastEventAt が最も新しいものの state を返す。
+/// `ClaudeEventStore.aggregateSummary(from:now:acknowledgedUpTo:activeTimeout:attentionTimeout:)` の
+/// 集約ロジックを直接検証する。
+/// activity の優先度: runningTool > thinking > waitingForUser > unresponsive > finished > idle
+/// （同種が複数あれば lastEventAt が最も新しいものを採用）。
+/// attention は activity の優先順位とは独立に、未読件数と直近のものを集計する。
 struct ClaudeEventStoreAggregateAgentStateTests {
+
+    private let activeTimeout: TimeInterval = 5 * 60
+    private let attentionTimeout: TimeInterval = 60 * 60
 
     private func session(state stateEvents: [ClaudeHookPayload.HookEventName],
                          id: String = UUID().uuidString,
@@ -24,151 +29,179 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         return TestHelpers.makeSession(id: id, events: events)
     }
 
+    private func summary(
+        from sessions: [AgentSession],
+        now: Date = Date(),
+        acknowledgedUpTo: Date? = nil
+    ) -> ClaudeEventStore.WorktreeAgentSummary {
+        ClaudeEventStore.aggregateSummary(from: sessions, now: now, acknowledgedUpTo: acknowledgedUpTo, activeTimeout: activeTimeout, attentionTimeout: attentionTimeout)
+    }
+
     // MARK: - 単一セッション
 
     @Test func emptyCollectionReturnsIdle() {
-        let result = ClaudeEventStore.aggregateAgentState(from: [AgentSession]())
-        #expect(result == .idle)
+        let result = summary(from: [])
+        #expect(result.activity == .idle)
+        #expect(result.pendingAttentionCount == 0)
+        #expect(result.latestAttention == nil)
     }
 
-    @Test func singleToolUseSession() {
+    @Test func singleRunningToolSession() {
         let s = session(state: [.preToolUse], toolName: "Bash")
-        let result = ClaudeEventStore.aggregateAgentState(from: [s])
-        #expect(result == .toolUse("Bash"))
+        #expect(summary(from: [s]).activity == .runningTool("Bash"))
     }
 
     @Test func singleThinkingSession() {
         let s = session(state: [.preToolUse, .postToolUse])
-        let result = ClaudeEventStore.aggregateAgentState(from: [s])
-        #expect(result == .thinking)
+        #expect(summary(from: [s]).activity == .thinking)
     }
 
-    @Test func singleDoneSession() {
+    @Test func singleFinishedSession() {
         let s = session(state: [.stop])
-        let result = ClaudeEventStore.aggregateAgentState(from: [s])
-        #expect(result == .done)
+        #expect(summary(from: [s]).activity == .finished)
     }
 
-    @Test func singleNotifiedSession() {
+    @Test func singleWaitingForUserSession() {
         let s = session(state: [.notification], message: "approve please")
-        let result = ClaudeEventStore.aggregateAgentState(from: [s])
-        #expect(result == .notified("approve please"))
+        #expect(summary(from: [s]).activity == .waitingForUser)
     }
 
     @Test func singleIdleSession() {
         let s = TestHelpers.makeSession(events: [])
-        let result = ClaudeEventStore.aggregateAgentState(from: [s])
-        #expect(result == .idle)
+        #expect(summary(from: [s]).activity == .idle)
     }
 
     // MARK: - 優先順位
 
-    @Test func toolUseBeatsThinking() {
+    @Test func runningToolBeatsThinking() {
         let toolUse = session(state: [.preToolUse], id: "a", toolName: "Read")
         let thinking = session(state: [.postToolUse], id: "b")
-        let result = ClaudeEventStore.aggregateAgentState(from: [thinking, toolUse])
-        #expect(result == .toolUse("Read"))
+        #expect(summary(from: [thinking, toolUse]).activity == .runningTool("Read"))
     }
 
-    @Test func toolUseBeatsNotified() {
+    @Test func runningToolBeatsWaitingForUser() {
         let toolUse = session(state: [.preToolUse], id: "a", toolName: "Edit")
-        let notified = session(state: [.notification], id: "b", message: "x")
-        let result = ClaudeEventStore.aggregateAgentState(from: [notified, toolUse])
-        #expect(result == .toolUse("Edit"))
+        let waiting = session(state: [.notification], id: "b", message: "x")
+        #expect(summary(from: [waiting, toolUse]).activity == .runningTool("Edit"))
     }
 
-    @Test func thinkingBeatsNotified() {
+    @Test func thinkingBeatsWaitingForUser() {
         let thinking = session(state: [.postToolUse], id: "a")
-        let notified = session(state: [.notification], id: "b", message: "x")
-        let result = ClaudeEventStore.aggregateAgentState(from: [notified, thinking])
-        #expect(result == .thinking)
+        let waiting = session(state: [.notification], id: "b", message: "x")
+        #expect(summary(from: [waiting, thinking]).activity == .thinking)
     }
 
-    @Test func notifiedBeatsDone() {
-        let notified = session(state: [.notification], id: "a", message: "y")
-        let done = session(state: [.stop], id: "b")
-        let result = ClaudeEventStore.aggregateAgentState(from: [done, notified])
-        #expect(result == .notified("y"))
-    }
-
-    // MARK: - notifiedCutoff によるゾンビ notified の除外
-
-    @Test func staleNotifiedIsIgnoredInFavorOfDone() {
+    @Test func waitingForUserBeatsUnresponsive() {
         let base = Date()
-        let staleNotified = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-3600), message: "stale")
-        let done = session(state: [.stop], id: "b", lastEventAt: base)
-        let result = ClaudeEventStore.aggregateAgentState(from: [staleNotified, done], notifiedCutoff: base.addingTimeInterval(-60))
-        #expect(result == .done)
+        let waiting = session(state: [.notification], id: "a", lastEventAt: base, message: "x")
+        let unresponsive = session(state: [.preToolUse], id: "b", lastEventAt: base.addingTimeInterval(-activeTimeout - 60), toolName: "Bash")
+        let result = summary(from: [unresponsive, waiting], now: base)
+        #expect(result.activity == .waitingForUser)
     }
 
-    @Test func staleNotifiedIsIgnoredInFavorOfIdle() {
+    @Test func unresponsiveBeatsFinished() {
         let base = Date()
-        let staleNotified = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-3600), message: "stale")
-        let result = ClaudeEventStore.aggregateAgentState(from: [staleNotified], notifiedCutoff: base.addingTimeInterval(-60))
-        #expect(result == .idle)
+        let unresponsive = session(state: [.preToolUse], id: "a", lastEventAt: base.addingTimeInterval(-activeTimeout - 60), toolName: "Bash")
+        let finished = session(state: [.stop], id: "b", lastEventAt: base)
+        let result = summary(from: [finished, unresponsive], now: base)
+        #expect(result.activity == .unresponsive)
     }
 
-    @Test func freshNotifiedStillBeatsDoneWithCutoff() {
-        let base = Date()
-        let freshNotified = session(state: [.notification], id: "a", lastEventAt: base, message: "fresh")
-        let done = session(state: [.stop], id: "b", lastEventAt: base.addingTimeInterval(-10))
-        let result = ClaudeEventStore.aggregateAgentState(from: [freshNotified, done], notifiedCutoff: base.addingTimeInterval(-60))
-        #expect(result == .notified("fresh"))
-    }
-
-    @Test func doneBeatsIdle() {
-        let done = session(state: [.stop], id: "a")
+    @Test func finishedBeatsIdle() {
+        let finished = session(state: [.stop], id: "a")
         let idle = TestHelpers.makeSession(id: "b", events: [])
-        let result = ClaudeEventStore.aggregateAgentState(from: [idle, done])
-        #expect(result == .done)
+        #expect(summary(from: [idle, finished]).activity == .finished)
     }
 
     // MARK: - 同種複数: lastEventAt 最大優先
 
-    @Test func multipleToolUseReturnsMostRecent() {
+    @Test func multipleRunningToolReturnsMostRecent() {
         let base = Date()
         let older = session(state: [.preToolUse], id: "a", lastEventAt: base, toolName: "Older")
         let newer = session(state: [.preToolUse], id: "b", lastEventAt: base.addingTimeInterval(60), toolName: "Newer")
-        let result = ClaudeEventStore.aggregateAgentState(from: [older, newer])
-        #expect(result == .toolUse("Newer"))
+        #expect(summary(from: [older, newer]).activity == .runningTool("Newer"))
     }
 
-    @Test func multipleNotifiedReturnsMostRecent() {
-        let base = Date()
-        let older = session(state: [.notification], id: "a", lastEventAt: base, message: "first")
-        let newer = session(state: [.notification], id: "b", lastEventAt: base.addingTimeInterval(30), message: "second")
-        let result = ClaudeEventStore.aggregateAgentState(from: [older, newer])
-        #expect(result == .notified("second"))
-    }
-
-    @Test func multipleToolUseOrderInvariant() {
+    @Test func multipleRunningToolOrderInvariant() {
         // Collection の入力順序に結果が依存しないこと
         let base = Date()
         let a = session(state: [.preToolUse], id: "a", lastEventAt: base, toolName: "A")
         let b = session(state: [.preToolUse], id: "b", lastEventAt: base.addingTimeInterval(10), toolName: "B")
         let c = session(state: [.preToolUse], id: "c", lastEventAt: base.addingTimeInterval(5), toolName: "C")
-        let r1 = ClaudeEventStore.aggregateAgentState(from: [a, b, c])
-        let r2 = ClaudeEventStore.aggregateAgentState(from: [c, a, b])
-        #expect(r1 == .toolUse("B"))
-        #expect(r2 == .toolUse("B"))
+        #expect(summary(from: [a, b, c]).activity == .runningTool("B"))
+        #expect(summary(from: [c, a, b]).activity == .runningTool("B"))
+    }
+
+    // MARK: - staleness によるゾンビの扱い
+
+    @Test func staleRunningToolBecomesUnresponsiveInsteadOfDominatingForever() {
+        // activeStaleness を超えてイベントが来ない toolUse セッションは unresponsive に格下げされ、
+        // もう「実行中」を主張しなくなる（今回直したのと同型のバグの再発防止）
+        let base = Date()
+        let staleToolUse = session(state: [.preToolUse], id: "a", lastEventAt: base.addingTimeInterval(-activeTimeout - 60), toolName: "Bash")
+        let finished = session(state: [.stop], id: "b", lastEventAt: base)
+        let result = summary(from: [staleToolUse, finished], now: base)
+        #expect(result.activity == .unresponsive)
+        #expect(result.activity != .runningTool("Bash"))
+    }
+
+    // MARK: - attention の集計（activity の優先順位とは独立）
+
+    @Test func pendingAttentionCountIsIndependentOfActivity() {
+        // toolUse が activity を支配していても、別セッションの未読 attention は隠れない
+        let base = Date()
+        let toolUse = session(state: [.preToolUse], id: "a", lastEventAt: base, toolName: "Bash")
+        let waiting = session(state: [.notification], id: "b", lastEventAt: base.addingTimeInterval(-10), message: "approve?")
+        let result = summary(from: [toolUse, waiting], now: base)
+        #expect(result.activity == .runningTool("Bash"))
+        #expect(result.pendingAttentionCount == 1)
+        #expect(result.latestAttention?.reason == .notification(message: "approve?"))
+    }
+
+    @Test func acknowledgedAttentionDoesNotCountAsPending() {
+        let base = Date()
+        let waiting = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-10), message: "approve?")
+        let result = summary(from: [waiting], now: base, acknowledgedUpTo: base)
+        #expect(result.pendingAttentionCount == 0)
+        #expect(result.latestAttention == nil)
+    }
+
+    @Test func staleAttentionBeyondTimeoutIsExcluded() {
+        let base = Date()
+        let staleWaiting = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-attentionTimeout - 60), message: "stale")
+        let result = summary(from: [staleWaiting], now: base)
+        #expect(result.pendingAttentionCount == 0)
+        #expect(result.latestAttention == nil)
+    }
+
+    @Test func latestAttentionPicksMostRecentOccurrence() {
+        let base = Date()
+        let older = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-30), message: "first")
+        let newer = session(state: [.notification], id: "b", lastEventAt: base, message: "second")
+        let result = summary(from: [older, newer], now: base)
+        #expect(result.pendingAttentionCount == 2)
+        #expect(result.latestAttention?.reason == .notification(message: "second"))
     }
 
     // MARK: - 混在シナリオ
 
-    @Test func mixedStatesPicksHighestPriority() {
-        let toolUse = session(state: [.preToolUse], id: "a", toolName: "Grep")
-        let thinking = session(state: [.postToolUse], id: "b")
-        let notified = session(state: [.notification], id: "c", message: "n")
-        let done = session(state: [.stop], id: "d")
+    @Test func mixedStatesPicksHighestPriorityActivityAndCountsAttentionSeparately() {
+        let base = Date()
+        let toolUse = session(state: [.preToolUse], id: "a", lastEventAt: base, toolName: "Grep")
+        let thinking = session(state: [.postToolUse], id: "b", lastEventAt: base)
+        let waiting = session(state: [.notification], id: "c", lastEventAt: base, message: "n")
+        let finished = session(state: [.stop], id: "d", lastEventAt: base)
         let idle = TestHelpers.makeSession(id: "e", events: [])
-        let result = ClaudeEventStore.aggregateAgentState(from: [idle, done, notified, thinking, toolUse])
-        #expect(result == .toolUse("Grep"))
+        let result = summary(from: [idle, finished, waiting, thinking, toolUse], now: base)
+        #expect(result.activity == .runningTool("Grep"))
+        #expect(result.pendingAttentionCount == 1)
     }
 
     @Test func allIdleReturnsIdle() {
         let s1 = TestHelpers.makeSession(id: "a", events: [])
         let s2 = TestHelpers.makeSession(id: "b", events: [])
-        let result = ClaudeEventStore.aggregateAgentState(from: [s1, s2])
-        #expect(result == .idle)
+        let result = summary(from: [s1, s2])
+        #expect(result.activity == .idle)
+        #expect(result.pendingAttentionCount == 0)
     }
 }

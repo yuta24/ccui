@@ -28,49 +28,164 @@ struct AgentSessionTests {
         #expect(session.events[0].toolName == "Tool2")
     }
 
-    // MARK: - state
+    // MARK: - snapshot: activity
 
-    @Test func stateFromEmptyEventsIsIdle() {
-        let session = TestHelpers.makeSession()
-        #expect(session.state == .idle)
+    private let activeTimeout: TimeInterval = 5 * 60
+    private let attentionTimeout: TimeInterval = 60 * 60
+
+    private func snapshot(
+        _ session: AgentSession,
+        now: Date = Date(),
+        acknowledgedUpTo: Date? = nil
+    ) -> SessionStateSnapshot {
+        session.snapshot(now: now, acknowledgedUpTo: acknowledgedUpTo, activeTimeout: activeTimeout, attentionTimeout: attentionTimeout)
     }
 
-    @Test func stateFromLastEvent() {
+    @Test func activityFromEmptyEventsIsIdle() {
+        let session = TestHelpers.makeSession()
+        #expect(snapshot(session).activity == .idle)
+    }
+
+    @Test func activityFromLastEvent() {
         let session = TestHelpers.makeSession(events: [
             TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash"),
             TestHelpers.makeEvent(hookEventName: .stop),
         ])
-        #expect(session.state == .done)
+        #expect(snapshot(session).activity == .finished)
+    }
+
+    @Test func activityMapsPreToolUseToRunningTool() {
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash"),
+        ])
+        #expect(snapshot(session).activity == .runningTool("Bash"))
+    }
+
+    @Test func activityMapsNotificationToWaitingForUser() {
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .notification, message: "approve?"),
+        ])
+        #expect(snapshot(session).activity == .waitingForUser)
+    }
+
+    @Test func activityMapsPermissionRequestToWaitingForUser() {
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .permissionRequest, toolName: "Write"),
+        ])
+        #expect(snapshot(session).activity == .waitingForUser)
+    }
+
+    @Test func activityBecomesUnresponsiveWhenStaleBeyondActiveTimeout() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash", receivedAt: base),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(activeTimeout + 1))
+        #expect(result.activity == .unresponsive)
+    }
+
+    @Test func activityStaysActiveWithinActiveTimeout() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash", receivedAt: base),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(activeTimeout - 1))
+        #expect(result.activity == .runningTool("Bash"))
+    }
+
+    @Test func finishedAndIdleDoNotBecomeUnresponsiveWhenStale() {
+        let base = Date()
+        let finished = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .stop, receivedAt: base),
+        ])
+        let result = snapshot(finished, now: base.addingTimeInterval(activeTimeout * 10))
+        #expect(result.activity == .finished)
+    }
+
+    // MARK: - snapshot: attention
+
+    @Test func attentionIsNilWithoutNotificationOrPermissionRequest() {
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash"),
+        ])
+        #expect(snapshot(session).attention == nil)
+    }
+
+    @Test func attentionPersistsAfterActivityMovesOn() {
+        // 通知の後にエージェントが活動を再開しても、attention は events.last に依存せず残り続ける
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .notification, message: "approve?", receivedAt: base),
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash", receivedAt: base.addingTimeInterval(1)),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(2))
+        #expect(result.activity == .runningTool("Bash"))
+        #expect(result.attention?.reason == .notification(message: "approve?"))
+    }
+
+    @Test func attentionIsIgnoredWhenOlderThanAttentionTimeout() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .notification, message: "stale", receivedAt: base),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(attentionTimeout + 1))
+        #expect(result.attention == nil)
+    }
+
+    @Test func attentionIsAcknowledgedWhenOccurredBeforeCutoff() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .notification, message: "approve?", receivedAt: base),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(10), acknowledgedUpTo: base.addingTimeInterval(5))
+        #expect(result.attention?.isAcknowledged == true)
+    }
+
+    @Test func attentionIsUnacknowledgedWhenOccurredAfterCutoff() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .notification, message: "approve?", receivedAt: base),
+        ])
+        let result = snapshot(session, now: base.addingTimeInterval(10), acknowledgedUpTo: base.addingTimeInterval(-5))
+        #expect(result.attention?.isAcknowledged == false)
     }
 
     // MARK: - isTerminal
 
-    @Test func isTerminalForDone() {
+    @Test func isTerminalForFinished() {
         let session = TestHelpers.makeSession(events: [
             TestHelpers.makeEvent(hookEventName: .stop),
         ])
-        #expect(session.isTerminal == true)
+        #expect(session.isTerminal(now: Date(), activeTimeout: activeTimeout) == true)
     }
 
     @Test func isTerminalForThinking() {
         let session = TestHelpers.makeSession(events: [
             TestHelpers.makeEvent(hookEventName: .postToolUse),
         ])
-        #expect(session.isTerminal == false)
+        #expect(session.isTerminal(now: Date(), activeTimeout: activeTimeout) == false)
     }
 
-    @Test func isTerminalForNotified() {
+    @Test func isTerminalForWaitingForUser() {
         let session = TestHelpers.makeSession(events: [
             TestHelpers.makeEvent(hookEventName: .permissionRequest, toolName: "Write"),
         ])
-        #expect(session.isTerminal == true)
+        #expect(session.isTerminal(now: Date(), activeTimeout: activeTimeout) == false)
     }
 
     @Test func isTerminalForToolUse() {
         let session = TestHelpers.makeSession(events: [
             TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash"),
         ])
-        #expect(session.isTerminal == false)
+        #expect(session.isTerminal(now: Date(), activeTimeout: activeTimeout) == false)
+    }
+
+    @Test func isTerminalForUnresponsive() {
+        let base = Date()
+        let session = TestHelpers.makeSession(events: [
+            TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash", receivedAt: base),
+        ])
+        #expect(session.isTerminal(now: base.addingTimeInterval(activeTimeout + 1), activeTimeout: activeTimeout) == true)
     }
 
     // MARK: - lastEventAt

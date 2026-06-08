@@ -3,7 +3,7 @@ import SwiftUI
 struct WorktreeRowView: View {
     let worktree: Worktree
     let isSelected: Bool
-    let agentState: AgentState
+    let summary: ClaudeEventStore.WorktreeAgentSummary
     let isHighlighted: Bool
     let statusCount: Int?
     let onSelect: () -> Void
@@ -17,7 +17,7 @@ struct WorktreeRowView: View {
             HStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(
-                        isHighlighted ? agentState.color :
+                        isHighlighted ? summary.activity.color :
                         worktree.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5)
                     )
                     .frame(width: 4, height: 16)
@@ -29,7 +29,7 @@ struct WorktreeRowView: View {
 
                 Spacer()
 
-                AgentStatusBadge(state: agentState)
+                AgentStatusBadge(activity: summary.activity, pendingAttentionCount: summary.pendingAttentionCount)
 
                 if let count = statusCount {
                     if count > 0 {
@@ -53,7 +53,7 @@ struct WorktreeRowView: View {
                 RoundedRectangle(cornerRadius: 5)
                     .fill(
                         isSelected ? Color.surfaceElevated :
-                        isHighlighted ? agentState.color.opacity(0.08) :
+                        isHighlighted ? summary.activity.color.opacity(0.08) :
                         isHovered ? Color.surfaceHover : Color.clear
                     )
             )
@@ -61,7 +61,7 @@ struct WorktreeRowView: View {
                 RoundedRectangle(cornerRadius: 5)
                     .strokeBorder(
                         isSelected ? Color.borderDefault :
-                        isHighlighted ? agentState.color.opacity(0.3) : Color.clear,
+                        isHighlighted ? summary.activity.color.opacity(0.3) : Color.clear,
                         lineWidth: 1
                     )
             )
