@@ -6,7 +6,7 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     private let terminalView: LocalProcessTerminalView
     let label: String
     private(set) var isProcessRunning: Bool = true
-    var onProcessTerminated: (() -> Void)?
+    var onProcessTerminated: ((Int32?) -> Void)?
     var onTitleChanged: ((String) -> Void)?
 
     init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
@@ -66,7 +66,7 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.isProcessRunning = false
-            self.onProcessTerminated?()
+            self.onProcessTerminated?(exitCode)
         }
     }
 }

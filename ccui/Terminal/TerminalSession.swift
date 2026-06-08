@@ -6,7 +6,7 @@ protocol TerminalSession: AnyObject {
     var label: String { get }
     var nsView: NSView { get }
     var isProcessRunning: Bool { get }
-    var onProcessTerminated: (() -> Void)? { get set }
+    var onProcessTerminated: ((Int32?) -> Void)? { get set }
     var onTitleChanged: ((String) -> Void)? { get set }
     func terminate()
     func refreshDisplay()

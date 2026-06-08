@@ -3,17 +3,41 @@ import Foundation
 @Observable
 @MainActor
 final class TerminalSessionStore {
+    /// 起動直後（数秒以内）に非ゼロ終了コードでプロセスが落ちた場合に記録する、launch/resume 失敗の通知。
+    struct LaunchFailure: Equatable {
+        let worktreePath: String
+        let sessionId: String
+        let isResume: Bool
+        let exitCode: Int32?
+    }
+
     private struct ActiveSession {
         let sessionId: String
         let session: any TerminalSession
     }
 
+    /// 起動からこの秒数以内の非ゼロ終了は launch/resume 失敗とみなす（通常終了との切り分け用）
+    private static let launchFailureWindow: TimeInterval = 5
+
     private var sessions: [String: ActiveSession] = [:]
     private var claudePathTask: Task<String, Never>?
     private let appSettingsStore: AppSettingsStore
 
+    private(set) var lastLaunchFailure: LaunchFailure?
+
     init(appSettingsStore: AppSettingsStore) {
         self.appSettingsStore = appSettingsStore
+    }
+
+    func acknowledgeLaunchFailure() {
+        lastLaunchFailure = nil
+    }
+
+    /// 指定 worktree に、要求した sessionId とは別の実行中セッションが存在するか
+    /// （置き換えると停止することになるため、呼び出し側で確認を挟む判断に使う）
+    func hasRunningSession(for worktreePath: String, otherThan sessionId: String) -> Bool {
+        guard let existing = sessions[worktreePath], existing.sessionId != sessionId else { return false }
+        return existing.session.isProcessRunning
     }
 
     func startResolvingClaudePath() {
@@ -107,8 +131,39 @@ final class TerminalSessionStore {
             additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings()
         )
         configureHandlers?(session)
+        wrapTerminationHandlerForFailureDetection(
+            session,
+            worktreePath: worktree.path,
+            sessionId: sessionId,
+            isResume: isResume,
+            launchedAt: Date()
+        )
         sessions[worktree.path] = ActiveSession(sessionId: sessionId, session: session)
         return true
+    }
+
+    /// 起動直後の非ゼロ終了を launch/resume 失敗として検知し `lastLaunchFailure` に記録する。
+    /// 既存の（configureHandlers が設定した）終了ハンドラはそのまま呼び出す。
+    private func wrapTerminationHandlerForFailureDetection(
+        _ session: any TerminalSession,
+        worktreePath: String,
+        sessionId: String,
+        isResume: Bool,
+        launchedAt: Date
+    ) {
+        let downstreamHandler = session.onProcessTerminated
+        session.onProcessTerminated = { [weak self] (exitCode: Int32?) in
+            if let exitCode, exitCode != 0,
+               Date().timeIntervalSince(launchedAt) < Self.launchFailureWindow {
+                self?.lastLaunchFailure = LaunchFailure(
+                    worktreePath: worktreePath,
+                    sessionId: sessionId,
+                    isResume: isResume,
+                    exitCode: exitCode
+                )
+            }
+            downstreamHandler?(exitCode)
+        }
     }
 
     func remove(for path: String) {
