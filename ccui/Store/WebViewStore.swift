@@ -30,31 +30,36 @@ final class WebViewStore {
     }
 
     private func installObservations() {
-        observations.append(webView.observe(\.isLoading, options: [.new]) { _, change in
+        // WKWebView mutates these properties on the main thread, so the KVO
+        // callbacks already arrive there. Routing them through `Task { @MainActor }`
+        // would hop through the task scheduler as independent unstructured tasks,
+        // letting updates (e.g. `url` vs. `isLoading`) land out of order and the
+        // address bar flicker. `assumeIsolated` applies them synchronously instead.
+        observations.append(webView.observe(\.isLoading, options: [.new]) { [weak self] _, change in
             let value = change.newValue ?? false
-            Task { @MainActor [weak self] in self?.isLoading = value }
+            MainActor.assumeIsolated { self?.isLoading = value }
         })
 
-        observations.append(webView.observe(\.title, options: [.new]) { _, change in
+        observations.append(webView.observe(\.title, options: [.new]) { [weak self] _, change in
             let value = (change.newValue ?? nil) ?? ""
-            Task { @MainActor [weak self] in self?.title = value }
+            MainActor.assumeIsolated { self?.title = value }
         })
 
-        observations.append(webView.observe(\.url, options: [.new]) { _, change in
+        observations.append(webView.observe(\.url, options: [.new]) { [weak self] _, change in
             let urlString = (change.newValue ?? nil)?.absoluteString
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 if let urlString { self?.urlString = urlString }
             }
         })
 
-        observations.append(webView.observe(\.canGoBack, options: [.new]) { _, change in
+        observations.append(webView.observe(\.canGoBack, options: [.new]) { [weak self] _, change in
             let value = change.newValue ?? false
-            Task { @MainActor [weak self] in self?.canGoBack = value }
+            MainActor.assumeIsolated { self?.canGoBack = value }
         })
 
-        observations.append(webView.observe(\.canGoForward, options: [.new]) { _, change in
+        observations.append(webView.observe(\.canGoForward, options: [.new]) { [weak self] _, change in
             let value = change.newValue ?? false
-            Task { @MainActor [weak self] in self?.canGoForward = value }
+            MainActor.assumeIsolated { self?.canGoForward = value }
         })
     }
 
@@ -91,14 +96,23 @@ final class WebViewStore {
 
     /// Resets the WebView state when switching worktrees.
     func reset() {
-        if let url = URL(string: WebViewStore.defaultURLString) {
-            webView.load(URLRequest(url: url))
-        }
         urlString = WebViewStore.defaultURLString
         title = ""
         isLoading = false
         canGoBack = false
         canGoForward = false
-        didInitialLoad = false
+
+        // A zero-size WKWebView hasn't established its render-process IPC yet
+        // (see WebViewController.viewDidLayout); loading into it here would be
+        // the same unsafe path that comment guards against and can leave the
+        // panel blank. Only reload immediately while the panel is on-screen
+        // with a real frame — otherwise let the layout-driven path in
+        // WebViewController perform the load once it becomes visible again.
+        guard webView.bounds.width > 0, webView.bounds.height > 0 else {
+            didInitialLoad = false
+            return
+        }
+        load(urlString: WebViewStore.defaultURLString)
+        didInitialLoad = true
     }
 }
