@@ -71,10 +71,13 @@ struct ContentView: View {
                 searchStore.clearIndex()
             }
         }
-        .onChange(of: claudeEventStore.sessions) { _, newSessions in
-            guard let wt = coordinator.selectedWorktree, newSessions[wt.path] != nil else { return }
-            // 選択中の worktree で新しい attention / 完了が発生した場合、見ているとみなして即座に既読化する
-            if claudeEventStore.hasUnacknowledged(for: wt.path) {
+        .onChange(of: claudeEventStore.eventCounter) { _, _ in
+            guard let wt = coordinator.selectedWorktree else { return }
+            // 選択中の worktree で新しい attention / 完了が発生した場合、見ているとみなして即座に既読化する。
+            // ただし permissionRequest 待ち中はバッジを消さない（ユーザーがまだ応答していない）。
+            let summary = claudeEventStore.agentSummary(for: wt.path)
+            guard summary.activity != .waitingForUser else { return }
+            if summary.pendingAttentionCount > 0 || summary.hasUnacknowledgedFinished {
                 claudeEventStore.acknowledge(for: wt.path)
             }
         }

@@ -10,6 +10,10 @@ final class ClaudeEventStore {
     /// worktree パスごとの既読タイムスタンプ（この時刻以前のイベントは確認済み）
     private(set) var acknowledgedUpTo: [String: Date] = [:]
 
+    /// hook イベント受信ごとにインクリメントされる軽量カウンタ。
+    /// onChange(of:) の等値比較コストを O(全イベント数) → O(1) に削減するために使う。
+    private(set) var eventCounter: Int = 0
+
     /// ディスクからの読み込みに失敗した場合のエラーメッセージ
     private(set) var loadError: String?
 
@@ -73,13 +77,13 @@ final class ClaudeEventStore {
         let activity: SessionActivity
         /// 未読の attention を持つセッション数
         let pendingAttentionCount: Int
-        /// 直近の未読 attention（メッセージ表示用）
-        let latestAttention: SessionAttention?
+        /// 未読のまま完了したセッションがあるかどうか
+        let hasUnacknowledgedFinished: Bool
     }
 
     func agentSummary(for worktreePath: String) -> WorktreeAgentSummary {
         guard let worktreeSessions = sessions[worktreePath] else {
-            return WorktreeAgentSummary(activity: .idle, pendingAttentionCount: 0, latestAttention: nil)
+            return WorktreeAgentSummary(activity: .idle, pendingAttentionCount: 0, hasUnacknowledgedFinished: false)
         }
         return Self.aggregateSummary(
             from: worktreeSessions.values,
@@ -110,8 +114,7 @@ final class ClaudeEventStore {
         var hasFinished = false
 
         var pendingAttentionCount = 0
-        var latestAttention: SessionAttention?
-        var latestAttentionAt: Date = .distantPast
+        var hasUnacknowledgedFinished = false
 
         for session in sessions {
             let snapshot = session.snapshot(now: now, acknowledgedUpTo: acknowledgedUpTo, activeTimeout: activeTimeout, attentionTimeout: attentionTimeout)
@@ -131,16 +134,17 @@ final class ClaudeEventStore {
                 hasUnresponsive = true
             case .finished:
                 hasFinished = true
+                if let cutoff = acknowledgedUpTo {
+                    if at > cutoff { hasUnacknowledgedFinished = true }
+                } else {
+                    hasUnacknowledgedFinished = true
+                }
             case .idle:
                 break
             }
 
             if let attention = snapshot.attention, !attention.isAcknowledged {
                 pendingAttentionCount += 1
-                if attention.occurredAt > latestAttentionAt {
-                    latestAttentionAt = attention.occurredAt
-                    latestAttention = attention
-                }
             }
         }
 
@@ -158,20 +162,7 @@ final class ClaudeEventStore {
             .idle
         }
 
-        return WorktreeAgentSummary(activity: activity, pendingAttentionCount: pendingAttentionCount, latestAttention: latestAttention)
-    }
-
-    /// 未読の attention、または未読のまま完了したセッションがあるかどうか
-    func hasUnacknowledged(for worktreePath: String) -> Bool {
-        guard let worktreeSessions = sessions[worktreePath] else { return false }
-        let now = Date()
-        let cutoff = acknowledgedUpTo[worktreePath]
-        return worktreeSessions.values.contains { session in
-            let snapshot = session.snapshot(now: now, acknowledgedUpTo: cutoff, activeTimeout: activeStaleness, attentionTimeout: attentionStaleness)
-            if let attention = snapshot.attention, !attention.isAcknowledged { return true }
-            guard snapshot.activity == .finished else { return false }
-            return isSessionUnacknowledged(session)
-        }
+        return WorktreeAgentSummary(activity: activity, pendingAttentionCount: pendingAttentionCount, hasUnacknowledgedFinished: hasUnacknowledgedFinished)
     }
 
     var activeAgentCount: Int {
@@ -281,6 +272,7 @@ final class ClaudeEventStore {
         }
 
         sessions[resolvedPath] = worktreeSessions
+        eventCounter += 1
 
         notificationService?.dispatch(event: event)
 

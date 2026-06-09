@@ -53,6 +53,10 @@ extension Color {
     static let interventionColor = Color(nsColor: NSColor(red: 0.67, green: 0.44, blue: 0.96, alpha: 1))
     static let interventionSubtle = Color(nsColor: NSColor(red: 0.67, green: 0.44, blue: 0.96, alpha: 0.12))
 
+    // Warning
+    static let statusWarning = Color(nsColor: .systemOrange)
+    static let statusWarningBg = Color(nsColor: .systemOrange).opacity(0.10)
+
     // Gutter
     static let gutterBg = Color.primary.opacity(0.02)
     static let gutterText = Color.primary.opacity(0.20)
@@ -131,6 +135,20 @@ struct HoverScaleButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == HoverScaleButtonStyle {
     static var hoverScale: HoverScaleButtonStyle { HoverScaleButtonStyle() }
+}
+
+// MARK: - Tool Bar Color
+
+extension Color {
+    static func toolBarColor(for toolName: String) -> Color {
+        switch toolName {
+        case "Read": .statusRenamed
+        case "Edit", "Write": .accent
+        case "Bash": .diffAddition
+        case "Grep", "Glob": .statusRenamed.opacity(0.7)
+        default: .textTertiary
+        }
+    }
 }
 
 // MARK: - Pulsing Dots Loading Indicator

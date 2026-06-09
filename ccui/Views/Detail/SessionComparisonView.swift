@@ -95,9 +95,7 @@ struct SessionComparisonView: View {
     }
 
     private func autonomyColor(_ score: Double) -> Color {
-        if score >= 0.7 { return .statusClean }
-        if score >= 0.4 { return .accent }
-        return .diffDeletion
+        score >= 0.7 ? .statusClean : score >= 0.4 ? .accent : .diffDeletion
     }
 
     // MARK: - Summary
@@ -180,10 +178,10 @@ struct SessionComparisonView: View {
                     let widthB = maxCount > 0 ? max(countB > 0 ? 2 : 0, geo.size.width * CGFloat(countB) / CGFloat(maxCount)) : 0
                     VStack(alignment: .leading, spacing: 2) {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(barColor(for: tool))
+                            .fill(Color.toolBarColor(for: tool))
                             .frame(width: widthA, height: 6)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(barColor(for: tool).opacity(0.5))
+                            .fill(Color.toolBarColor(for: tool).opacity(0.5))
                             .frame(width: widthB, height: 6)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
@@ -205,16 +203,6 @@ struct SessionComparisonView: View {
         .padding(.vertical, 1)
     }
 
-    private func barColor(for toolName: String) -> Color {
-        switch toolName {
-        case "Read": .statusRenamed
-        case "Edit", "Write": .accent
-        case "Bash": .diffAddition
-        case "Grep", "Glob": .statusRenamed.opacity(0.7)
-        default: .textTertiary
-        }
-    }
-
     // MARK: - Outcome
 
     private func outcomeComparison(evalA: SessionEvaluation, evalB: SessionEvaluation) -> some View {
@@ -230,7 +218,7 @@ struct SessionComparisonView: View {
             if let outcome = eval.outcome {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(outcomeColor(outcome))
+                        .fill(outcome.color)
                         .frame(width: 8, height: 8)
                     Text(outcome.displayLabel)
                         .font(.uiLabel)
@@ -245,13 +233,5 @@ struct SessionComparisonView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-    }
-
-    private func outcomeColor(_ outcome: SessionOutcome) -> Color {
-        switch outcome {
-        case .success: .statusClean
-        case .failure: .diffDeletion
-        case .partial: .accent
-        }
     }
 }

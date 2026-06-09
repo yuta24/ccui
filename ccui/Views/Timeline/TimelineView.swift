@@ -68,7 +68,7 @@ struct TimelineView: View {
         HStack(spacing: 4) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 9))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.statusWarning)
             Text("Older events were dropped (limit: \(claudeEventStore.maxEventsPerSessionLimit)). Metrics may be inaccurate.")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textSecondary)
@@ -76,7 +76,7 @@ struct TimelineView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.1))
+        .background(Color.statusWarningBg)
     }
 
     // MARK: - Empty State

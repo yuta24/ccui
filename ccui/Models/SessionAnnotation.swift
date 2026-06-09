@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 nonisolated enum SessionOutcome: String, Codable, CaseIterable, Sendable {
     case success
@@ -20,6 +21,14 @@ extension SessionOutcome {
         case .success: "Success"
         case .failure: "Failure"
         case .partial: "Partial"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .success: .statusClean
+        case .failure: .diffDeletion
+        case .partial: .accent
         }
     }
 }

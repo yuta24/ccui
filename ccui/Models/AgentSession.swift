@@ -53,7 +53,8 @@ nonisolated struct AgentSession: Identifiable, Codable, Sendable {
         case .notification, .permissionRequest: raw = .waitingForUser
         }
 
-        guard raw.isActive, let lastEventAt else { return raw }
+        // waitingForUser persists indefinitely — the user decides when to respond
+        guard raw.isActive, raw != .waitingForUser, let lastEventAt else { return raw }
         if now.timeIntervalSince(lastEventAt) > activeTimeout {
             return .unresponsive
         }

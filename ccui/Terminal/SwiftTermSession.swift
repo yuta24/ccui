@@ -25,6 +25,8 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         }
         env["CCUI_SESSION"] = "1"
         let envStrings = env.map { "\($0.key)=\($0.value)" }
+        terminalView.nativeBackgroundColor = .windowBackgroundColor
+        terminalView.nativeForegroundColor = .labelColor
         terminalView.processDelegate = self
         terminalView.startProcess(
             executable: executable,

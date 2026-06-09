@@ -92,7 +92,7 @@ struct RegionCaptureOverlayView: View {
 
         let sourceRect = CGRect(
             x: rect.minX * scaleX,
-            y: image.size.height - rect.maxY * scaleY,
+            y: max(0, image.size.height - rect.maxY * scaleY),
             width: rect.width * scaleX,
             height: rect.height * scaleY
         )

@@ -102,7 +102,7 @@ struct SessionEvaluationView: View {
         HStack(spacing: 4) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 9))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.statusWarning)
             Text("Older events were dropped. Scores may be inaccurate.")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textSecondary)
@@ -110,7 +110,7 @@ struct SessionEvaluationView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.1))
+        .background(Color.statusWarningBg)
     }
 
     // MARK: - Autonomy Score
@@ -129,9 +129,7 @@ struct SessionEvaluationView: View {
     }
 
     private func autonomyColor(_ score: Double) -> Color {
-        if score >= 0.7 { return .statusClean }
-        if score >= 0.4 { return .accent }
-        return .diffDeletion
+        score >= 0.7 ? .statusClean : score >= 0.4 ? .accent : .diffDeletion
     }
 
     // MARK: - Summary
@@ -188,7 +186,7 @@ struct SessionEvaluationView: View {
             GeometryReader { geo in
                 let barWidth = max(2, geo.size.width * CGFloat(stat.count) / CGFloat(maxCount))
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(barColor(for: stat.toolName))
+                    .fill(Color.toolBarColor(for: stat.toolName))
                     .frame(width: barWidth, height: 14)
                     .frame(maxHeight: .infinity, alignment: .center)
             }
@@ -201,16 +199,6 @@ struct SessionEvaluationView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 2)
-    }
-
-    private func barColor(for toolName: String) -> Color {
-        switch toolName {
-        case "Read": .statusRenamed
-        case "Edit", "Write": .accent
-        case "Bash": .diffAddition
-        case "Grep", "Glob": .statusRenamed.opacity(0.7)
-        default: .textTertiary
-        }
     }
 
     // MARK: - Interventions by Tool
@@ -254,7 +242,7 @@ struct SessionEvaluationView: View {
             if let outcome = eval.outcome {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(outcomeColor(outcome))
+                        .fill(outcome.color)
                         .frame(width: 8, height: 8)
                     Text(outcome.displayLabel)
                         .font(.uiLabel)
@@ -281,13 +269,5 @@ struct SessionEvaluationView: View {
             }
         }
         .padding(.bottom, 10)
-    }
-
-    private func outcomeColor(_ outcome: SessionOutcome) -> Color {
-        switch outcome {
-        case .success: .statusClean
-        case .failure: .diffDeletion
-        case .partial: .accent
-        }
     }
 }

@@ -56,7 +56,7 @@ struct SessionAnnotationRow: View {
                             .foregroundStyle(Color.textTertiary)
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 8))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Color.statusWarning)
                             .help("Older events were dropped. Metrics are minimums.")
                     }
                 }
@@ -131,21 +131,13 @@ struct SessionAnnotationRow: View {
     private func outcomeBadge(_ outcome: SessionOutcome) -> some View {
         Text(outcome.displayLabel)
             .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(outcomeColor(outcome))
+            .foregroundStyle(outcome.color)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(outcomeColor(outcome).opacity(0.15))
+                    .fill(outcome.color.opacity(0.15))
             )
-    }
-
-    private func outcomeColor(_ outcome: SessionOutcome) -> Color {
-        switch outcome {
-        case .success: .statusClean
-        case .failure: .diffDeletion
-        case .partial: .accent
-        }
     }
 
     // MARK: - Annotation Popover

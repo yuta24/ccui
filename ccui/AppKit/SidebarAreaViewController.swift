@@ -23,7 +23,6 @@ final class SidebarAreaViewController: NSViewController {
 
         let sidebarView = stores.injectEnvironment(into: SidebarContainerView())
         let sidebarVC = NSHostingController(rootView: sidebarView)
-        sidebarVC.safeAreaRegions = []
         // Let the NSVisualEffectView material show through
         sidebarVC.view.wantsLayer = true
         sidebarVC.view.layer?.backgroundColor = NSColor.clear.cgColor

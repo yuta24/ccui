@@ -22,7 +22,7 @@ struct RepositorySectionView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Color.statusWarning)
                     Text("Repository not found on disk")
                         .font(.uiCaption)
                         .foregroundStyle(Color.textTertiary)
@@ -103,7 +103,7 @@ struct RepositorySectionView: View {
         } else {
             ForEach(worktreeStore.worktrees) { wt in
                 let summary = claudeEventStore.agentSummary(for: wt.path)
-                let isHighlighted = summary.activity.isActive || claudeEventStore.hasUnacknowledged(for: wt.path)
+                let isHighlighted = summary.activity.isActive || summary.pendingAttentionCount > 0 || summary.hasUnacknowledgedFinished
 
                 WorktreeRowView(
                     worktree: wt,
