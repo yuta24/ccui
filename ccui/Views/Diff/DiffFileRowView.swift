@@ -29,7 +29,7 @@ struct DiffFileRowView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .font(.monoCaption)
-                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                    .foregroundStyle(Color.textPrimary)
 
                 Spacer()
 

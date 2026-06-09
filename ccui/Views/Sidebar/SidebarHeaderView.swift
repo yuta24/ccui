@@ -15,12 +15,10 @@ struct SidebarHeaderView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.textSecondary)
                     .frame(width: 20, height: 20)
-                    .background(Color.surfaceElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
             }
-            .buttonStyle(.hoverScale)
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
             .help("Add Repository")
         }
         .padding(.horizontal, 14)

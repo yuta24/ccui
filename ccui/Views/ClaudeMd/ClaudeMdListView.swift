@@ -29,7 +29,7 @@ struct ClaudeMdListView: View {
                     HStack(spacing: 6) {
                         Text(file.level.rawValue)
                             .font(.uiLabel)
-                            .foregroundStyle(file.exists ? Color.textPrimary : Color.textTertiary)
+                            .foregroundStyle(file.exists ? Color.textPrimary : Color.textSecondary)
 
                         if store.selectedLevel == file.level && store.isDirty {
                             Circle()

@@ -17,21 +17,22 @@ struct PermissionsRuleEditorView: View {
 
     private var listKindPicker: some View {
         HStack(spacing: 4) {
-            ForEach(PermissionListKind.allCases) { kind in
-                Button {
-                    store.selectedListKind = kind
-                } label: {
-                    Text(kind.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(store.selectedListKind == kind ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(store.selectedListKind == kind ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(PermissionListKind.allCases) { kind in
+                        Button {
+                            store.selectedListKind = kind
+                        } label: {
+                            Text(kind.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(store.selectedListKind == kind ? Color.accent : Color.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
 
             Spacer()
@@ -99,7 +100,7 @@ struct PermissionsRuleEditorView: View {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "chevron.down" : "chevron.right")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                         .frame(width: 10)
 
                     if rule.value.isEmpty {
@@ -153,7 +154,7 @@ struct PermissionsRuleEditorView: View {
             HStack(spacing: 6) {
                 Text("Rule")
                     .font(.uiCaption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
                     .frame(width: 36, alignment: .trailing)
                 TextField("e.g. Bash(swift package:*)", text: Binding(
                     get: { rule.value },
@@ -197,7 +198,7 @@ struct PermissionsRuleEditorView: View {
         return VStack(alignment: .leading, spacing: 3) {
             Text("Pattern preview")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
             ForEach(Array(samples.enumerated()), id: \.offset) { _, pair in
                 HStack(spacing: 6) {
@@ -239,7 +240,7 @@ struct PermissionsRuleEditorView: View {
         return VStack(alignment: .leading, spacing: 3) {
             Text(rule.toolName == "*" ? "Matches all tools" : "Tool name pattern preview")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
             ForEach(Array(samples.enumerated()), id: \.offset) { _, pair in
                 HStack(spacing: 6) {
@@ -266,13 +267,13 @@ struct PermissionsRuleEditorView: View {
             HStack {
                 Text("User deny (read-only)")
                     .font(.uiCaption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
                     .textCase(.uppercase)
                     .tracking(0.5)
                 Spacer()
                 Text("\(store.userDenyRules.count)")
                     .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -302,22 +303,19 @@ struct PermissionsRuleEditorView: View {
             Spacer()
             Image(systemName: "lock.shield")
                 .font(.system(size: 24))
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Text("No \(store.selectedListKind.rawValue.lowercased()) rules")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Button {
                 store.addRule()
             } label: {
                 Text("Add Rule")
                     .font(.uiCaption)
-                    .foregroundStyle(Color.surfaceBase)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.glassProminent)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

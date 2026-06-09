@@ -27,7 +27,7 @@ struct ClaudeMdEditorView: View {
                     .foregroundStyle(Color.textPrimary)
                 Text(level.description)
                     .font(.uiCaption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
             }
             Spacer()
 
@@ -37,13 +37,10 @@ struct ClaudeMdEditorView: View {
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
                 .keyboardShortcut("s", modifiers: .command)
             }
         }
@@ -57,7 +54,7 @@ struct ClaudeMdEditorView: View {
         TextEditor(text: $store.editorContent)
             .font(.system(.body, design: .monospaced))
             .scrollContentBackground(.hidden)
-            .background(Color.surfacePrimary)
+            .background(Color.clear)
             .foregroundStyle(Color.textPrimary)
             .padding(4)
             .onChange(of: store.editorContent) { _, newValue in
@@ -74,10 +71,10 @@ struct ClaudeMdEditorView: View {
             Spacer()
             Image(systemName: "doc.text")
                 .font(.system(size: 24))
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Text("Select a CLAUDE.md file")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

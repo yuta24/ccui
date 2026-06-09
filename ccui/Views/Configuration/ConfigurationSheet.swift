@@ -39,7 +39,7 @@ struct ConfigurationSheet: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 640, height: 520)
-        .background(Color.surfaceBase)
+        .background(.ultraThinMaterial)
         .background {
             // Cmd+S save shortcut for current tab
             Button("") { saveCurrentTab() }
@@ -70,10 +70,10 @@ struct ConfigurationSheet: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.textTertiary)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -83,26 +83,27 @@ struct ConfigurationSheet: View {
 
     private var tabBar: some View {
         HStack(spacing: 4) {
-            ForEach(ConfigurationTab.allCases, id: \.self) { tab in
-                let isSelected = selectedTab == tab
-                Button {
-                    selectedTab = tab
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 10, weight: .medium))
-                        Text(tab.rawValue)
-                            .font(.uiCaption)
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(ConfigurationTab.allCases, id: \.self) { tab in
+                        let isSelected = selectedTab == tab
+                        Button {
+                            selectedTab = tab
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: tab.icon)
+                                    .font(.system(size: 10, weight: .medium))
+                                Text(tab.rawValue)
+                                    .font(.uiCaption)
+                            }
+                            .foregroundStyle(isSelected ? Color.accent : Color.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 5))
                     }
-                    .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(isSelected ? Color.accentSubtle : Color.clear)
-                    )
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
         }
@@ -133,7 +134,6 @@ struct ConfigurationSheet: View {
             ClaudeMdEditorView(store: claudeMdStore)
                 .frame(maxHeight: .infinity)
         }
-        .background(Color.surfacePrimary)
         .onAppear {
             claudeMdStore.load(repositoryPath: repositoryPath)
         }
@@ -155,7 +155,6 @@ struct ConfigurationSheet: View {
             HooksEntryEditorView(worktreePath: worktreePath, store: hooksStore, testRunner: hookTestRunner)
                 .frame(maxHeight: .infinity)
         }
-        .background(Color.surfacePrimary)
         .task {
             await hooksStore.load(worktreePath: worktreePath)
             refreshFireLogs()
@@ -180,21 +179,22 @@ struct ConfigurationSheet: View {
 
     private var hooksLevelPicker: some View {
         HStack(spacing: 4) {
-            ForEach(HookLevel.allCases) { level in
-                Button {
-                    hooksStore.selectedLevel = level
-                } label: {
-                    Text(level.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(hooksStore.selectedLevel == level ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(hooksStore.selectedLevel == level ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(HookLevel.allCases) { level in
+                        Button {
+                            hooksStore.selectedLevel = level
+                        } label: {
+                            Text(level.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(hooksStore.selectedLevel == level ? Color.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
             if hooksStore.isDirty {
@@ -203,13 +203,10 @@ struct ConfigurationSheet: View {
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
             }
         }
         .padding(.horizontal, 12)
@@ -229,7 +226,6 @@ struct ConfigurationSheet: View {
             PermissionsRuleEditorView(store: permissionsStore)
                 .frame(maxHeight: .infinity)
         }
-        .background(Color.surfacePrimary)
         .task {
             await permissionsStore.load(worktreePath: worktreePath)
         }
@@ -240,21 +236,22 @@ struct ConfigurationSheet: View {
 
     private var permissionsLevelPicker: some View {
         HStack(spacing: 4) {
-            ForEach(PermissionLevel.allCases) { level in
-                Button {
-                    permissionsStore.selectedLevel = level
-                } label: {
-                    Text(level.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(permissionsStore.selectedLevel == level ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(permissionsStore.selectedLevel == level ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(PermissionLevel.allCases) { level in
+                        Button {
+                            permissionsStore.selectedLevel = level
+                        } label: {
+                            Text(level.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(permissionsStore.selectedLevel == level ? Color.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
             if permissionsStore.isDirty {
@@ -263,13 +260,10 @@ struct ConfigurationSheet: View {
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
             }
         }
         .padding(.horizontal, 12)
@@ -280,24 +274,23 @@ struct ConfigurationSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Default Mode")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
-            HStack(spacing: 3) {
-                ForEach(PermissionDefaultMode.allCases) { mode in
-                    Button {
-                        permissionsStore.setDefaultMode(mode)
-                    } label: {
-                        Text(mode.displayName)
-                            .font(.system(size: 10))
-                            .foregroundStyle(permissionsStore.defaultMode == mode ? Color.accent : Color.textTertiary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(permissionsStore.defaultMode == mode ? Color.accentSubtle : Color.clear)
-                            )
+            GlassEffectContainer(spacing: 3) {
+                HStack(spacing: 3) {
+                    ForEach(PermissionDefaultMode.allCases) { mode in
+                        Button {
+                            permissionsStore.setDefaultMode(mode)
+                        } label: {
+                            Text(mode.displayName)
+                                .font(.system(size: 10))
+                                .foregroundStyle(permissionsStore.defaultMode == mode ? Color.accent : Color.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 3))
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

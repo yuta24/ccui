@@ -38,7 +38,7 @@ extension Color {
     static let textTertiary = Color(nsColor: .tertiaryLabelColor)
 
     // Accent — amber (Color.accent is auto-generated from AccentColor asset)
-    static let accentSubtle = Color.accent.opacity(0.12)
+    static let accentSubtle = Color.accent.opacity(0.18)
     static let accentMuted = Color.accent.opacity(0.25)
 
     // Semantic
@@ -92,12 +92,15 @@ enum PanelMetrics {
 struct ElevatedPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(Color.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Color.borderSubtle, lineWidth: 1)
-            )
+            .glassEffect(in: .rect(cornerRadius: 6))
+    }
+}
+
+struct GlassPanel: ViewModifier {
+    var cornerRadius: CGFloat = PanelMetrics.panelCornerRadius
+    func body(content: Content) -> some View {
+        content
+            .glassEffect(in: .rect(cornerRadius: cornerRadius))
     }
 }
 
@@ -105,7 +108,7 @@ struct SectionHeader: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.uiCaption)
-            .foregroundStyle(Color.textTertiary)
+            .foregroundStyle(Color.textSecondary)
             .textCase(.uppercase)
             .tracking(0.8)
     }
@@ -113,6 +116,9 @@ struct SectionHeader: ViewModifier {
 
 extension View {
     func elevatedPanel() -> some View { modifier(ElevatedPanel()) }
+    func glassPanel(cornerRadius: CGFloat = PanelMetrics.panelCornerRadius) -> some View {
+        modifier(GlassPanel(cornerRadius: cornerRadius))
+    }
     func sectionHeader() -> some View { modifier(SectionHeader()) }
 }
 

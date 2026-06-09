@@ -31,21 +31,22 @@ struct HooksEntryEditorView: View {
 
     private var tabPicker: some View {
         HStack(spacing: 4) {
-            ForEach(Tab.allCases, id: \.rawValue) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    Text(tab.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(selectedTab == tab ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(selectedTab == tab ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(Tab.allCases, id: \.rawValue) { tab in
+                        Button {
+                            selectedTab = tab
+                        } label: {
+                            Text(tab.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(selectedTab == tab ? Color.accent : Color.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
 
             Spacer()
@@ -104,7 +105,7 @@ struct HooksEntryEditorView: View {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "chevron.down" : "chevron.right")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                         .frame(width: 10)
 
                     if entry.isManagedByCCUI {
@@ -122,7 +123,7 @@ struct HooksEntryEditorView: View {
 
                     Text("\(entry.hooks.count) cmd")
                         .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
 
                     if !entry.isManagedByCCUI {
                         Button {
@@ -130,7 +131,7 @@ struct HooksEntryEditorView: View {
                         } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 10))
-                                .foregroundStyle(Color.textTertiary)
+                                .foregroundStyle(Color.textSecondary)
                         }
                         .buttonStyle(.plain)
                     }
@@ -156,7 +157,7 @@ struct HooksEntryEditorView: View {
                 HStack(spacing: 6) {
                     Text("Matcher")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                         .frame(width: 50, alignment: .trailing)
                     TextField("(all tools)", text: Binding(
                         get: { entry.matcher },
@@ -208,13 +209,13 @@ struct HooksEntryEditorView: View {
         HStack(spacing: 6) {
             Text("cmd")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
                 .frame(width: 50, alignment: .trailing)
 
             if entry.isManagedByCCUI {
                 Text(cmd.command)
                     .font(.uiCaptionMono)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
             } else {
@@ -240,7 +241,7 @@ struct HooksEntryEditorView: View {
                 } label: {
                     Image(systemName: "minus.circle")
                         .font(.system(size: 10))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -260,7 +261,7 @@ struct HooksEntryEditorView: View {
             HStack(spacing: 8) {
                 Text("Dry Run")
                     .font(.uiCaption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
 
                 Spacer()
 
@@ -298,7 +299,7 @@ struct HooksEntryEditorView: View {
                             .foregroundStyle(exitCode == 0 ? Color.statusClean : Color.diffDeletion)
                         Text("exit \(exitCode)")
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.textSecondary)
                     }
                 }
             }
@@ -329,10 +330,10 @@ struct HooksEntryEditorView: View {
                     Spacer()
                     Image(systemName: "bolt.slash")
                         .font(.system(size: 24))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                     Text("No events for \(store.selectedEventName.rawValue)")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -368,11 +369,11 @@ struct HooksEntryEditorView: View {
 
             Text(log.sessionId.prefix(8))
                 .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
             Text(log.receivedAt, style: .relative)
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -385,22 +386,19 @@ struct HooksEntryEditorView: View {
             Spacer()
             Image(systemName: "curlybraces")
                 .font(.system(size: 24))
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Text("No hooks for \(store.selectedEventName.rawValue)")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
             Button {
                 store.addEntry()
             } label: {
                 Text("Add Hook")
                     .font(.uiCaption)
-                    .foregroundStyle(Color.surfaceBase)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.glassProminent)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

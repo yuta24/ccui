@@ -33,7 +33,7 @@ struct SessionListSection: View {
         HStack {
             Text("Sessions")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.textPrimary)
                 .textCase(.uppercase)
                 .tracking(0.5)
 
@@ -64,7 +64,7 @@ struct SessionListSection: View {
                 Text("New Session")
                     .font(.uiCaption)
             }
-            .foregroundStyle(Color.textTertiary)
+            .foregroundStyle(Color.textSecondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
         }

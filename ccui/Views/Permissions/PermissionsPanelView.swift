@@ -47,13 +47,10 @@ struct PermissionsPanelView: View {
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
                 .keyboardShortcut("s", modifiers: .command)
             }
         }
@@ -65,21 +62,22 @@ struct PermissionsPanelView: View {
 
     private var levelPicker: some View {
         HStack(spacing: 4) {
-            ForEach(PermissionLevel.allCases) { level in
-                Button {
-                    store.selectedLevel = level
-                } label: {
-                    Text(level.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(store.selectedLevel == level ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(store.selectedLevel == level ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(PermissionLevel.allCases) { level in
+                        Button {
+                            store.selectedLevel = level
+                        } label: {
+                            Text(level.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(store.selectedLevel == level ? Color.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
         }
@@ -93,24 +91,23 @@ struct PermissionsPanelView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Default Mode")
                 .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
-            HStack(spacing: 3) {
-                ForEach(PermissionDefaultMode.allCases) { mode in
-                    Button {
-                        store.setDefaultMode(mode)
-                    } label: {
-                        Text(mode.displayName)
-                            .font(.system(size: 10))
-                            .foregroundStyle(store.defaultMode == mode ? Color.accent : Color.textTertiary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(store.defaultMode == mode ? Color.accentSubtle : Color.clear)
-                            )
+            GlassEffectContainer(spacing: 3) {
+                HStack(spacing: 3) {
+                    ForEach(PermissionDefaultMode.allCases) { mode in
+                        Button {
+                            store.setDefaultMode(mode)
+                        } label: {
+                            Text(mode.displayName)
+                                .font(.system(size: 10))
+                                .foregroundStyle(store.defaultMode == mode ? Color.accent : Color.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 3))
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

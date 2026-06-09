@@ -113,12 +113,7 @@ struct AddWorktreeView: View {
                         .font(.monoSmall)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
-                        .background(Color.surfaceElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(Color.borderDefault, lineWidth: 1)
-                        )
+                        .glassEffect(in: .rect(cornerRadius: 5))
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
@@ -179,17 +174,7 @@ struct AddWorktreeView: View {
                 dismissSheet()
             }
             .keyboardShortcut(.cancelAction)
-            .buttonStyle(.plain)
-            .font(.uiLabel)
-            .foregroundStyle(Color.textSecondary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(Color.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(Color.borderDefault, lineWidth: 1)
-            )
+            .buttonStyle(.glass)
 
             Spacer()
 
@@ -203,13 +188,7 @@ struct AddWorktreeView: View {
             }
             .keyboardShortcut(.defaultAction)
             .disabled(isCreateDisabled)
-            .buttonStyle(.plain)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(isCreateDisabled ? Color.textTertiary : Color.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(isCreateDisabled ? Color.surfaceElevated : Color.accent)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .buttonStyle(.glassProminent)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)

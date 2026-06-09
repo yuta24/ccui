@@ -39,10 +39,10 @@ struct SessionAnnotationRow: View {
                     }
                     Text(entry.createdAt, style: .offset)
                         .font(.uiCaption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                     if let count = session?.interventionCount, count > 0 {
                         Text("\u{00B7}")
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.textSecondary)
                         HStack(spacing: 2) {
                             Image(systemName: "person.fill.questionmark")
                                 .font(.system(size: 8))
@@ -53,7 +53,7 @@ struct SessionAnnotationRow: View {
                     }
                     if session?.isTruncated == true {
                         Text("\u{00B7}")
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.textSecondary)
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 8))
                             .foregroundStyle(Color.statusWarning)
@@ -74,7 +74,7 @@ struct SessionAnnotationRow: View {
                             } label: {
                                 Image(systemName: "tag")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textTertiary)
+                                    .foregroundStyle(session?.outcome != nil ? Color.accent : Color.textSecondary)
                                     .frame(width: 28, height: 28)
                                     .contentShape(Rectangle())
                             }
@@ -92,18 +92,19 @@ struct SessionAnnotationRow: View {
                     .background(
                         LinearGradient(
                             colors: [
-                                (isHovered ? Color.surfaceHover : Color.surfacePrimary).opacity(0),
-                                isHovered ? Color.surfaceHover : Color.surfacePrimary,
+                                Color.surfaceHover.opacity(0),
+                                Color.surfaceHover,
                             ],
                             startPoint: .leading,
                             endPoint: .init(x: 0.3, y: 0.5)
                         )
+                        .opacity(isHovered || showAnnotationPopover ? 1 : 0)
                     )
                 }
             }
         }
         .buttonStyle(.plain)
-        .background(isHovered ? Color.surfaceHover : Color.surfacePrimary)
+        .background(isHovered || showAnnotationPopover ? Color.surfaceHover : Color.clear)
         .onHover { hovering in isHovered = hovering }
         .contextMenu {
             if let onEvaluate {

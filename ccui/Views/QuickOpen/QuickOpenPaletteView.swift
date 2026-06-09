@@ -11,7 +11,7 @@ struct QuickOpenPaletteView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.3)
+            Color.black.opacity(0.15)
                 .ignoresSafeArea()
                 .onTapGesture {
                     quickOpenStore.close()
@@ -26,25 +26,20 @@ struct QuickOpenPaletteView: View {
                         quickOpenStore.close()
                     }
 
-                VStack(spacing: 0) {
-                    searchField
+                GlassEffectContainer {
+                    VStack(spacing: 0) {
+                        searchField
 
-                    Rectangle()
-                        .fill(Color.borderSubtle)
-                        .frame(height: 1)
+                        Divider()
 
-                    resultsList
+                        resultsList
+                    }
+                    .frame(width: panelWidth)
+                    .frame(maxHeight: 420)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .glassEffect(in: .rect(cornerRadius: 10))
+                    .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 8)
                 }
-                .frame(width: panelWidth)
-                .frame(maxHeight: 420)
-                .fixedSize(horizontal: false, vertical: true)
-                .background(Color.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.borderDefault, lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.5), radius: 30, x: 0, y: 8)
                 .position(
                     x: geometry.size.width / 2,
                     y: geometry.size.height * 0.3

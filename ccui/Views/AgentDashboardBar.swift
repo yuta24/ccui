@@ -83,47 +83,51 @@ struct ContentToolbar: View {
 
             // Actions (right)
             if coordinator.selectedWorktree != nil {
-                HStack(spacing: 4) {
-                    // Split toggle (Agent mode only)
-                    if detailUIState.contentMode == .agent {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                detailUIState.agentLayoutMode = detailUIState.agentLayoutMode == .full ? .split : .full
+                GlassEffectContainer(spacing: 4) {
+                    HStack(spacing: 4) {
+                        if detailUIState.contentMode == .agent {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    detailUIState.agentLayoutMode = detailUIState.agentLayoutMode == .full ? .split : .full
+                                }
+                            } label: {
+                                Image(systemName: detailUIState.agentLayoutMode == .split ? "rectangle.split.1x2.fill" : "rectangle.split.1x2")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(detailUIState.agentLayoutMode == .split ? Color.accent : Color.primary)
+                                    .frame(width: 28, height: 28)
+                                    .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                            .help("Toggle WebView Split (⌘U)")
+                        }
+
+                        Button {
+                            detailUIState.isRightPanelVisible.toggle()
                         } label: {
-                            Image(systemName: detailUIState.agentLayoutMode == .split ? "rectangle.split.1x2.fill" : "rectangle.split.1x2")
+                            Image(systemName: "sidebar.trailing")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(detailUIState.agentLayoutMode == .split ? Color.accent : Color.textSecondary)
+                                .foregroundStyle(detailUIState.isRightPanelVisible ? Color.accent : Color.primary)
                                 .frame(width: 28, height: 28)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.hoverScale)
-                        .help("Toggle WebView Split (⌘U)")
-                    }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                        .help("Inspector (⌘I)")
 
-                    Button {
-                        detailUIState.isRightPanelVisible.toggle()
-                    } label: {
-                        Image(systemName: "sidebar.trailing")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(detailUIState.isRightPanelVisible ? Color.accent : Color.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
+                        Button {
+                            detailUIState.showingConfiguration.toggle()
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(detailUIState.showingConfiguration ? Color.accent : Color.primary)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                        .help("Configuration")
                     }
-                    .buttonStyle(.hoverScale)
-                    .help("Inspector (⌘I)")
-
-                    Button {
-                        detailUIState.showingConfiguration.toggle()
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(detailUIState.showingConfiguration ? Color.accent : Color.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.hoverScale)
-                    .help("Configuration")
                 }
             }
         }

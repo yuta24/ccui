@@ -12,9 +12,7 @@ struct RightPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             tabBar
-            Rectangle()
-                .fill(Color.borderSubtle)
-                .frame(height: 1)
+            Divider()
             tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -26,14 +24,16 @@ struct RightPanelView: View {
     // MARK: - Tab Bar
 
     private var tabBar: some View {
-        HStack(spacing: 2) {
-            ForEach(RightPanelTab.allCases, id: \.self) { tab in
-                tabButton(tab)
+        GlassEffectContainer(spacing: 2) {
+            HStack(spacing: 2) {
+                ForEach(RightPanelTab.allCases, id: \.self) { tab in
+                    tabButton(tab)
+                }
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func tabButton(_ tab: RightPanelTab) -> some View {
@@ -45,12 +45,9 @@ struct RightPanelView: View {
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
                 .frame(width: 24, height: 20)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isSelected ? Color.accentSubtle : Color.clear)
-                )
         }
         .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
         .help(tab.rawValue)
     }
 

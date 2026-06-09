@@ -57,13 +57,10 @@ struct HooksPanelView: View {
                 } label: {
                     Text("Save")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Color.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
                 .keyboardShortcut("s", modifiers: .command)
             }
         }
@@ -81,21 +78,22 @@ struct HooksPanelView: View {
 
     private var levelPicker: some View {
         HStack(spacing: 4) {
-            ForEach(HookLevel.allCases) { level in
-                Button {
-                    store.selectedLevel = level
-                } label: {
-                    Text(level.rawValue)
-                        .font(.uiCaption)
-                        .foregroundStyle(store.selectedLevel == level ? Color.accent : Color.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(store.selectedLevel == level ? Color.accentSubtle : Color.clear)
-                        )
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(HookLevel.allCases) { level in
+                        Button {
+                            store.selectedLevel = level
+                        } label: {
+                            Text(level.rawValue)
+                                .font(.uiCaption)
+                                .foregroundStyle(store.selectedLevel == level ? Color.accent : Color.primary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                    }
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
         }

@@ -50,15 +50,14 @@ struct TimelineEventRow: View {
                 if let detail = eventDetail {
                     Text(detail)
                         .font(.uiCaptionMono)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                         .lineLimit(2)
                 }
 
                 if let elapsed = elapsedSincePrevious {
                     Text(elapsed)
                         .font(.uiCaptionMono)
-                        .foregroundStyle(Color.textTertiary)
-                        .opacity(0.6)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .padding(.trailing, 12)

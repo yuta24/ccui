@@ -60,7 +60,7 @@ struct RepositorySectionView: View {
         HStack(spacing: 6) {
             Text(repository.name)
                 .font(.uiCaption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.textPrimary)
                 .textCase(.uppercase)
                 .tracking(0.5)
                 .lineLimit(1)
@@ -72,9 +72,10 @@ struct RepositorySectionView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.textTertiary)
+                    .frame(width: 18, height: 18)
             }
             .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
             .help("Reload worktrees")
         }
         .padding(.horizontal, 8)

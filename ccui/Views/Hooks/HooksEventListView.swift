@@ -29,12 +29,12 @@ struct HooksEventListView: View {
             HStack(spacing: 6) {
                 Image(systemName: iconName(for: event))
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
+                    .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
                     .frame(width: 14)
 
                 Text(event.rawValue)
                     .font(.uiCaption)
-                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                    .foregroundStyle(isSelected ? Color.textPrimary : Color.primary)
 
                 Spacer()
 
@@ -51,7 +51,7 @@ struct HooksEventListView: View {
                 if userCount > 0 {
                     Text("\(userCount)")
                         .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
             .padding(.horizontal, 12)
