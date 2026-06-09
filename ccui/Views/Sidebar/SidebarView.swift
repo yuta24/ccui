@@ -54,8 +54,10 @@ struct SidebarView: View {
                         .padding(.horizontal, 8)
                     }
                 }
+                .scrollContentBackground(.hidden)
             }
         }
+        .background(.clear)
     }
 
     private func repositoryLoadingPlaceholder(_ repo: Repository) -> some View {

@@ -22,16 +22,18 @@ final class RootContainerViewController: NSViewController {
     override func loadView() {
         let container = NSView()
 
-        let splitVC = MainSplitViewController(stores: stores)
-        addChild(splitVC)
-        splitVC.view.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(splitVC.view)
+        let mainContentView = stores.injectEnvironment(into: MainContentView(stores: stores))
+        let hostingVC = NSHostingController(rootView: mainContentView)
+        hostingVC.safeAreaRegions = []
+        addChild(hostingVC)
+        hostingVC.view.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hostingVC.view)
 
         NSLayoutConstraint.activate([
-            splitVC.view.topAnchor.constraint(equalTo: container.topAnchor),
-            splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            hostingVC.view.topAnchor.constraint(equalTo: container.topAnchor),
+            hostingVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hostingVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            hostingVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
         view = container
