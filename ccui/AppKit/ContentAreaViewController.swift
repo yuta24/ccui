@@ -73,7 +73,7 @@ final class ContentAreaViewController: NSViewController {
         container.addSubview(splitViewContainer)
 
         NSLayoutConstraint.activate([
-            toolbarHosting.topAnchor.constraint(equalTo: container.topAnchor),
+            toolbarHosting.topAnchor.constraint(equalTo: container.safeAreaLayoutGuide.topAnchor),
             toolbarHosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             toolbarHosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             toolbarHosting.heightAnchor.constraint(equalToConstant: PanelMetrics.toolbarHeight),
