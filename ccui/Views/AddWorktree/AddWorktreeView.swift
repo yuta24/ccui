@@ -44,7 +44,6 @@ struct AddWorktreeView: View {
         }
         .frame(width: 440)
         .background(Color.surfacePrimary)
-        .preferredColorScheme(.dark)
         .task {
             await worktreeStore.loadBranches()
             if let initial = initialBaseBranch,
@@ -206,7 +205,7 @@ struct AddWorktreeView: View {
             .disabled(isCreateDisabled)
             .buttonStyle(.plain)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(isCreateDisabled ? Color.textTertiary : Color.surfaceBase)
+            .foregroundStyle(isCreateDisabled ? Color.textTertiary : Color.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .background(isCreateDisabled ? Color.surfaceElevated : Color.accent)

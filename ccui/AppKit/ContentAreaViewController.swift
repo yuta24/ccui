@@ -34,28 +34,21 @@ final class ContentAreaViewController: NSViewController {
     }
 
     override func loadView() {
-        let (outer, panel) = PanelMetrics.makeFloatingPanel()
+        let container = NSView()
 
-        // Toolbar (full width inside the panel, stable position)
-        let toolbarView = stores.injectEnvironment(into: ContentToolbar())
-            .preferredColorScheme(.dark)
-        let toolbarHosting = NSHostingView(rootView: toolbarView)
+        // Toolbar pinned to the top of the content area only (not spanning the sidebar)
+        let toolbarHosting = NSHostingView(rootView: stores.injectEnvironment(into: ContentToolbar()))
         toolbarHosting.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(toolbarHosting)
+        container.addSubview(toolbarHosting)
 
-        // Split view below toolbar
         splitVC = ContentSplitViewController()
         splitVC.splitView.isVertical = true
         splitVC.splitView.dividerStyle = .thin
-        splitVC.splitView.wantsLayer = true
-        splitVC.splitView.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
         splitVC.onResizeSubviews = { [weak self] in
             self?.handleSplitViewResize()
         }
 
-        let leftView = stores.injectEnvironment(into: ContentView())
-            .preferredColorScheme(.dark)
-        let leftVC = NSHostingController(rootView: leftView)
+        let leftVC = NSHostingController(rootView: stores.injectEnvironment(into: ContentView()))
         leftVC.safeAreaRegions = []
         // Disable SwiftUI → AppKit intrinsic size propagation; AppKit owns the width.
         leftVC.sizingOptions = []
@@ -63,9 +56,7 @@ final class ContentAreaViewController: NSViewController {
         leftItem.minimumThickness = 300
         splitVC.addSplitViewItem(leftItem)
 
-        let rightView = stores.injectEnvironment(into: RightPanelContainerView())
-            .preferredColorScheme(.dark)
-        let rightVC = NSHostingController(rootView: rightView)
+        let rightVC = NSHostingController(rootView: stores.injectEnvironment(into: RightPanelContainerView()))
         rightVC.safeAreaRegions = []
         // Critical: prevents tab content (Timeline / Changes / Stats / Eval) from
         // pushing different intrinsic widths into NSSplitView on tab switch.
@@ -79,21 +70,21 @@ final class ContentAreaViewController: NSViewController {
         addChild(splitVC)
         let splitViewContainer = splitVC.view
         splitViewContainer.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(splitViewContainer)
+        container.addSubview(splitViewContainer)
 
         NSLayoutConstraint.activate([
-            toolbarHosting.topAnchor.constraint(equalTo: panel.topAnchor),
-            toolbarHosting.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            toolbarHosting.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            toolbarHosting.topAnchor.constraint(equalTo: container.topAnchor),
+            toolbarHosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            toolbarHosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             toolbarHosting.heightAnchor.constraint(equalToConstant: PanelMetrics.toolbarHeight),
 
             splitViewContainer.topAnchor.constraint(equalTo: toolbarHosting.bottomAnchor),
-            splitViewContainer.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            splitViewContainer.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
-            splitViewContainer.bottomAnchor.constraint(equalTo: panel.bottomAnchor),
+            splitViewContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            splitViewContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            splitViewContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
-        view = outer
+        view = container
     }
 
     override func viewDidAppear() {

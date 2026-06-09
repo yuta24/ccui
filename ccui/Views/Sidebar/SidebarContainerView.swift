@@ -50,7 +50,6 @@ struct SidebarContainerView: View {
                 }
             }
         )
-        .floatingPanel()
         .confirmationDialog(
             "Switch session?",
             isPresented: Binding(

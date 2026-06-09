@@ -25,44 +25,43 @@ final class BottomTerminalViewController: NSViewController {
     }
 
     override func loadView() {
-        let (outer, panel) = PanelMetrics.makeFloatingPanel()
+        let container = NSView()
 
         // Tab bar (SwiftUI, fixed 32px)
         let tabBarView = stores.injectEnvironment(into: BottomTerminalTabBarView())
             .environment(bottomPanelState)
-            .preferredColorScheme(.dark)
         let tabBarVC = NSHostingController(rootView: tabBarView)
         addChild(tabBarVC)
         tabBarVC.view.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(tabBarVC.view)
+        container.addSubview(tabBarVC.view)
 
         // Separator
         let separator = SeparatorView()
         separator.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(separator)
+        container.addSubview(separator)
 
         // Terminal container (AppKit, fills remaining space)
         terminalContainer.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(terminalContainer)
+        container.addSubview(terminalContainer)
 
         NSLayoutConstraint.activate([
-            tabBarVC.view.topAnchor.constraint(equalTo: panel.topAnchor),
-            tabBarVC.view.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            tabBarVC.view.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            tabBarVC.view.topAnchor.constraint(equalTo: container.topAnchor),
+            tabBarVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            tabBarVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             tabBarVC.view.heightAnchor.constraint(equalToConstant: Self.tabBarHeight),
 
             separator.topAnchor.constraint(equalTo: tabBarVC.view.bottomAnchor),
-            separator.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            separator.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            separator.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             separator.heightAnchor.constraint(equalToConstant: Self.separatorHeight),
 
             terminalContainer.topAnchor.constraint(equalTo: separator.bottomAnchor),
-            terminalContainer.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            terminalContainer.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
-            terminalContainer.bottomAnchor.constraint(equalTo: panel.bottomAnchor),
+            terminalContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            terminalContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            terminalContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
-        view = outer
+        view = container
     }
 
     override func viewDidAppear() {
@@ -166,7 +165,6 @@ final class BottomTerminalViewController: NSViewController {
                 .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .preferredColorScheme(.dark)
         )
         let vc = NSHostingController(rootView: emptyView)
         addChild(vc)

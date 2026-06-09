@@ -15,12 +15,30 @@ final class SidebarAreaViewController: NSViewController {
     }
 
     override func loadView() {
+        // NSVisualEffectView provides the characteristic macOS sidebar material
+        let effectView = NSVisualEffectView()
+        effectView.material = .sidebar
+        effectView.blendingMode = .behindWindow
+        effectView.state = .active
+
         let sidebarView = stores.injectEnvironment(into: SidebarContainerView())
-            .preferredColorScheme(.dark)
         let sidebarVC = NSHostingController(rootView: sidebarView)
         sidebarVC.safeAreaRegions = []
+        // Let the NSVisualEffectView material show through
+        sidebarVC.view.wantsLayer = true
+        sidebarVC.view.layer?.backgroundColor = NSColor.clear.cgColor
         addChild(sidebarVC)
 
-        view = sidebarVC.view
+        sidebarVC.view.translatesAutoresizingMaskIntoConstraints = false
+        effectView.addSubview(sidebarVC.view)
+
+        NSLayoutConstraint.activate([
+            sidebarVC.view.topAnchor.constraint(equalTo: effectView.topAnchor),
+            sidebarVC.view.leadingAnchor.constraint(equalTo: effectView.leadingAnchor),
+            sidebarVC.view.trailingAnchor.constraint(equalTo: effectView.trailingAnchor),
+            sidebarVC.view.bottomAnchor.constraint(equalTo: effectView.bottomAnchor),
+        ])
+
+        view = effectView
     }
 }

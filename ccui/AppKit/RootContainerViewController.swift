@@ -21,11 +21,6 @@ final class RootContainerViewController: NSViewController {
 
     override func loadView() {
         let container = NSView()
-        container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
-
-        let titleBarHeight: CGFloat = PanelMetrics.titleBarHeight
-        let edgeInset = PanelMetrics.windowEdgeInset
 
         let splitVC = MainSplitViewController(stores: stores)
         addChild(splitVC)
@@ -33,10 +28,10 @@ final class RootContainerViewController: NSViewController {
         container.addSubview(splitVC.view)
 
         NSLayoutConstraint.activate([
-            splitVC.view.topAnchor.constraint(equalTo: container.topAnchor, constant: titleBarHeight),
-            splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: edgeInset),
-            splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -edgeInset),
-            splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -edgeInset),
+            splitVC.view.topAnchor.constraint(equalTo: container.topAnchor),
+            splitVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            splitVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            splitVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
 
         view = container
@@ -103,7 +98,6 @@ final class RootContainerViewController: NSViewController {
                 initialBaseBranch: stores.appCoordinator.initialBaseBranch
             )
         )
-        .preferredColorScheme(.dark)
 
         let hostingVC = NSHostingController(rootView: sheetView)
         isShowingSheet = true
@@ -123,7 +117,6 @@ final class RootContainerViewController: NSViewController {
                 )
             )
         )
-        .preferredColorScheme(.dark)
 
         let hostingVC = NSHostingController(rootView: sheetView)
         isShowingSheet = true

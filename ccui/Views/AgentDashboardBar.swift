@@ -79,17 +79,6 @@ struct ContentToolbar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Branch name (left)
-            if let worktree = coordinator.selectedWorktree {
-                HStack(spacing: 5) {
-                    Image(systemName: "arrow.triangle.branch")
-                        .font(.system(size: 9, weight: .medium))
-                    Text(worktree.displayName)
-                        .font(.uiCaption)
-                }
-                .foregroundStyle(Color.textTertiary)
-            }
-
             Spacer()
 
             // Actions (right)
@@ -140,6 +129,8 @@ struct ContentToolbar: View {
         }
         .padding(.horizontal, 14)
         .frame(height: PanelMetrics.toolbarHeight)
+        .frame(maxWidth: .infinity)
+        .background(Color.surfaceWindow)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.borderSubtle).frame(height: 1)
         }

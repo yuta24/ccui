@@ -1,39 +1,45 @@
 import SwiftUI
 
-// MARK: - NSColor Tokens
+// MARK: - NSColor Tokens (AppKit layer — adaptive semantic colors)
 
 extension NSColor {
-    static let surfaceWindowColor = NSColor(red: 0.027, green: 0.027, blue: 0.027, alpha: 1)
-    static let surfacePrimaryColor = NSColor(red: 0.098, green: 0.098, blue: 0.098, alpha: 1)
-    static let textPrimaryColor = NSColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1)
-    static let accentAmberColor = NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1)
-    static let accentMutedColor = NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 0.25)
+    static let surfaceWindowColor = NSColor.windowBackgroundColor
+    static let surfacePrimaryColor = NSColor.controlBackgroundColor
+    static let textPrimaryColor = NSColor.labelColor
+    static let accentAmberColor = NSColor(named: "AccentColor") ?? NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1)
+    static let accentMutedColor = (NSColor(named: "AccentColor") ?? NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1))
+        .withAlphaComponent(0.25)
+
+    static let surfaceElevatedColor = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? NSColor(red: 0.133, green: 0.133, blue: 0.133, alpha: 1)
+            : NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1)
+    }
 }
 
-// MARK: - Color Tokens
+// MARK: - Color Tokens (SwiftUI layer — adaptive)
 
 extension Color {
     // Backgrounds
-    static let surfaceWindow = Color(nsColor: .surfaceWindowColor)
-    static let surfaceBase = Color(nsColor: NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1))
-    static let surfacePrimary = Color(nsColor: .surfacePrimaryColor)
-    static let surfaceElevated = Color(nsColor: NSColor(red: 0.133, green: 0.133, blue: 0.133, alpha: 1))
-    static let surfaceHover = Color(nsColor: NSColor(red: 0.16, green: 0.16, blue: 0.16, alpha: 1))
+    static let surfaceWindow = Color(nsColor: .windowBackgroundColor)
+    static let surfaceBase = Color(nsColor: .underPageBackgroundColor)
+    static let surfacePrimary = Color(nsColor: .controlBackgroundColor)
+    static let surfaceElevated = Color(nsColor: .surfaceElevatedColor)
+    static let surfaceHover = Color.primary.opacity(0.06)
 
     // Borders
-    static let borderSubtle = Color.white.opacity(0.06)
-    static let borderDefault = Color.white.opacity(0.10)
-    static let borderStrong = Color.white.opacity(0.16)
+    static let borderSubtle = Color.primary.opacity(0.06)
+    static let borderDefault = Color.primary.opacity(0.10)
+    static let borderStrong = Color.primary.opacity(0.16)
 
     // Text
-    static let textPrimary = Color(nsColor: .textPrimaryColor)
-    static let textSecondary = Color(nsColor: NSColor(red: 0.53, green: 0.53, blue: 0.53, alpha: 1))
-    static let textTertiary = Color(nsColor: NSColor(red: 0.33, green: 0.33, blue: 0.33, alpha: 1))
+    static let textPrimary = Color(nsColor: .labelColor)
+    static let textSecondary = Color(nsColor: .secondaryLabelColor)
+    static let textTertiary = Color(nsColor: .tertiaryLabelColor)
 
-    // Accent - Amber
-    static let accent = Color(nsColor: .accentAmberColor)
-    static let accentSubtle = Color(nsColor: NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 0.12))
-    static let accentMuted = Color(nsColor: .accentMutedColor)
+    // Accent — amber (Color.accent is auto-generated from AccentColor asset)
+    static let accentSubtle = Color.accent.opacity(0.12)
+    static let accentMuted = Color.accent.opacity(0.25)
 
     // Semantic
     static let diffAddition = Color(nsColor: NSColor(red: 0.30, green: 0.69, blue: 0.31, alpha: 1))
@@ -48,8 +54,8 @@ extension Color {
     static let interventionSubtle = Color(nsColor: NSColor(red: 0.67, green: 0.44, blue: 0.96, alpha: 0.12))
 
     // Gutter
-    static let gutterBg = Color.white.opacity(0.02)
-    static let gutterText = Color.white.opacity(0.20)
+    static let gutterBg = Color.primary.opacity(0.02)
+    static let gutterText = Color.primary.opacity(0.20)
 }
 
 // MARK: - Font Tokens
@@ -71,72 +77,13 @@ enum PanelMetrics {
     static let cornerRadius: CGFloat = 8
     static let itemCornerRadius: CGFloat = 5
     static let panelCornerRadius: CGFloat = 10
-    static let panelGap: CGFloat = 3
-    static let windowEdgeInset: CGFloat = 4
+    static let panelGap: CGFloat = 0
+    static let windowEdgeInset: CGFloat = 0
     static let titleBarHeight: CGFloat = 28
     static let toolbarHeight: CGFloat = 32
-
-    /// Creates an AppKit floating panel container: outer (window bg + shadow + gap) → inner (rounded, bordered).
-    /// Returns `(outer, panel)` — add content as subviews of `panel`.
-    static func makeFloatingPanel() -> (outer: NSView, panel: NSView) {
-        let outer = NSView()
-        outer.wantsLayer = true
-        outer.layer?.backgroundColor = NSColor.surfaceWindowColor.cgColor
-
-        let panel = NSView()
-        panel.wantsLayer = true
-        panel.layer?.cornerRadius = panelCornerRadius
-        panel.layer?.masksToBounds = true
-        panel.layer?.backgroundColor = NSColor.surfacePrimaryColor.cgColor
-        panel.layer?.borderWidth = 0.5
-        panel.layer?.borderColor = NSColor.white.withAlphaComponent(0.08).cgColor
-
-        // Shadow on a wrapper to avoid masksToBounds clipping it
-        let shadowHost = NSView()
-        shadowHost.wantsLayer = true
-        shadowHost.shadow = NSShadow()
-        shadowHost.layer?.shadowColor = NSColor.black.withAlphaComponent(0.5).cgColor
-        shadowHost.layer?.shadowOpacity = 1
-        shadowHost.layer?.shadowRadius = 10
-        shadowHost.layer?.shadowOffset = CGSize(width: 0, height: -2)
-        shadowHost.translatesAutoresizingMaskIntoConstraints = false
-        outer.addSubview(shadowHost)
-
-        panel.translatesAutoresizingMaskIntoConstraints = false
-        shadowHost.addSubview(panel)
-
-        NSLayoutConstraint.activate([
-            shadowHost.topAnchor.constraint(equalTo: outer.topAnchor, constant: panelGap),
-            shadowHost.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: panelGap),
-            shadowHost.trailingAnchor.constraint(equalTo: outer.trailingAnchor, constant: -panelGap),
-            shadowHost.bottomAnchor.constraint(equalTo: outer.bottomAnchor, constant: -panelGap),
-
-            panel.topAnchor.constraint(equalTo: shadowHost.topAnchor),
-            panel.leadingAnchor.constraint(equalTo: shadowHost.leadingAnchor),
-            panel.trailingAnchor.constraint(equalTo: shadowHost.trailingAnchor),
-            panel.bottomAnchor.constraint(equalTo: shadowHost.bottomAnchor),
-        ])
-
-        return (outer, panel)
-    }
 }
 
 // MARK: - View Modifiers
-
-struct FloatingPanel: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(Color.surfacePrimary)
-            .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.panelCornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: PanelMetrics.panelCornerRadius)
-                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-            )
-            .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 2)
-            .padding(PanelMetrics.panelGap)
-            .background(Color.surfaceWindow)
-    }
-}
 
 struct ElevatedPanel: ViewModifier {
     func body(content: Content) -> some View {
@@ -161,7 +108,6 @@ struct SectionHeader: ViewModifier {
 }
 
 extension View {
-    func floatingPanel() -> some View { modifier(FloatingPanel()) }
     func elevatedPanel() -> some View { modifier(ElevatedPanel()) }
     func sectionHeader() -> some View { modifier(SectionHeader()) }
 }
