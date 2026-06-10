@@ -8,6 +8,10 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private let defaultExpandedHeight: CGFloat = 220
     private var isUpdatingSplitFromState = false
     private var isObserving = false
+    /// handleExpandedChanged の世代番号。連続でアニメーションが開始された場合、
+    /// 古いアニメーションの completionHandler が新しいアニメーションの途中で
+    /// 呼ばれても isAnimatingResize を false に戻さないようにする。
+    private var resizeGeneration = 0
 
     private var currentWorktreePath: String? {
         stores.appCoordinator.selectedWorktree?.path
@@ -81,13 +85,24 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
             targetPosition = totalHeight - collapsedHeight
         }
         isUpdatingSplitFromState = true
+        bottomPanelState.isAnimatingResize = true
+        resizeGeneration &+= 1
+        let generation = resizeGeneration
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.2
             context.allowsImplicitAnimation = true
             splitView.setPosition(targetPosition, ofDividerAt: 0)
+            // resizeSubviewsWithOldSize で確定させた topView/bottomView の最終 frame に対し、
+            // それぞれの内部 Auto Layout 子ビュー（ツールバー等）のレイアウトをこの時点で
+            // 確定させる。これを呼ばないと子ビューが最終位置へ即座にスナップしてしまい、
+            // bounds がアニメーションで追従する topView/bottomView との間でズレが生じ、
+            // 一瞬位置がずれてから戻る（オーバーシュート）ように見える。
+            splitView.layoutSubtreeIfNeeded()
         }, completionHandler: {
             Task { @MainActor [weak self] in
-                self?.isUpdatingSplitFromState = false
+                guard let self, self.resizeGeneration == generation else { return }
+                self.isUpdatingSplitFromState = false
+                self.bottomPanelState.isAnimatingResize = false
             }
         })
     }

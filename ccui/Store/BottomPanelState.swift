@@ -5,6 +5,12 @@ import Foundation
 final class BottomPanelState {
     private var expandedPaths: Set<String> = []
 
+    /// ボトムパネルの開閉アニメーション中は true。
+    /// アニメーション中はエージェントターミナルが何度もリサイズされ、
+    /// SIGWINCH による全画面再描画が連発してカクつくのを防ぐため、
+    /// AgentTerminalViewController 側でこの間サイズを固定する。
+    var isAnimatingResize: Bool = false
+
     func isExpanded(for path: String?) -> Bool {
         guard let path else { return false }
         return expandedPaths.contains(path)

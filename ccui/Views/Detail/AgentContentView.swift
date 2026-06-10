@@ -3,12 +3,14 @@ import SwiftUI
 struct AgentContentView: View {
     let worktree: Worktree
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
+    @Environment(BottomPanelState.self) private var bottomPanelState
 
     var body: some View {
         if terminalSessionStore.session(for: worktree) != nil {
             AgentTerminalRepresentable(
                 worktree: worktree,
-                terminalSessionStore: terminalSessionStore
+                terminalSessionStore: terminalSessionStore,
+                bottomPanelState: bottomPanelState
             )
         } else {
             emptyState
@@ -43,9 +45,14 @@ struct AgentContentView: View {
 private struct AgentTerminalRepresentable: NSViewControllerRepresentable {
     let worktree: Worktree
     let terminalSessionStore: TerminalSessionStore
+    let bottomPanelState: BottomPanelState
 
     func makeNSViewController(context: Context) -> AgentTerminalViewController {
-        AgentTerminalViewController(worktree: worktree, terminalSessionStore: terminalSessionStore)
+        AgentTerminalViewController(
+            worktree: worktree,
+            terminalSessionStore: terminalSessionStore,
+            bottomPanelState: bottomPanelState
+        )
     }
 
     func updateNSViewController(_ controller: AgentTerminalViewController, context: Context) {
