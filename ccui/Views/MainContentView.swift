@@ -10,9 +10,7 @@ struct MainContentView: View {
         } detail: {
             DetailPaneRepresentable(stores: stores)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea()
         }
         .toolbar(removing: .sidebarToggle)
-        .ignoresSafeArea()
     }
 }

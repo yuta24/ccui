@@ -24,7 +24,6 @@ final class RootContainerViewController: NSViewController {
 
         let mainContentView = stores.injectEnvironment(into: MainContentView(stores: stores))
         let hostingVC = NSHostingController(rootView: mainContentView)
-        hostingVC.safeAreaRegions = []
         addChild(hostingVC)
         hostingVC.view.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hostingVC.view)
