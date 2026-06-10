@@ -10,7 +10,7 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private var isObserving = false
     /// handleExpandedChanged の世代番号。連続でアニメーションが開始された場合、
     /// 古いアニメーションの completionHandler が新しいアニメーションの途中で
-    /// 呼ばれても isAnimatingResize を false に戻さないようにする。
+    /// isUpdatingSplitFromState を false に戻さないようにする。
     private var resizeGeneration = 0
 
     private var currentWorktreePath: String? {
@@ -85,7 +85,8 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
             targetPosition = totalHeight - collapsedHeight
         }
         isUpdatingSplitFromState = true
-        bottomPanelState.isAnimatingResize = true
+        let bottomPanelState = bottomPanelState
+        bottomPanelState.beginResizeAnimation()
         resizeGeneration &+= 1
         let generation = resizeGeneration
         NSAnimationContext.runAnimationGroup({ context in
@@ -100,9 +101,10 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
             splitView.layoutSubtreeIfNeeded()
         }, completionHandler: {
             Task { @MainActor [weak self] in
-                guard let self, self.resizeGeneration == generation else { return }
-                self.isUpdatingSplitFromState = false
-                self.bottomPanelState.isAnimatingResize = false
+                if let self, self.resizeGeneration == generation {
+                    self.isUpdatingSplitFromState = false
+                }
+                bottomPanelState.endResizeAnimation()
             }
         })
     }
