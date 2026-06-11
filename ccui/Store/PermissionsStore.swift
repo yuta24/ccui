@@ -180,11 +180,6 @@ final class PermissionsStore {
         return json
     }
 
-    private func loadLevel(_ level: PermissionLevel) {
-        let path = level.settingsPath(worktreePath: worktreePath)
-        rawSettings[level] = Self.readSettings(at: path)
-    }
-
     private func parseCache(for level: PermissionLevel) -> LevelCache {
         let raw = rawSettings[level] ?? [:]
         let permsDict = (raw["permissions"] as? [String: Any]) ?? [:]

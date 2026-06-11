@@ -8,7 +8,7 @@ enum PermissionLevel: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    func settingsPath(worktreePath: String) -> String {
+    nonisolated func settingsPath(worktreePath: String) -> String {
         switch self {
         case .worktree:
             return (worktreePath as NSString)

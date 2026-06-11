@@ -8,10 +8,9 @@ final class JSONFileAppSettingsPersistence: AppSettingsPersistence {
     }
 
     func load() throws -> AppSettings {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard let data = try PersistenceFile.readDataIfPresent(at: fileURL) else {
             return AppSettings()
         }
-        let data = try Data(contentsOf: fileURL)
         return try JSONDecoder().decode(AppSettings.self, from: data)
     }
 

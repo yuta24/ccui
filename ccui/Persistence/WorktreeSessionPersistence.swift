@@ -19,10 +19,9 @@ final class JSONFileWorktreeSessionPersistence: WorktreeSessionPersistence {
     }
 
     func load() throws -> [String: [WorktreeSessionEntry]] {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard let data = try PersistenceFile.readDataIfPresent(at: fileURL) else {
             return [:]
         }
-        let data = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode([String: [WorktreeSessionEntry]].self, from: data)

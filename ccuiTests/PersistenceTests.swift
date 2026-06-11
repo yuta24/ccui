@@ -248,4 +248,152 @@ struct JSONFileRepositoryPersistenceTests {
         let loaded = try persistence.load()
         #expect(loaded.isEmpty)
     }
+
+    /// 直前の atomic 書き込み失敗等で 0 byte ファイルが残っているケース。
+    /// 初回起動相当として扱い、空配列を返す（decode エラーで throw しない）。
+    @Test func loadFromZeroByteFileReturnsEmpty() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("repos.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data().write(to: tempFile)
+
+        let persistence = JSONFileRepositoryPersistence(fileURL: tempFile)
+        let loaded = try persistence.load()
+        #expect(loaded.isEmpty)
+    }
+
+    /// 非空だが decode 不能なファイルは破損とみなし throw する。
+    @Test func loadFromCorruptFileThrows() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("repos.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data("not json".utf8).write(to: tempFile)
+
+        let persistence = JSONFileRepositoryPersistence(fileURL: tempFile)
+        #expect(throws: (any Error).self) {
+            try persistence.load()
+        }
+    }
+}
+
+// MARK: - JSONFileAppSettingsPersistence Tests
+
+struct JSONFileAppSettingsPersistenceTests {
+
+    @Test func saveAndLoadSettings() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("settings.json")
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+
+        let persistence = JSONFileAppSettingsPersistence(fileURL: tempFile)
+        let settings = AppSettings(environmentVariables: [EnvironmentVariable(key: "FOO", value: "bar")])
+        try persistence.save(settings)
+
+        let loaded = try persistence.load()
+        #expect(loaded == settings)
+    }
+
+    @Test func loadFromNonexistentFileReturnsDefault() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nonexistent-\(UUID().uuidString).json")
+        let persistence = JSONFileAppSettingsPersistence(fileURL: tempFile)
+        let loaded = try persistence.load()
+        #expect(loaded == AppSettings())
+    }
+
+    /// 直前の atomic 書き込み失敗等で 0 byte ファイルが残っているケース。
+    /// 初回起動相当として扱い、デフォルト設定を返す（decode エラーで throw しない）。
+    @Test func loadFromZeroByteFileReturnsDefault() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("settings.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data().write(to: tempFile)
+
+        let persistence = JSONFileAppSettingsPersistence(fileURL: tempFile)
+        let loaded = try persistence.load()
+        #expect(loaded == AppSettings())
+    }
+
+    /// 非空だが decode 不能なファイルは破損とみなし throw する。
+    @Test func loadFromCorruptFileThrows() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("settings.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data("not json".utf8).write(to: tempFile)
+
+        let persistence = JSONFileAppSettingsPersistence(fileURL: tempFile)
+        #expect(throws: (any Error).self) {
+            try persistence.load()
+        }
+    }
+}
+
+// MARK: - JSONFileWorktreeSessionPersistence Tests
+
+struct JSONFileWorktreeSessionPersistenceTests {
+
+    @Test func saveAndLoadEntries() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("worktree-sessions.json")
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+
+        let persistence = JSONFileWorktreeSessionPersistence(fileURL: tempFile)
+        let entries = [
+            "/repo": [WorktreeSessionEntry(sessionId: "s1", createdAt: Date(), title: "Task")],
+        ]
+        try persistence.save(entries)
+
+        let loaded = try persistence.load()
+        #expect(loaded["/repo"]?.first?.sessionId == "s1")
+    }
+
+    @Test func loadFromNonexistentFileReturnsEmpty() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nonexistent-\(UUID().uuidString).json")
+        let persistence = JSONFileWorktreeSessionPersistence(fileURL: tempFile)
+        let loaded = try persistence.load()
+        #expect(loaded.isEmpty)
+    }
+
+    /// 直前の atomic 書き込み失敗等で 0 byte ファイルが残っているケース。
+    /// 初回起動相当として扱い、空辞書を返す（decode エラーで throw しない）。
+    /// これにより、直後の createSession 等で空状態が誤って永続化され、
+    /// 既存のセッション履歴が失われることを防ぐ。
+    @Test func loadFromZeroByteFileReturnsEmpty() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("worktree-sessions.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data().write(to: tempFile)
+
+        let persistence = JSONFileWorktreeSessionPersistence(fileURL: tempFile)
+        let loaded = try persistence.load()
+        #expect(loaded.isEmpty)
+    }
+
+    /// 非空だが decode 不能なファイルは破損とみなし throw する。
+    @Test func loadFromCorruptFileThrows() throws {
+        let tempFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccui-test-\(UUID().uuidString)")
+            .appendingPathComponent("worktree-sessions.json")
+        try FileManager.default.createDirectory(at: tempFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempFile.deletingLastPathComponent()) }
+        try Data("not json".utf8).write(to: tempFile)
+
+        let persistence = JSONFileWorktreeSessionPersistence(fileURL: tempFile)
+        #expect(throws: (any Error).self) {
+            try persistence.load()
+        }
+    }
 }

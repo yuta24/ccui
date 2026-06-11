@@ -15,7 +15,7 @@ enum HookLevel: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    func settingsPath(worktreePath: String) -> String {
+    nonisolated func settingsPath(worktreePath: String) -> String {
         switch self {
         case .worktree:
             return (worktreePath as NSString)

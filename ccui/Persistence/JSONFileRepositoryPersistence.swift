@@ -8,10 +8,9 @@ final class JSONFileRepositoryPersistence: RepositoryPersistence {
     }
 
     func load() throws -> [Repository] {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard let data = try PersistenceFile.readDataIfPresent(at: fileURL) else {
             return []
         }
-        let data = try Data(contentsOf: fileURL)
         return try JSONDecoder().decode([Repository].self, from: data)
     }
 

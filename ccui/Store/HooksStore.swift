@@ -208,11 +208,6 @@ final class HooksStore {
         return json
     }
 
-    private func loadLevel(_ level: HookLevel) {
-        let path = level.settingsPath(worktreePath: worktreePath)
-        rawSettings[level] = Self.readSettings(at: path)
-    }
-
     private func parseEntries(for level: HookLevel) -> [ClaudeHookPayload.HookEventName: [HookEntry]] {
         let raw = rawSettings[level] ?? [:]
         guard let hooksDict = raw["hooks"] as? [String: Any] else {
