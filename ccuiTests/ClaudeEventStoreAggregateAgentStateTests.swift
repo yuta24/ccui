@@ -43,7 +43,7 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         let result = summary(from: [])
         #expect(result.activity == .idle)
         #expect(result.pendingAttentionCount == 0)
-        #expect(result.latestAttention == nil)
+        #expect(result.hasUnacknowledgedFinished == false)
     }
 
     @Test func singleRunningToolSession() {
@@ -155,7 +155,6 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         let result = summary(from: [toolUse, waiting], now: base)
         #expect(result.activity == .runningTool("Bash"))
         #expect(result.pendingAttentionCount == 1)
-        #expect(result.latestAttention?.reason == .notification(message: "approve?"))
     }
 
     @Test func acknowledgedAttentionDoesNotCountAsPending() {
@@ -163,7 +162,6 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         let waiting = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-10), message: "approve?")
         let result = summary(from: [waiting], now: base, acknowledgedUpTo: base)
         #expect(result.pendingAttentionCount == 0)
-        #expect(result.latestAttention == nil)
     }
 
     @Test func staleAttentionBeyondTimeoutIsExcluded() {
@@ -171,16 +169,36 @@ struct ClaudeEventStoreAggregateAgentStateTests {
         let staleWaiting = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-attentionTimeout - 60), message: "stale")
         let result = summary(from: [staleWaiting], now: base)
         #expect(result.pendingAttentionCount == 0)
-        #expect(result.latestAttention == nil)
     }
 
-    @Test func latestAttentionPicksMostRecentOccurrence() {
+    @Test func multipleUnacknowledgedAttentionsAreAllCounted() {
         let base = Date()
         let older = session(state: [.notification], id: "a", lastEventAt: base.addingTimeInterval(-30), message: "first")
         let newer = session(state: [.notification], id: "b", lastEventAt: base, message: "second")
         let result = summary(from: [older, newer], now: base)
         #expect(result.pendingAttentionCount == 2)
-        #expect(result.latestAttention?.reason == .notification(message: "second"))
+    }
+
+    // MARK: - hasUnacknowledgedFinished の集計
+
+    @Test func finishedSessionWithoutAcknowledgmentSetsHasUnacknowledgedFinished() {
+        let finished = session(state: [.stop], id: "a")
+        let result = summary(from: [finished])
+        #expect(result.hasUnacknowledgedFinished == true)
+    }
+
+    @Test func finishedSessionAcknowledgedAfterCompletionClearsHasUnacknowledgedFinished() {
+        let base = Date()
+        let finished = session(state: [.stop], id: "a", lastEventAt: base)
+        let result = summary(from: [finished], now: base, acknowledgedUpTo: base.addingTimeInterval(60))
+        #expect(result.hasUnacknowledgedFinished == false)
+    }
+
+    @Test func finishedSessionAcknowledgedBeforeCompletionKeepsHasUnacknowledgedFinished() {
+        let base = Date()
+        let finished = session(state: [.stop], id: "a", lastEventAt: base)
+        let result = summary(from: [finished], now: base, acknowledgedUpTo: base.addingTimeInterval(-60))
+        #expect(result.hasUnacknowledgedFinished == true)
     }
 
     // MARK: - 混在シナリオ
