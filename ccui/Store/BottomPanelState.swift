@@ -5,6 +5,23 @@ import Foundation
 final class BottomPanelState {
     private var expandedPaths: Set<String> = []
 
+    init(eventBus: AppEventBus) {
+        eventBus.subscribe { [weak self] event in
+            self?.handle(event)
+        }
+    }
+
+    private func handle(_ event: AppEvent) {
+        switch event {
+        case .worktreesSynced(let allWorktreePaths):
+            removeExcept(paths: allWorktreePaths)
+        case .worktreeRemoved(let path):
+            removeAll(for: path)
+        case .worktreesLoaded, .repositoriesRemoved:
+            break
+        }
+    }
+
     /// 分割ビューのリサイズアニメーション（ボトムパネルの開閉、エージェント
     /// スプリットのブラウザパネル開閉など）が進行中かどうか。
     /// アニメーション中はエージェントターミナルが何度もリサイズされ、

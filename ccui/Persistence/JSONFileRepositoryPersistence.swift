@@ -1,6 +1,6 @@
 import Foundation
 
-final class JSONFileRepositoryPersistence: RepositoryPersistence {
+nonisolated final class JSONFileRepositoryPersistence: RepositoryPersistence {
     private let fileURL: URL
 
     init(fileURL: URL = JSONFileRepositoryPersistence.defaultFileURL) {

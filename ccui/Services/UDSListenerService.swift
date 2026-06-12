@@ -100,7 +100,7 @@ final class UDSListenerService {
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
                 if Task.isCancelled { return }
-                await self?.recoverIfStale()
+                self?.recoverIfStale()
             }
         }
     }
@@ -216,7 +216,7 @@ final class UDSListenerService {
 
 /// Holds the server file descriptor and accept source in a sendable container
 /// so `deinit` can safely clean up from outside the MainActor.
-private final class ListenerState: @unchecked Sendable {
+nonisolated final class ListenerState: @unchecked Sendable {
     var serverFd: Int32
     var acceptSource: DispatchSourceRead?
     let socketPath: String

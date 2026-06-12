@@ -1,6 +1,6 @@
 import Foundation
 
-final class JSONFileAppSettingsPersistence: AppSettingsPersistence {
+nonisolated final class JSONFileAppSettingsPersistence: AppSettingsPersistence {
     private let fileURL: URL
 
     init(fileURL: URL = JSONFileAppSettingsPersistence.defaultFileURL) {

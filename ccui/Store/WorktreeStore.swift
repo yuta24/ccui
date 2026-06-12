@@ -14,18 +14,18 @@ final class WorktreeStore: Identifiable {
     private(set) var defaultBranch: String?
     private(set) var isLoadingBranches = false
 
-    var onWorktreesLoaded: (@MainActor ([Worktree]) -> Void)?
-
     let repositoryPath: String
     private let repository: Repository
+    private let eventBus: AppEventBus
     private var loadToken = UUID()
-    private let watcher = GitDirectoryWatcher()
+    private let watcher = FileSystemWatcher()
     private var reloadTask: Task<Void, Never>?
 
-    init(repository: Repository) {
+    init(repository: Repository, eventBus: AppEventBus) {
         self.id = repository.id
         self.repositoryPath = repository.path
         self.repository = repository
+        self.eventBus = eventBus
     }
 
     func tearDown() {
@@ -45,7 +45,7 @@ final class WorktreeStore: Identifiable {
         let repoID = repository.id
         do {
             let result = try await Task.detached(priority: .userInitiated) {
-                let output = try GitClient.listWorktrees(repositoryPath: repoPath)
+                let output = try await GitClient.listWorktrees(repositoryPath: repoPath)
                 return Self.parse(output, repositoryID: repoID)
             }.value
             guard loadToken == token else { return }
@@ -77,7 +77,7 @@ final class WorktreeStore: Identifiable {
             errorMessage = "Hook install failed: \(error.localizedDescription)"
         }
 
-        onWorktreesLoaded?(worktrees)
+        eventBus.publish(.worktreesLoaded(repositoryPath: repository.path, paths: Set(worktrees.map(\.path))))
     }
 
     func add(branch: String, path: String, createBranch: Bool, startPoint: String? = nil) async throws {
@@ -93,7 +93,7 @@ final class WorktreeStore: Identifiable {
         }
 
         try await Task.detached(priority: .userInitiated) {
-            try GitClient.addWorktree(args: args, repositoryPath: repoPath)
+            try await GitClient.addWorktree(args: args, repositoryPath: repoPath)
         }.value
 
         reloadTask?.cancel()
@@ -109,8 +109,8 @@ final class WorktreeStore: Identifiable {
         let repoPath = repository.path
         do {
             let result = try await Task.detached(priority: .userInitiated) {
-                let branches = try GitClient.listLocalBranches(repositoryPath: repoPath)
-                let defaultBranch = try? GitClient.defaultBranch(repositoryPath: repoPath)
+                let branches = try await GitClient.listLocalBranches(repositoryPath: repoPath)
+                let defaultBranch = try? await GitClient.defaultBranch(repositoryPath: repoPath)
                 return (branches, defaultBranch)
             }.value
             branches = result.0
@@ -127,12 +127,12 @@ final class WorktreeStore: Identifiable {
 
         try await Task.detached(priority: .userInitiated) {
             if !force {
-                let count = try GitClient.statusCount(worktreePath: wtPath)
+                let count = try await GitClient.statusCount(worktreePath: wtPath)
                 if count > 0 {
                     throw GitError.worktreeDirty(wtPath)
                 }
             }
-            try GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: force)
+            try await GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: force)
         }.value
 
         reloadTask?.cancel()
@@ -145,13 +145,37 @@ final class WorktreeStore: Identifiable {
     // MARK: - File Watching
 
     func startWatching() {
-        watcher.start(repositoryPath: repositoryPath) { [weak self] in
+        watcher.start(paths: Self.watchPaths(repositoryPath: repositoryPath), fileEvents: false, debounce: nil) { [weak self] in
             self?.scheduleReload()
         }
     }
 
     func stopWatching() {
         watcher.stop()
+    }
+
+    /// `.git` および `.git/worktrees` 配下の各 worktree ディレクトリを監視対象として返す。
+    nonisolated private static func watchPaths(repositoryPath: String) -> [String] {
+        let gitDir = (repositoryPath as NSString).appendingPathComponent(".git")
+        var paths = [gitDir]
+
+        let worktreesDir = (gitDir as NSString).appendingPathComponent("worktrees")
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: worktreesDir, isDirectory: &isDir), isDir.boolValue else {
+            return paths
+        }
+        paths.append(worktreesDir)
+
+        if let entries = try? FileManager.default.contentsOfDirectory(atPath: worktreesDir) {
+            for entry in entries {
+                let dir = (worktreesDir as NSString).appendingPathComponent(entry)
+                var entryIsDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: dir, isDirectory: &entryIsDir), entryIsDir.boolValue {
+                    paths.append(dir)
+                }
+            }
+        }
+        return paths
     }
 
     nonisolated private func scheduleReload() {
@@ -179,7 +203,7 @@ final class WorktreeStore: Identifiable {
                 for wt in currentWorktrees {
                     let wtPath = wt.path
                     group.addTask {
-                        let count = try? GitClient.statusCount(worktreePath: wtPath)
+                        let count = try? await GitClient.statusCount(worktreePath: wtPath)
                         return (wtPath, count)
                     }
                 }

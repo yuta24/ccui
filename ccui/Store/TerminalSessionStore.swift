@@ -25,8 +25,22 @@ final class TerminalSessionStore {
 
     private(set) var lastLaunchFailure: LaunchFailure?
 
-    init(appSettingsStore: AppSettingsStore) {
+    init(appSettingsStore: AppSettingsStore, eventBus: AppEventBus) {
         self.appSettingsStore = appSettingsStore
+        eventBus.subscribe { [weak self] event in
+            self?.handle(event)
+        }
+    }
+
+    private func handle(_ event: AppEvent) {
+        switch event {
+        case .worktreesSynced(let allWorktreePaths):
+            removeExcept(paths: allWorktreePaths)
+        case .worktreeRemoved(let path):
+            remove(for: path)
+        case .worktreesLoaded, .repositoriesRemoved:
+            break
+        }
     }
 
     func acknowledgeLaunchFailure() {

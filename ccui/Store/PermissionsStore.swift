@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 
 @Observable
 @MainActor
@@ -10,7 +9,6 @@ final class PermissionsStore {
     private(set) var denyRules: [PermissionRule] = []
     private(set) var defaultMode: PermissionDefaultMode = .default
     private(set) var userDenyRules: [PermissionRule] = []
-    private(set) var dirtyLevels: Set<PermissionLevel> = []
 
     var selectedLevel: PermissionLevel = .worktree {
         didSet {
@@ -23,12 +21,11 @@ final class PermissionsStore {
     }
     var selectedRuleID: UUID?
 
-    var isDirty: Bool { !dirtyLevels.isEmpty }
+    var isDirty: Bool { settingsStore.isDirty }
 
     // MARK: - Internal
 
-    private var worktreePath: String = ""
-    private var rawSettings: [PermissionLevel: [String: Any]] = [:]
+    private let settingsStore = LevelScopedSettingsStore<PermissionLevel>()
     private var levelCache: [PermissionLevel: LevelCache] = [:]
 
     private struct LevelCache {
@@ -40,35 +37,23 @@ final class PermissionsStore {
     // MARK: - Lifecycle
 
     func load(worktreePath: String) async {
-        self.worktreePath = worktreePath
-        dirtyLevels = []
-        let wp = worktreePath
-        let loaded = await Task.detached(priority: .userInitiated) {
-            var result: [PermissionLevel: [String: Any]] = [:]
-            for level in PermissionLevel.allCases {
-                result[level] = Self.readSettings(at: level.settingsPath(worktreePath: wp))
-            }
-            return result
-        }.value
-        for (level, json) in loaded {
-            rawSettings[level] = json
+        await settingsStore.load(worktreePath: worktreePath)
+        for level in PermissionLevel.allCases {
             levelCache[level] = parseCache(for: level)
         }
         syncFromCache()
     }
 
     func reset() {
-        worktreePath = ""
-        rawSettings = [:]
         levelCache = [:]
         allowRules = []
         denyRules = []
         defaultMode = .default
         userDenyRules = []
-        dirtyLevels = []
         selectedLevel = .worktree
         selectedListKind = .allow
         selectedRuleID = nil
+        settingsStore.reset()
     }
 
     // MARK: - Computed
@@ -108,22 +93,26 @@ final class PermissionsStore {
         var cache = levelCache[level] ?? LevelCache(allow: [], deny: [], defaultMode: .default)
         cache.defaultMode = mode
         levelCache[level] = cache
-        dirtyLevels.insert(level)
+        settingsStore.markDirty(level)
         syncFromCache()
     }
 
     // MARK: - Save
 
     func save() async {
-        for level in PermissionLevel.allCases where dirtyLevels.contains(level) {
-            await saveLevel(level)
+        let levelsToUpdate = settingsStore.dirtyLevels
+        await settingsStore.save { [weak self] level, settings in
+            self?.buildSettings(for: level, existing: settings) ?? settings
         }
+        let succeededLevels = levelsToUpdate.subtracting(settingsStore.dirtyLevels)
+        for level in succeededLevels {
+            levelCache[level] = parseCache(for: level)
+        }
+        syncFromCache()
     }
 
-    private func saveLevel(_ level: PermissionLevel) async {
-        let path = level.settingsPath(worktreePath: worktreePath)
-        var settings: [String: Any] = rawSettings[level] ?? [:]
-
+    private func buildSettings(for level: PermissionLevel, existing settings: [String: Any]) -> [String: Any] {
+        var settings = settings
         let cache = levelCache[level] ?? LevelCache(allow: [], deny: [], defaultMode: .default)
 
         // Seed from existing permissions to preserve unknown keys
@@ -151,37 +140,13 @@ final class PermissionsStore {
         }
 
         settings["permissions"] = permsDict
-
-        let success = await Task.detached(priority: .utility) { () -> Bool in
-            do {
-                let directory = (path as NSString).deletingLastPathComponent
-                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-                let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-                try data.write(to: URL(fileURLWithPath: path), options: .atomic)
-                return true
-            } catch {
-                Logger.store.error("Failed to save permissions to \(path, privacy: .public): \(error)")
-                return false
-            }
-        }.value
-
-        if success {
-            dirtyLevels.remove(level)
-        }
+        return settings
     }
 
     // MARK: - Private
 
-    private nonisolated static func readSettings(at path: String) -> [String: Any] {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return [:]
-        }
-        return json
-    }
-
     private func parseCache(for level: PermissionLevel) -> LevelCache {
-        let raw = rawSettings[level] ?? [:]
+        let raw = settingsStore.rawSettings[level] ?? [:]
         let permsDict = (raw["permissions"] as? [String: Any]) ?? [:]
 
         let allow = (permsDict["allow"] as? [String])?.map { PermissionRule(value: $0) } ?? []
@@ -211,7 +176,7 @@ final class PermissionsStore {
         }
 
         levelCache[level] = cache
-        dirtyLevels.insert(level)
+        settingsStore.markDirty(level)
         syncFromCache()
     }
 }

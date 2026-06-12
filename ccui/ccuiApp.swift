@@ -1,11 +1,11 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    var stores: StoreContainer!
+    var stores: AppDependencies!
     var mainWindowController: MainWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        stores = StoreContainer()
+        stores = AppDependencies()
         let controller = MainWindowController(stores: stores)
         controller.showWindow(nil)
         mainWindowController = controller

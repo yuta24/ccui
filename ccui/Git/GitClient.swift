@@ -1,35 +1,33 @@
 import Foundation
-import os
 
 enum GitClient {
 
     // MARK: - Worktree
 
-    nonisolated static func listWorktrees(repositoryPath: String) throws -> String {
-        try run(["worktree", "list", "--porcelain"], at: repositoryPath)
+    nonisolated static func listWorktrees(repositoryPath: String) async throws -> String {
+        try await run(["worktree", "list", "--porcelain"], at: repositoryPath)
     }
 
-    nonisolated static func addWorktree(args: [String], repositoryPath: String) throws {
-        _ = try run(["worktree", "add"] + args, at: repositoryPath)
+    nonisolated static func addWorktree(args: [String], repositoryPath: String) async throws {
+        _ = try await run(["worktree", "add"] + args, at: repositoryPath)
     }
 
-    nonisolated static func removeWorktree(path: String, repositoryPath: String, force: Bool = false) throws {
+    nonisolated static func removeWorktree(path: String, repositoryPath: String, force: Bool = false) async throws {
         var args = ["worktree", "remove"]
         if force { args.append("--force") }
         args.append(path)
-        _ = try run(args, at: repositoryPath)
+        _ = try await run(args, at: repositoryPath)
     }
-
 
     // MARK: - Branch
 
-    nonisolated static func listLocalBranches(repositoryPath: String) throws -> [String] {
-        let output = try run(["branch", "--format=%(refname:short)"], at: repositoryPath)
+    nonisolated static func listLocalBranches(repositoryPath: String) async throws -> [String] {
+        let output = try await run(["branch", "--format=%(refname:short)"], at: repositoryPath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
-    nonisolated static func defaultBranch(repositoryPath: String) throws -> String? {
-        let output = try run(["symbolic-ref", "refs/remotes/origin/HEAD"], at: repositoryPath)
+    nonisolated static func defaultBranch(repositoryPath: String) async throws -> String? {
+        let output = try await run(["symbolic-ref", "refs/remotes/origin/HEAD"], at: repositoryPath)
         let ref = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ref.hasPrefix("refs/remotes/origin/") else { return nil }
         return String(ref.dropFirst("refs/remotes/origin/".count))
@@ -37,22 +35,22 @@ enum GitClient {
 
     // MARK: - Status
 
-    nonisolated static func statusCount(worktreePath: String) throws -> Int {
-        let output = try run(["status", "--porcelain"], at: worktreePath)
+    nonisolated static func statusCount(worktreePath: String) async throws -> Int {
+        let output = try await run(["status", "--porcelain"], at: worktreePath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
     }
 
     // MARK: - File Listing
 
-    nonisolated static func lsFiles(_ args: [String], at repositoryPath: String) throws -> String {
-        try run(["ls-files"] + args, at: repositoryPath)
+    nonisolated static func lsFiles(_ args: [String], at repositoryPath: String) async throws -> String {
+        try await run(["ls-files"] + args, at: repositoryPath)
     }
 
     // MARK: - Diff
 
     nonisolated static func diff(repositoryPath: String) async throws -> String {
         do {
-            return try await runAsync(["diff", "HEAD", "--color=never"], at: repositoryPath)
+            return try await run(["diff", "HEAD", "--color=never"], at: repositoryPath)
         } catch let error as GitError {
             // HEAD doesn't exist (empty repo with no commits)
             if case .commandFailed(let msg) = error, msg.contains("unknown revision") {
@@ -63,7 +61,7 @@ enum GitClient {
     }
 
     nonisolated static func untrackedFiles(repositoryPath: String) async throws -> [String] {
-        let output = try await runAsync(["ls-files", "--others", "--exclude-standard"], at: repositoryPath)
+        let output = try await run(["ls-files", "--others", "--exclude-standard"], at: repositoryPath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
@@ -71,97 +69,23 @@ enum GitClient {
 
     private nonisolated static let processTimeout: TimeInterval = 30
 
-    nonisolated private static func run(_ args: [String], at directoryPath: String) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: directoryPath)
-
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-
-        try process.run()
-
-        let didTimeout = OSAllocatedUnfairLock(initialState: false)
-        let timeoutItem = DispatchWorkItem { [process] in
-            didTimeout.withLock { $0 = true }
-            if process.isRunning { process.terminate() }
-        }
-        DispatchQueue.global().asyncAfter(deadline: .now() + processTimeout, execute: timeoutItem)
-
-        process.waitUntilExit()
-        timeoutItem.cancel()
-
-        if didTimeout.withLock({ $0 }) {
+    nonisolated private static func run(_ args: [String], at directoryPath: String) async throws -> String {
+        let output: AsyncProcess.Output
+        do {
+            output = try await AsyncProcess.run(
+                "/usr/bin/git",
+                arguments: args,
+                currentDirectory: directoryPath,
+                timeout: processTimeout
+            )
+        } catch is AsyncProcess.RunError {
             throw GitError.timeout
         }
 
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-
-        if process.terminationStatus != 0 {
-            let errString = String(data: errData, encoding: .utf8) ?? "git command failed"
-            throw GitError.commandFailed(errString.trimmingCharacters(in: .whitespacesAndNewlines))
+        if output.exitCode != 0 {
+            throw GitError.commandFailed(output.stderrString.trimmingCharacters(in: .whitespacesAndNewlines))
         }
 
-        return String(data: outData, encoding: .utf8) ?? ""
-    }
-
-    nonisolated private static func runAsync(_ args: [String], at directoryPath: String) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-            process.arguments = args
-            process.currentDirectoryURL = URL(fileURLWithPath: directoryPath)
-
-            let stdout = Pipe()
-            let stderr = Pipe()
-            process.standardOutput = stdout
-            process.standardError = stderr
-
-            let state = OSAllocatedUnfairLock(initialState: (resumed: false, timedOut: false))
-
-            let timeoutItem = DispatchWorkItem { [process] in
-                state.withLock { $0.timedOut = true }
-                if process.isRunning { process.terminate() }
-            }
-
-            process.terminationHandler = { terminatedProcess in
-                timeoutItem.cancel()
-
-                let (alreadyResumed, didTimeout) = state.withLock { val in
-                    let result = (val.resumed, val.timedOut)
-                    val.resumed = true
-                    return result
-                }
-                guard !alreadyResumed else { return }
-
-                if didTimeout {
-                    continuation.resume(throwing: GitError.timeout)
-                    return
-                }
-
-                let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-
-                if terminatedProcess.terminationStatus != 0 {
-                    let errString = String(data: errData, encoding: .utf8) ?? "git command failed"
-                    continuation.resume(throwing: GitError.commandFailed(errString.trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else {
-                    continuation.resume(returning: String(data: outData, encoding: .utf8) ?? "")
-                }
-            }
-
-            do {
-                try process.run()
-                DispatchQueue.global().asyncAfter(deadline: .now() + processTimeout, execute: timeoutItem)
-            } catch {
-                timeoutItem.cancel()
-                process.terminationHandler = nil
-                continuation.resume(throwing: error)
-            }
-        }
+        return output.stdoutString
     }
 }

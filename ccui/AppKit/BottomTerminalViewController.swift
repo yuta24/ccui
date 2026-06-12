@@ -6,14 +6,13 @@ final class BottomTerminalViewController: NSViewController {
     private static let separatorHeight: CGFloat = 1
     static let collapsedHeight: CGFloat = tabBarHeight + separatorHeight + PanelMetrics.panelGap * 2
 
-    private let stores: StoreContainer
+    private let stores: AppDependencies
     private let bottomPanelState: BottomPanelState
-    private let terminalContainer = NSView()
-    private var embeddedSession: (any TerminalSession)?
+    private let terminalHost = TerminalHostViewController()
     private var emptyStateVC: NSHostingController<AnyView>?
     private var isObserving = false
 
-    init(stores: StoreContainer, bottomPanelState: BottomPanelState) {
+    init(stores: AppDependencies, bottomPanelState: BottomPanelState) {
         self.stores = stores
         self.bottomPanelState = bottomPanelState
         super.init(nibName: nil, bundle: nil)
@@ -41,6 +40,8 @@ final class BottomTerminalViewController: NSViewController {
         container.addSubview(separator)
 
         // Terminal container (AppKit, fills remaining space)
+        addChild(terminalHost)
+        let terminalContainer = terminalHost.view
         terminalContainer.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(terminalContainer)
 
@@ -77,12 +78,12 @@ final class BottomTerminalViewController: NSViewController {
 
     private func observeTerminalState() {
         withObservationTracking {
-            if let wt = stores.appCoordinator.selectedWorktree {
+            if let wt = stores.navigationStore.selectedWorktree {
                 _ = bottomPanelState.isExpanded(for: wt.path)
                 _ = stores.shellSessionStore.tabs(for: wt.path)
                 _ = stores.shellSessionStore.activeTabID(for: wt.path)
             } else {
-                _ = stores.appCoordinator.selectedWorktree
+                _ = stores.navigationStore.selectedWorktree
             }
         } onChange: {
             Task { @MainActor [weak self] in
@@ -93,9 +94,9 @@ final class BottomTerminalViewController: NSViewController {
     }
 
     private func updateTerminal() {
-        guard let worktree = stores.appCoordinator.selectedWorktree,
+        guard let worktree = stores.navigationStore.selectedWorktree,
               bottomPanelState.isExpanded(for: worktree.path) else {
-            removeCurrentTerminal()
+            terminalHost.remove()
             removeEmptyState()
             return
         }
@@ -105,9 +106,9 @@ final class BottomTerminalViewController: NSViewController {
 
         if let tab = activeTab {
             removeEmptyState()
-            embedTerminal(session: tab.session)
+            terminalHost.embed(session: tab.session)
         } else {
-            removeCurrentTerminal()
+            terminalHost.remove()
             let hasTabs = !stores.shellSessionStore.tabs(for: worktreePath).isEmpty
             if !hasTabs {
                 showEmptyState(worktreePath: worktreePath)
@@ -115,31 +116,6 @@ final class BottomTerminalViewController: NSViewController {
                 removeEmptyState()
             }
         }
-    }
-
-    // MARK: - Terminal Embedding
-
-    private func embedTerminal(session: any TerminalSession) {
-        let terminal = session.nsView
-        if terminal.superview === terminalContainer { return }
-        removeCurrentTerminal()
-
-        terminal.translatesAutoresizingMaskIntoConstraints = false
-        terminalContainer.addSubview(terminal)
-        NSLayoutConstraint.activate([
-            terminal.leadingAnchor.constraint(equalTo: terminalContainer.leadingAnchor),
-            terminal.trailingAnchor.constraint(equalTo: terminalContainer.trailingAnchor),
-            terminal.topAnchor.constraint(equalTo: terminalContainer.topAnchor),
-            terminal.bottomAnchor.constraint(equalTo: terminalContainer.bottomAnchor),
-        ])
-        session.refreshDisplay()
-        embeddedSession = session
-    }
-
-    private func removeCurrentTerminal() {
-        guard let session = embeddedSession else { return }
-        session.nsView.removeFromSuperview()
-        embeddedSession = nil
     }
 
     // MARK: - Empty State
@@ -169,6 +145,7 @@ final class BottomTerminalViewController: NSViewController {
         let vc = NSHostingController(rootView: emptyView)
         addChild(vc)
         vc.view.translatesAutoresizingMaskIntoConstraints = false
+        let terminalContainer = terminalHost.view
         terminalContainer.addSubview(vc.view)
         NSLayoutConstraint.activate([
             vc.view.leadingAnchor.constraint(equalTo: terminalContainer.leadingAnchor),

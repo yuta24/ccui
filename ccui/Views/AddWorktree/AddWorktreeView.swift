@@ -4,7 +4,7 @@ struct AddWorktreeView: View {
     let worktreeStore: WorktreeStore
     let repositoryPath: String
     let initialBaseBranch: String?
-    @Environment(AppCoordinator.self) private var appCoordinator
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
 
     @State private var branch = ""
     @State private var destinationPath = ""
@@ -197,7 +197,7 @@ struct AddWorktreeView: View {
     // MARK: - Logic
 
     private func dismissSheet() {
-        appCoordinator.showingAddWorktree = nil
+        worktreeLifecycleCoordinator.showingAddWorktree = nil
     }
 
     private func updateDestinationPath(from branchName: String) {

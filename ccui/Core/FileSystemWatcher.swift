@@ -1,15 +1,33 @@
-import Foundation
 import CoreServices
+import Foundation
 import os
 
+/// FSEventStream をラップした汎用ファイルシステム監視。
+/// 単一/複数パスの監視、ファイル単位イベントの有無、デバウンスの有無を
+/// パラメータ化することで、ファイル変更監視・`.git` 配下のディレクトリ変更監視の
+/// 双方をカバーする。
 @MainActor
-final class FileWatcherService {
+final class FileSystemWatcher {
     private var context: StreamContext?
 
-    func start(path: String, onChange: @escaping @MainActor () -> Void) {
+    /// - Parameters:
+    ///   - paths: 監視対象パス一覧。
+    ///   - latency: FSEventStream のイベント遅延（秒）。
+    ///   - fileEvents: `true` の場合ファイル単位の変更を通知する（`kFSEventStreamCreateFlagFileEvents`）。
+    ///     `false` の場合は変更があったディレクトリ単位での通知になる。
+    ///   - debounce: 連続するイベントをまとめる間隔。`nil` の場合は即時通知する。
+    ///   - onChange: 変更検知時に呼ばれるハンドラ。
+    func start(
+        paths: [String],
+        latency: TimeInterval = 1.0,
+        fileEvents: Bool = true,
+        debounce: Duration? = .seconds(2),
+        onChange: @escaping @MainActor () -> Void
+    ) {
         stop()
+        guard !paths.isEmpty else { return }
 
-        let ctx = StreamContext(onChange: onChange)
+        let ctx = StreamContext(onChange: onChange, debounce: debounce)
         let retained = Unmanaged.passRetained(ctx)
 
         var fsContext = FSEventStreamContext(
@@ -20,21 +38,21 @@ final class FileWatcherService {
             copyDescription: nil
         )
 
-        let paths = [path as CFString] as CFArray
-        let flags = UInt32(
-            kFSEventStreamCreateFlagUseCFTypes |
-            kFSEventStreamCreateFlagFileEvents |
-            kFSEventStreamCreateFlagNoDefer
-        )
+        let cfPaths = paths.map { $0 as CFString } as CFArray
+
+        var rawFlags = kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer
+        if fileEvents {
+            rawFlags |= kFSEventStreamCreateFlagFileEvents
+        }
 
         guard let stream = FSEventStreamCreate(
             nil,
             fsEventCallback,
             &fsContext,
-            paths,
+            cfPaths,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
-            1.0,
-            FSEventStreamCreateFlags(flags)
+            latency,
+            FSEventStreamCreateFlags(rawFlags)
         ) else {
             retained.release()
             return
@@ -68,26 +86,35 @@ final class FileWatcherService {
 
 // MARK: - Stream Context
 
-/// Separate `@unchecked Sendable` context passed to the C callback.
-/// Avoids retaining `FileWatcherService` itself via `Unmanaged`, eliminating
-/// the self-retain cycle that previously required manual `release()` calls.
+/// C コールバックへ渡す `@unchecked Sendable` context。
+/// `Unmanaged` を用いることで `FileSystemWatcher` 自身を retain させず、
+/// 自己参照サイクルと手動 release の必要性を排除する。
 private final class StreamContext: @unchecked Sendable {
     let onChange: @MainActor () -> Void
+    let debounce: Duration?
     var stream: FSEventStreamRef?
     var debounceTask: Task<Void, Never>?
     private let released = OSAllocatedUnfairLock(initialState: false)
 
-    init(onChange: @escaping @MainActor () -> Void) {
+    init(onChange: @escaping @MainActor () -> Void, debounce: Duration?) {
         self.onChange = onChange
+        self.debounce = debounce
     }
 
     func handleEvent() {
         let isReleased = released.withLock { $0 }
         guard !isReleased else { return }
 
+        guard let debounce else {
+            Task { @MainActor [onChange] in
+                onChange()
+            }
+            return
+        }
+
         debounceTask?.cancel()
         debounceTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: debounce)
             guard !Task.isCancelled else { return }
             self?.onChange()
         }

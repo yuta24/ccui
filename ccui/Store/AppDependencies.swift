@@ -1,7 +1,8 @@
 import SwiftUI
 
 @MainActor
-final class StoreContainer {
+final class AppDependencies {
+    let eventBus: AppEventBus
     let appSettingsStore: AppSettingsStore
     let repositoryStore: RepositoryStore
     let terminalSessionStore: TerminalSessionStore
@@ -9,7 +10,8 @@ final class StoreContainer {
     let claudeEventStore: ClaudeEventStore
     let worktreeSessionStore: WorktreeSessionStore
     let shellSessionStore: ShellSessionStore
-    let appCoordinator: AppCoordinator
+    let navigationStore: NavigationStore
+    let worktreeLifecycleCoordinator: WorktreeLifecycleCoordinator
     let detailUIState: DetailUIState
     let sessionComparisonStore: SessionComparisonStore
     let diffStore: DiffStore
@@ -18,28 +20,32 @@ final class StoreContainer {
     let bottomPanelState: BottomPanelState
 
     init() {
+        let eventBus = AppEventBus()
+        self.eventBus = eventBus
         let settingsStore = AppSettingsStore(persistence: JSONFileAppSettingsPersistence())
         self.appSettingsStore = settingsStore
         self.repositoryStore = RepositoryStore(persistence: JSONFileRepositoryPersistence())
-        self.terminalSessionStore = TerminalSessionStore(appSettingsStore: settingsStore)
+        self.terminalSessionStore = TerminalSessionStore(appSettingsStore: settingsStore, eventBus: eventBus)
         let notificationService = NotificationService()
         self.notificationService = notificationService
         // ClaudeEventStore（書き込み）と SessionAnalyticsStore（読み取り）が
-        // 同じ Coordinator を共有することで index.json の整合性を担保する。
-        let persistenceCoordinator = ClaudeEventPersistenceCoordinator()
+        // 同じ actor インスタンスを共有することで index.json の整合性を担保する。
+        let claudeEventPersistence = ClaudeEventPersistence()
         self.claudeEventStore = ClaudeEventStore(
-            coordinator: persistenceCoordinator,
-            notificationService: notificationService
+            persistence: claudeEventPersistence,
+            notificationService: notificationService,
+            eventBus: eventBus
         )
-        self.worktreeSessionStore = WorktreeSessionStore()
-        self.shellSessionStore = ShellSessionStore(appSettingsStore: settingsStore)
-        self.appCoordinator = AppCoordinator()
-        self.detailUIState = DetailUIState(persistenceCoordinator: persistenceCoordinator)
+        self.worktreeSessionStore = WorktreeSessionStore(eventBus: eventBus)
+        self.shellSessionStore = ShellSessionStore(appSettingsStore: settingsStore, eventBus: eventBus)
+        self.navigationStore = NavigationStore(eventBus: eventBus)
+        self.worktreeLifecycleCoordinator = WorktreeLifecycleCoordinator(eventBus: eventBus)
+        self.detailUIState = DetailUIState(persistence: claudeEventPersistence)
         self.sessionComparisonStore = SessionComparisonStore()
         self.diffStore = DiffStore()
         self.quickOpenStore = QuickOpenStore()
         self.searchStore = SearchStore()
-        self.bottomPanelState = BottomPanelState()
+        self.bottomPanelState = BottomPanelState(eventBus: eventBus)
     }
 
     func start() {
@@ -62,7 +68,8 @@ final class StoreContainer {
             .environment(claudeEventStore)
             .environment(worktreeSessionStore)
             .environment(shellSessionStore)
-            .environment(appCoordinator)
+            .environment(navigationStore)
+            .environment(worktreeLifecycleCoordinator)
             .environment(detailUIState)
             .environment(sessionComparisonStore)
             .environment(diffStore)

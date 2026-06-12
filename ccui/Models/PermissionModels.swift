@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Permission Level
 
-enum PermissionLevel: String, CaseIterable, Identifiable, Sendable {
+enum PermissionLevel: String, CaseIterable, Identifiable, Hashable, Sendable {
     case worktree = "Worktree"
     case user = "User"
 
@@ -20,6 +20,8 @@ enum PermissionLevel: String, CaseIterable, Identifiable, Sendable {
         }
     }
 }
+
+extension PermissionLevel: SettingsLevel {}
 
 // MARK: - Permission Rule
 

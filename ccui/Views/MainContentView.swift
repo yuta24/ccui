@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MainContentView: View {
-    let stores: StoreContainer
+    let stores: AppDependencies
 
     var body: some View {
         NavigationSplitView {

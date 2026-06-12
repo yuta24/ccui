@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ccui
 
-struct JSONFileClaudeEventPersistenceTests {
+struct ClaudeEventPersistenceTests {
 
     private func makeTempDir() throws -> URL {
         let dir = FileManager.default.temporaryDirectory
@@ -18,90 +18,90 @@ struct JSONFileClaudeEventPersistenceTests {
     // MARK: - directoryName
 
     @Test func directoryNameIsDeterministic() {
-        let a = JSONFileClaudeEventPersistence.directoryName(for: "/repo/path")
-        let b = JSONFileClaudeEventPersistence.directoryName(for: "/repo/path")
+        let a = ClaudeEventPersistence.directoryName(for: "/repo/path")
+        let b = ClaudeEventPersistence.directoryName(for: "/repo/path")
         #expect(a == b)
     }
 
     @Test func directoryNameDiffersForDifferentPaths() {
-        let a = JSONFileClaudeEventPersistence.directoryName(for: "/repo/a")
-        let b = JSONFileClaudeEventPersistence.directoryName(for: "/repo/b")
+        let a = ClaudeEventPersistence.directoryName(for: "/repo/a")
+        let b = ClaudeEventPersistence.directoryName(for: "/repo/b")
         #expect(a != b)
     }
 
     @Test func directoryNameIsHexString() {
-        let name = JSONFileClaudeEventPersistence.directoryName(for: "/test")
+        let name = ClaudeEventPersistence.directoryName(for: "/test")
         #expect(name.allSatisfy { $0.isHexDigit })
         #expect(name.count == 32) // 16 bytes * 2 hex chars
     }
 
     // MARK: - Save and Load
 
-    @Test func saveAndLoadSession() throws {
+    @Test func saveAndLoadSession() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let event = TestHelpers.makeEvent(sessionId: "s1", hookEventName: .preToolUse, toolName: "Bash")
         var session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
         session.append(event, maxEvents: 100)
 
-        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
+        await persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded.keys.contains("/repo"))
         #expect(loaded["/repo"]?["s1"] != nil)
         #expect(loaded["/repo"]?["s1"]?.events.count == 1)
     }
 
-    @Test func loadAllFromEmptyDirectoryReturnsEmpty() throws {
+    @Test func loadAllFromEmptyDirectoryReturnsEmpty() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
-        let loaded = try persistence.loadAll()
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
+        let loaded = try await persistence.loadAll()
         #expect(loaded.isEmpty)
     }
 
     // MARK: - Remove Session
 
-    @Test func removeSession() throws {
+    @Test func removeSession() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
 
-        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
-        try persistence.removeSession("s1", worktreePath: "/repo")
+        await persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
+        await persistence.removeSession("s1", worktreePath: "/repo")
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded["/repo"]?["s1"] == nil)
     }
 
     // MARK: - Remove Worktree
 
-    @Test func removeWorktree() throws {
+    @Test func removeWorktree() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let session = TestHelpers.makeSession(id: "s1", worktreePath: "/repo")
 
-        try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
-        try persistence.removeWorktree("/repo")
+        await persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
+        await persistence.removeWorktree("/repo")
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded["/repo"] == nil)
     }
 
     // MARK: - Prune Old Sessions
 
-    @Test func pruneOldSessions() throws {
+    @Test func pruneOldSessions() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let now = Date()
 
         for i in 0..<5 {
@@ -113,12 +113,12 @@ struct JSONFileClaudeEventPersistenceTests {
             )
             var session = TestHelpers.makeSession(id: sessionId, worktreePath: "/repo")
             session.append(event, maxEvents: 100)
-            try persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
+            await persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
         }
 
-        try persistence.pruneOldSessions(maxPerWorktree: 3)
+        await persistence.pruneOldSessions(maxPerWorktree: 3)
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         let sessions = loaded["/repo"] ?? [:]
         #expect(sessions.count == 3)
         // Newest sessions should remain
@@ -127,90 +127,93 @@ struct JSONFileClaudeEventPersistenceTests {
         #expect(sessions["s2"] != nil)
     }
 
-    // MARK: - Multiple Worktrees
-
     // MARK: - Repository Query
 
-    @Test func worktreePathsForRepository() throws {
+    @Test func worktreePathsForRepository() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
 
         // 同一リポジトリに属する 2 つの worktree
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s1", worktreePath: "/repo"),
             worktreePath: "/repo",
             repositoryPath: "/repo"
         )
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s2", worktreePath: "/repo-feature"),
             worktreePath: "/repo-feature",
             repositoryPath: "/repo"
         )
         // 別リポジトリ
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s3", worktreePath: "/other"),
             worktreePath: "/other",
             repositoryPath: "/other"
         )
 
-        let paths = try persistence.worktreePathsForRepository("/repo")
-        #expect(paths == Set(["/repo", "/repo-feature"]))
+        let result = try await persistence.loadSessionsForRepository("/repo")
+        #expect(result.worktreePaths == Set(["/repo", "/repo-feature"]))
+
+        // allSessions は他リポジトリも含む一貫したスナップショット
+        #expect(result.allSessions["/repo"]?["s1"] != nil)
+        #expect(result.allSessions["/repo-feature"]?["s2"] != nil)
+        #expect(result.allSessions["/other"]?["s3"] != nil)
     }
 
-    @Test func worktreePathsForRepositoryExcludesNilEntries() throws {
+    @Test func worktreePathsForRepositoryExcludesNilEntries() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
 
         // repositoryPath が nil のエントリ（マイグレーション直後の状態）
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s1", worktreePath: "/legacy"),
             worktreePath: "/legacy",
             repositoryPath: nil
         )
         // repositoryPath が設定済みのエントリ
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s2", worktreePath: "/repo"),
             worktreePath: "/repo",
             repositoryPath: "/repo"
         )
 
-        let paths = try persistence.worktreePathsForRepository("/repo")
+        let result = try await persistence.loadSessionsForRepository("/repo")
         // nil エントリは他リポジトリのデータ汚染を防ぐため含めない
-        #expect(!paths.contains("/legacy"))
-        #expect(paths.contains("/repo"))
+        #expect(!result.worktreePaths.contains("/legacy"))
+        #expect(result.worktreePaths.contains("/repo"))
     }
 
-    @Test func worktreePathsForRepositoryWithNoMatch() throws {
+    @Test func worktreePathsForRepositoryWithNoMatch() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
-        let paths = try persistence.worktreePathsForRepository("/nonexistent")
-        #expect(paths.isEmpty)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
+        let result = try await persistence.loadSessionsForRepository("/nonexistent")
+        #expect(result.worktreePaths.isEmpty)
     }
 
-    @Test func multipleWorktrees() throws {
+    @Test func multipleWorktrees() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
 
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s1", worktreePath: "/repo1"),
             worktreePath: "/repo1",
             repositoryPath: "/repo1"
         )
-        try persistence.saveSession(
+        await persistence.saveSession(
             TestHelpers.makeSession(id: "s2", worktreePath: "/repo2"),
             worktreePath: "/repo2",
             repositoryPath: "/repo2"
         )
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded.keys.count == 2)
         #expect(loaded["/repo1"]?["s1"] != nil)
         #expect(loaded["/repo2"]?["s2"] != nil)
