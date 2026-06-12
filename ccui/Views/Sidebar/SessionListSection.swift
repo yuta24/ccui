@@ -22,7 +22,10 @@ struct SessionListSection: View {
             if reversedSessions.isEmpty {
                 emptyState
             } else {
-                sessionList
+                ScrollView {
+                    sessionList
+                }
+                .scrollContentBackground(.hidden)
             }
         }
     }
@@ -30,12 +33,22 @@ struct SessionListSection: View {
     // MARK: - Header
 
     private var sectionHeader: some View {
-        HStack {
+        HStack(spacing: 6) {
             Text("Sessions")
                 .font(.uiCaption)
                 .foregroundStyle(Color.textPrimary)
                 .textCase(.uppercase)
                 .tracking(0.5)
+
+            Text("\u{00B7}")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textTertiary)
+
+            Text(worktree.displayName)
+                .font(.uiCaption)
+                .foregroundStyle(Color.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
 
             Spacer()
 
@@ -75,7 +88,7 @@ struct SessionListSection: View {
 
     private var sessionList: some View {
         let runningSessionId = terminalSessionStore.currentSessionId(for: worktree.path)
-        return LazyVStack(spacing: 0) {
+        return VStack(spacing: 0) {
             ForEach(reversedSessions, id: \.sessionId) { entry in
                 SessionAnnotationRow(
                     entry: entry,

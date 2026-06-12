@@ -35,26 +35,31 @@ struct SidebarView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
-
-                    // Session list for selected worktree
-                    if let worktree = coordinator.selectedWorktree {
-                        Rectangle()
-                            .fill(Color.borderSubtle)
-                            .frame(height: 1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-
-                        SessionListSection(
-                            worktree: worktree,
-                            onResumeSession: onResumeSession,
-                            onNewSession: onNewSession,
-                            onEvaluateSession: onEvaluateSession,
-                            onCompareSession: onCompareSession
-                        )
-                        .padding(.horizontal, 8)
-                    }
                 }
                 .scrollContentBackground(.hidden)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    // Pinned session list for the selected worktree — stays visible
+                    // regardless of how far the repository list above is scrolled.
+                    if let worktree = coordinator.selectedWorktree {
+                        VStack(spacing: 0) {
+                            Rectangle()
+                                .fill(Color.borderSubtle)
+                                .frame(height: 1)
+
+                            SessionListSection(
+                                worktree: worktree,
+                                onResumeSession: onResumeSession,
+                                onNewSession: onNewSession,
+                                onEvaluateSession: onEvaluateSession,
+                                onCompareSession: onCompareSession
+                            )
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .frame(height: 240, alignment: .top)
+                        }
+                        .background(Color.surfaceWindow)
+                    }
+                }
             }
         }
         .background(.clear)

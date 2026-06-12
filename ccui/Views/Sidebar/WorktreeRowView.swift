@@ -26,11 +26,7 @@ struct WorktreeRowView: View {
     private var rowLabel: some View {
         if isSelected {
             rowInner
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 5))
-        } else if isHighlighted {
-            rowInner
-                .background(RoundedRectangle(cornerRadius: 5).fill(summary.activity.color.opacity(0.08)))
-                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(summary.activity.color.opacity(0.3), lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 5).fill(Color.accentSubtle))
         } else if isHovered {
             rowInner
                 .background(RoundedRectangle(cornerRadius: 5).fill(Color.surfaceHover))
