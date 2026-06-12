@@ -2,27 +2,23 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(RepositoryStore.self) private var store
-    @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(ClaudeEventStore.self) private var claudeEventStore
-    @Environment(AppCoordinator.self) private var coordinator
-    @Environment(ShellSessionStore.self) private var shellSessionStore
+    @Environment(NavigationStore.self) private var navigationStore
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
     @Environment(DetailUIState.self) private var detailUIState
     @Environment(SessionComparisonStore.self) private var sessionComparisonStore
-    @Environment(BottomPanelState.self) private var bottomPanelState
     @Environment(QuickOpenStore.self) private var quickOpenStore
     @Environment(SearchStore.self) private var searchStore
     @State private var fileOverlayStore = FileOverlayStore()
     @State private var codeViewerStore = CodeViewerStore()
 
     var body: some View {
-        @Bindable var coordinator = coordinator
-
         ZStack {
             VStack(spacing: 0) {
-                if let worktree = coordinator.selectedWorktree {
+                if let worktree = navigationStore.selectedWorktree {
                     DetailView(
                         worktree: worktree,
-                        fileTreeStore: coordinator.fileTreeStore,
+                        fileTreeStore: navigationStore.fileTreeStore,
                         fileOverlayStore: fileOverlayStore,
                         codeViewerStore: codeViewerStore,
                         searchStore: searchStore,
@@ -40,11 +36,11 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
 
-            if quickOpenStore.isVisible, let worktree = coordinator.selectedWorktree {
+            if quickOpenStore.isVisible, let worktree = navigationStore.selectedWorktree {
                 QuickOpenPaletteView(
                     quickOpenStore: quickOpenStore,
                     fileOverlayStore: fileOverlayStore,
-                    fileTreeStore: coordinator.fileTreeStore,
+                    fileTreeStore: navigationStore.fileTreeStore,
                     repositoryPath: worktree.path
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -57,7 +53,7 @@ struct ContentView: View {
                 detailUIState.contentMode = .files
             }
         }
-        .onChange(of: coordinator.selectedWorktree) { _, newValue in
+        .onChange(of: navigationStore.selectedWorktree) { _, newValue in
             detailUIState.resetForWorktreeChange()
             sessionComparisonStore.close()
             quickOpenStore.close()
@@ -72,7 +68,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: claudeEventStore.eventCounter) { _, _ in
-            guard let wt = coordinator.selectedWorktree else { return }
+            guard let wt = navigationStore.selectedWorktree else { return }
             // 選択中の worktree で新しい attention / 完了が発生した場合、見ているとみなして即座に既読化する。
             // ただし permissionRequest 待ち中はバッジを消さない（ユーザーがまだ応答していない）。
             let summary = claudeEventStore.agentSummary(for: wt.path)
@@ -82,20 +78,11 @@ struct ContentView: View {
             }
         }
         .onChange(of: store.repositories) { _, newValue in
-            coordinator.syncWorktreeStores(
-                with: newValue,
-                terminalSessionStore: terminalSessionStore,
-                shellSessionStore: shellSessionStore,
-                claudeEventStore: claudeEventStore,
-                bottomPanelState: bottomPanelState
-            )
+            worktreeLifecycleCoordinator.syncWorktreeStores(with: newValue)
         }
         .onAppear {
-            coordinator.ensureWorktreeStores(
-                for: store.repositories,
-                claudeEventStore: claudeEventStore
-            )
-            if let wt = coordinator.selectedWorktree {
+            worktreeLifecycleCoordinator.ensureWorktreeStores(for: store.repositories)
+            if let wt = navigationStore.selectedWorktree {
                 quickOpenStore.buildIndex(rootPath: wt.path)
                 searchStore.buildIndex(rootPath: wt.path)
             }

@@ -7,8 +7,22 @@ final class ShellSessionStore {
     private var activeTabIDByPath: [String: UUID] = [:]
     private let appSettingsStore: AppSettingsStore
 
-    init(appSettingsStore: AppSettingsStore) {
+    init(appSettingsStore: AppSettingsStore, eventBus: AppEventBus) {
         self.appSettingsStore = appSettingsStore
+        eventBus.subscribe { [weak self] event in
+            self?.handle(event)
+        }
+    }
+
+    private func handle(_ event: AppEvent) {
+        switch event {
+        case .worktreesSynced(let allWorktreePaths):
+            removeExcept(paths: allWorktreePaths)
+        case .worktreeRemoved(let path):
+            removeAll(for: path)
+        case .worktreesLoaded, .repositoriesRemoved:
+            break
+        }
     }
 
     func tabs(for worktreePath: String) -> [ShellTab] {

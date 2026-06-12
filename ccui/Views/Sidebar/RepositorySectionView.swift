@@ -5,10 +5,8 @@ struct RepositorySectionView: View {
     let worktreeStore: WorktreeStore
     @Environment(RepositoryStore.self) private var store
     @Environment(ClaudeEventStore.self) private var claudeEventStore
-    @Environment(AppCoordinator.self) private var coordinator
-    @Environment(TerminalSessionStore.self) private var terminalSessionStore
-    @Environment(ShellSessionStore.self) private var shellSessionStore
-    @Environment(BottomPanelState.self) private var bottomPanelState
+    @Environment(NavigationStore.self) private var navigationStore
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
 
     private var isMissing: Bool {
         !store.exists(repository)
@@ -41,10 +39,10 @@ struct RepositorySectionView: View {
             // LazyVStack のスクロールアウトで view が再生成されると worktrees は既にロード済みで
             // load() が走らない。startWatching を if 内に置くと watcher が起動されず、
             // 末尾の stopWatching だけ走って前回の watcher を止めてしまうので、必ず起動する。
-            // GitDirectoryWatcher.start は内部で stop してから start するため再呼び出しも安全。
+            // FileSystemWatcher.start は内部で stop してから start するため再呼び出しも安全。
             worktreeStore.startWatching()
             // task がキャンセルされる（view 消失 / id 変化）まで待機し、
-            // キャンセル時に watcher を停止して GitDirectoryWatcher の fd リークを防ぐ。
+            // キャンセル時に watcher を停止して FileSystemWatcher のリソースリークを防ぐ。
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
             }
@@ -108,12 +106,12 @@ struct RepositorySectionView: View {
 
                 WorktreeRowView(
                     worktree: wt,
-                    isSelected: coordinator.selectedWorktree == wt,
+                    isSelected: navigationStore.selectedWorktree == wt,
                     summary: summary,
                     isHighlighted: isHighlighted,
                     statusCount: worktreeStore.statusCounts[wt.path],
                     onSelect: {
-                        coordinator.selectWorktree(wt, claudeEventStore: claudeEventStore)
+                        navigationStore.selectWorktree(wt, claudeEventStore: claudeEventStore, lifecycle: worktreeLifecycleCoordinator)
                     }
                 )
                 .contextMenu {
@@ -131,7 +129,7 @@ struct RepositorySectionView: View {
     private func worktreeContextMenu(_ wt: Worktree) -> some View {
         if let branch = wt.branch {
             Button("Add Worktree from \"\(branch)\"...") {
-                coordinator.showAddWorktreeSheet(store: worktreeStore, branch: branch)
+                worktreeLifecycleCoordinator.showAddWorktreeSheet(store: worktreeStore, branch: branch)
             }
             Divider()
         }
@@ -151,7 +149,7 @@ struct RepositorySectionView: View {
         if !wt.isMain {
             Divider()
             Button("Remove Worktree", role: .destructive) {
-                coordinator.removeWorktree(wt, from: worktreeStore, terminalSessionStore: terminalSessionStore, shellSessionStore: shellSessionStore, bottomPanelState: bottomPanelState)
+                worktreeLifecycleCoordinator.removeWorktree(wt, from: worktreeStore)
             }
         }
     }
@@ -160,7 +158,7 @@ struct RepositorySectionView: View {
 
     private var addWorktreeButton: some View {
         Button {
-            coordinator.showAddWorktreeSheet(store: worktreeStore, branch: nil)
+            worktreeLifecycleCoordinator.showAddWorktreeSheet(store: worktreeStore, branch: nil)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus")

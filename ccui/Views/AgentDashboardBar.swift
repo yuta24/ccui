@@ -74,7 +74,7 @@ struct AgentStatusBar: View {
 // MARK: - Content Toolbar (Content panel top)
 
 struct ContentToolbar: View {
-    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(NavigationStore.self) private var navigationStore
     @Environment(DetailUIState.self) private var detailUIState
 
     var body: some View {
@@ -82,7 +82,7 @@ struct ContentToolbar: View {
             Spacer()
 
             // Actions (right)
-            if coordinator.selectedWorktree != nil {
+            if navigationStore.selectedWorktree != nil {
                 GlassEffectContainer(spacing: 4) {
                     HStack(spacing: 4) {
                         if detailUIState.contentMode == .agent {
@@ -116,11 +116,11 @@ struct ContentToolbar: View {
                         .help("Inspector (⌘I)")
 
                         Button {
-                            detailUIState.showingConfiguration.toggle()
+                            detailUIState.isConfigurationSheetPresented.toggle()
                         } label: {
                             Image(systemName: "gearshape")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(detailUIState.showingConfiguration ? Color.accent : Color.primary)
+                                .foregroundStyle(detailUIState.isConfigurationSheetPresented ? Color.accent : Color.primary)
                                 .frame(width: 28, height: 28)
                                 .contentShape(Rectangle())
                         }

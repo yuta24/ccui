@@ -8,12 +8,24 @@ final class WorktreeSessionStore {
     private let persistence: any WorktreeSessionPersistence
     private var debouncedSaveTask: Task<Void, Never>?
 
-    init(persistence: any WorktreeSessionPersistence = JSONFileWorktreeSessionPersistence()) {
+    init(eventBus: AppEventBus, persistence: any WorktreeSessionPersistence = JSONFileWorktreeSessionPersistence()) {
         self.persistence = persistence
         do {
             entries = try persistence.load()
         } catch {
             Logger.store.error("Failed to load worktree sessions: \(error)")
+        }
+        eventBus.subscribe { [weak self] event in
+            self?.handle(event)
+        }
+    }
+
+    private func handle(_ event: AppEvent) {
+        switch event {
+        case .worktreesSynced(let allWorktreePaths):
+            removeExcept(allWorktreePaths)
+        case .worktreeRemoved, .worktreesLoaded, .repositoriesRemoved:
+            break
         }
     }
 

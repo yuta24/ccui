@@ -7,12 +7,13 @@ struct SidebarView: View {
     let onCompareSession: (WorktreeSessionEntry, WorktreeSessionEntry) -> Void
 
     @Environment(RepositoryStore.self) private var store
-    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(NavigationStore.self) private var navigationStore
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
 
     var body: some View {
         VStack(spacing: 0) {
             SidebarHeaderView(onAddRepository: {
-                coordinator.addRepository(store: store)
+                worktreeLifecycleCoordinator.addRepository(store: store)
             })
             .padding(.top, 10)
             .padding(.bottom, 8)
@@ -23,7 +24,7 @@ struct SidebarView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(store.repositories) { repo in
-                            if let wtStore = coordinator.worktreeStores[repo.id] {
+                            if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
                                 RepositorySectionView(
                                     repository: repo,
                                     worktreeStore: wtStore
@@ -40,7 +41,7 @@ struct SidebarView: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     // Pinned session list for the selected worktree — stays visible
                     // regardless of how far the repository list above is scrolled.
-                    if let worktree = coordinator.selectedWorktree {
+                    if let worktree = navigationStore.selectedWorktree {
                         VStack(spacing: 0) {
                             Rectangle()
                                 .fill(Color.borderSubtle)

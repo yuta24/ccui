@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import ccui
 
-/// `JSONFileClaudeEventPersistence` の static `indexLock` が並行 read-modify-write を
-/// 直列化していることを検証する。`Serialize ClaudeHooksInstaller writes with a static lock`
-/// (e2ff1e7) および `Reorder removeWorktree to update index before deleting files`
-/// (b454d9c) で対処された安定性バグのリグレッションを catch する。
-struct JSONFileClaudeEventPersistenceConcurrencyTests {
+/// `ClaudeEventPersistence` が actor として全 I/O を直列化していることを検証する。
+/// `Serialize ClaudeHooksInstaller writes with a static lock` (e2ff1e7) および
+/// `Reorder removeWorktree to update index before deleting files` (b454d9c) で
+/// 対処された安定性バグのリグレッションを catch する。
+struct ClaudeEventPersistenceConcurrencyTests {
 
     private func makeTempDir() throws -> URL {
         let dir = FileManager.default.temporaryDirectory
@@ -26,7 +26,7 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let worktreeCount = 32
 
         await withTaskGroup(of: Void.self) { group in
@@ -34,12 +34,12 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
                 let wtPath = "/repo/wt-\(i)"
                 let session = TestHelpers.makeSession(id: "s\(i)", worktreePath: wtPath)
                 group.addTask {
-                    try? persistence.saveSession(session, worktreePath: wtPath, repositoryPath: "/repo")
+                    await persistence.saveSession(session, worktreePath: wtPath, repositoryPath: "/repo")
                 }
             }
         }
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded.count == worktreeCount)
         for i in 0..<worktreeCount {
             #expect(loaded["/repo/wt-\(i)"]?["s\(i)"] != nil)
@@ -53,19 +53,19 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
         let sessionCount = 16
 
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<sessionCount {
                 let session = TestHelpers.makeSession(id: "s\(i)", worktreePath: "/repo")
                 group.addTask {
-                    try? persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
+                    await persistence.saveSession(session, worktreePath: "/repo", repositoryPath: "/repo")
                 }
             }
         }
 
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         #expect(loaded["/repo"]?.count == sessionCount)
     }
 
@@ -76,12 +76,12 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
 
         // 事前に複数 worktree を保存
         for i in 0..<8 {
             let wt = "/repo/wt-\(i)"
-            try persistence.saveSession(
+            await persistence.saveSession(
                 TestHelpers.makeSession(id: "s\(i)", worktreePath: wt),
                 worktreePath: wt,
                 repositoryPath: "/repo"
@@ -93,20 +93,20 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
             for i in 0..<4 {
                 let wt = "/repo/wt-\(i)"
                 group.addTask {
-                    try? persistence.removeWorktree(wt)
+                    await persistence.removeWorktree(wt)
                 }
             }
             for i in 4..<8 {
                 let wt = "/repo/wt-\(i)"
                 group.addTask {
                     let extraSession = TestHelpers.makeSession(id: "s\(i)-extra", worktreePath: wt)
-                    try? persistence.saveSession(extraSession, worktreePath: wt, repositoryPath: "/repo")
+                    await persistence.saveSession(extraSession, worktreePath: wt, repositoryPath: "/repo")
                 }
             }
         }
 
         // ディスクから再読込し、一貫性を確認
-        let loaded = try persistence.loadAll()
+        let loaded = try await persistence.loadAll()
         // 削除されたエントリは index にも sessions にも存在しないはず
         for i in 0..<4 {
             #expect(loaded["/repo/wt-\(i)"] == nil, "worktree \(i) should be removed")
@@ -125,12 +125,12 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        let persistence = JSONFileClaudeEventPersistence(baseDirectory: dir)
+        let persistence = ClaudeEventPersistence(baseDirectory: dir)
 
         // 複数 worktree を保存
         for i in 0..<6 {
             let wt = "/repo/wt-\(i)"
-            try persistence.saveSession(
+            await persistence.saveSession(
                 TestHelpers.makeSession(id: "s\(i)", worktreePath: wt),
                 worktreePath: wt,
                 repositoryPath: "/repo"
@@ -142,18 +142,18 @@ struct JSONFileClaudeEventPersistenceConcurrencyTests {
             for i in 0..<6 {
                 let wt = "/repo/wt-\(i)"
                 group.addTask {
-                    try? persistence.removeWorktree(wt)
+                    await persistence.removeWorktree(wt)
                 }
             }
             for _ in 0..<10 {
                 group.addTask {
                     // loadAll が throw せず完走することが一貫性の証
-                    _ = try? persistence.loadAll()
+                    _ = try? await persistence.loadAll()
                 }
             }
         }
 
-        let final = try persistence.loadAll()
+        let final = try await persistence.loadAll()
         #expect(final.isEmpty)
     }
 }

@@ -17,7 +17,7 @@ final class DiffStore {
     private(set) var selectedFilePath: String?
     private(set) var isDirty: Bool = false
     private var loadToken = UUID()
-    private var watcher: FileWatcherService?
+    private var watcher: FileSystemWatcher?
     private var currentRepositoryPath: String?
     private var debounceTask: Task<Void, Never>?
 
@@ -71,9 +71,9 @@ final class DiffStore {
     func startWatching(repositoryPath: String, overlayIsVisible: @escaping @MainActor () -> Bool) {
         stopWatching()
         currentRepositoryPath = repositoryPath
-        let watcher = FileWatcherService()
+        let watcher = FileSystemWatcher()
         self.watcher = watcher
-        watcher.start(path: repositoryPath) { [weak self] in
+        watcher.start(paths: [repositoryPath]) { [weak self] in
             guard let self, let path = self.currentRepositoryPath else { return }
             if overlayIsVisible() {
                 self.debounceTask?.cancel()

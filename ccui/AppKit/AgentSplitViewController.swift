@@ -89,22 +89,13 @@ final class AgentSplitViewController: NSSplitViewController {
         )
     }
 
-    /// Animates the WebView pane in/out. Mirrors `DetailPaneViewController`'s
-    /// bottom-panel animation: freezes the agent terminal's size for the
-    /// duration via `bottomPanelState.beginResizeAnimation()`/`endResizeAnimation()`
+    /// Animates the WebView pane in/out via `WindowLayoutCoordinator`, which
+    /// freezes the agent terminal's size for the duration (`bottomPanelState`)
     /// to avoid repeated SIGWINCH-triggered redraws while the pane resizes.
     private func animateSplit(_ isSplit: Bool) {
-        let bottomPanelState = bottomPanelState
-        bottomPanelState.beginResizeAnimation()
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            webViewItem.animator().isCollapsed = !isSplit
-            splitView.layoutSubtreeIfNeeded()
-        }, completionHandler: {
-            Task { @MainActor in
-                bottomPanelState.endResizeAnimation()
-            }
-        })
+        WindowLayoutCoordinator.animate(bottomPanelState: bottomPanelState) {
+            self.webViewItem.animator().isCollapsed = !isSplit
+            self.splitView.layoutSubtreeIfNeeded()
+        }
     }
 }

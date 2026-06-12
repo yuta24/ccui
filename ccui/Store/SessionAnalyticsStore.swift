@@ -7,17 +7,13 @@ final class SessionAnalyticsStore {
     private(set) var uniqueToolCount: Int = 0
     private(set) var isLoading = false
 
-    private let coordinator: ClaudeEventPersistenceCoordinator
+    private let persistence: ClaudeEventPersistence
     private var currentTask: Task<Void, Never>?
 
-    init(persistence: any ClaudeEventPersistence = JSONFileClaudeEventPersistence()) {
-        self.coordinator = ClaudeEventPersistenceCoordinator(persistence: persistence)
-    }
-
-    /// 共有 coordinator を受け取るイニシャライザ。`ClaudeEventStore` と同じ
-    /// インスタンスを共有することで、書き込みと読み取りを直列化する。
-    init(coordinator: ClaudeEventPersistenceCoordinator) {
-        self.coordinator = coordinator
+    /// `persistence` は `ClaudeEventStore` と同じインスタンスを共有することで、
+    /// 書き込みと読み取りを actor 内で直列化できる。
+    init(persistence: ClaudeEventPersistence = ClaudeEventPersistence()) {
+        self.persistence = persistence
     }
 
     nonisolated struct Result: Sendable {
@@ -28,9 +24,9 @@ final class SessionAnalyticsStore {
     func load(repositoryPath: String) {
         currentTask?.cancel()
         isLoading = true
-        let coordinator = self.coordinator
+        let persistence = self.persistence
         currentTask = Task { [weak self] in
-            let snapshot = try? await coordinator.loadSessionsForRepository(repositoryPath)
+            let snapshot = try? await persistence.loadSessionsForRepository(repositoryPath)
             guard !Task.isCancelled else { return }
             let result = await Task.detached(priority: .utility) {
                 Self.compute(

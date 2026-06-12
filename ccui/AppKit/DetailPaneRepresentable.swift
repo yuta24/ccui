@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DetailPaneRepresentable: NSViewControllerRepresentable {
-    let stores: StoreContainer
+    let stores: AppDependencies
 
     func makeNSViewController(context: Context) -> DetailPaneViewController {
         DetailPaneViewController(stores: stores)

@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
-    private let stores: StoreContainer
+    private let stores: AppDependencies
     private var bottomPanelState: BottomPanelState { stores.bottomPanelState }
     private var collapsedHeight: CGFloat { BottomTerminalViewController.collapsedHeight }
     private let defaultExpandedHeight: CGFloat = 220
@@ -14,14 +14,14 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private var resizeGeneration = 0
 
     private var currentWorktreePath: String? {
-        stores.appCoordinator.selectedWorktree?.path
+        stores.navigationStore.selectedWorktree?.path
     }
 
     private var isExpandedForCurrent: Bool {
         bottomPanelState.isExpanded(for: currentWorktreePath)
     }
 
-    init(stores: StoreContainer) {
+    init(stores: AppDependencies) {
         self.stores = stores
         super.init(nibName: nil, bundle: nil)
     }
@@ -66,7 +66,7 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private func observeBottomPanelState() {
         withObservationTracking {
             _ = isExpandedForCurrent
-            _ = stores.appCoordinator.selectedWorktree
+            _ = stores.navigationStore.selectedWorktree
         } onChange: {
             Task { @MainActor [weak self] in
                 self?.handleExpandedChanged()
@@ -78,35 +78,30 @@ final class DetailPaneViewController: NSViewController, NSSplitViewDelegate {
     private func handleExpandedChanged() {
         guard let splitView = view as? NSSplitView else { return }
         let totalHeight = splitView.frame.height
-        let targetPosition: CGFloat
-        if isExpandedForCurrent {
-            targetPosition = totalHeight - defaultExpandedHeight
-        } else {
-            targetPosition = totalHeight - collapsedHeight
-        }
+        let targetPosition: CGFloat = isExpandedForCurrent
+            ? totalHeight - defaultExpandedHeight
+            : totalHeight - collapsedHeight
+
         isUpdatingSplitFromState = true
-        let bottomPanelState = bottomPanelState
-        bottomPanelState.beginResizeAnimation()
         resizeGeneration &+= 1
         let generation = resizeGeneration
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            splitView.setPosition(targetPosition, ofDividerAt: 0)
-            // resizeSubviewsWithOldSize で確定させた topView/bottomView の最終 frame に対し、
-            // それぞれの内部 Auto Layout 子ビュー（ツールバー等）のレイアウトをこの時点で
-            // 確定させる。これを呼ばないと子ビューが最終位置へ即座にスナップしてしまい、
-            // bounds がアニメーションで追従する topView/bottomView との間でズレが生じ、
-            // 一瞬位置がずれてから戻る（オーバーシュート）ように見える。
-            splitView.layoutSubtreeIfNeeded()
-        }, completionHandler: {
-            Task { @MainActor [weak self] in
+        WindowLayoutCoordinator.animate(
+            bottomPanelState: bottomPanelState,
+            changes: {
+                splitView.setPosition(targetPosition, ofDividerAt: 0)
+                // resizeSubviewsWithOldSize で確定させた topView/bottomView の最終 frame に対し、
+                // それぞれの内部 Auto Layout 子ビュー（ツールバー等）のレイアウトをこの時点で
+                // 確定させる。これを呼ばないと子ビューが最終位置へ即座にスナップしてしまい、
+                // bounds がアニメーションで追従する topView/bottomView との間でズレが生じ、
+                // 一瞬位置がずれてから戻る（オーバーシュート）ように見える。
+                splitView.layoutSubtreeIfNeeded()
+            },
+            completion: { [weak self] in
                 if let self, self.resizeGeneration == generation {
                     self.isUpdatingSplitFromState = false
                 }
-                bottomPanelState.endResizeAnimation()
             }
-        })
+        )
     }
 
     // MARK: - NSSplitViewDelegate

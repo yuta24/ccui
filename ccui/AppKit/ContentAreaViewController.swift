@@ -16,14 +16,14 @@ final class ContentSplitViewController: NSSplitViewController {
 
 @MainActor
 final class ContentAreaViewController: NSViewController {
-    private let stores: StoreContainer
+    private let stores: AppDependencies
     private var isUpdatingFromState = false
     private var isObserving = false
 
     private var splitVC: ContentSplitViewController!
     private var rightPanelItem: NSSplitViewItem!
 
-    init(stores: StoreContainer) {
+    init(stores: AppDependencies) {
         self.stores = stores
         super.init(nibName: nil, bundle: nil)
     }
@@ -113,36 +113,18 @@ final class ContentAreaViewController: NSViewController {
         let shouldShow = stores.detailUIState.isRightPanelVisible
             && stores.detailUIState.contentMode == .agent
         if shouldShow && rightPanelItem.isCollapsed {
-            expandRightPanel()
+            setRightPanelCollapsed(false)
         } else if !shouldShow && !rightPanelItem.isCollapsed {
-            collapseRightPanel()
+            setRightPanelCollapsed(true)
         }
     }
 
-    private func collapseRightPanel() {
+    private func setRightPanelCollapsed(_ collapsed: Bool) {
         isUpdatingFromState = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            rightPanelItem.isCollapsed = true
-        }, completionHandler: {
-            Task { @MainActor [weak self] in
-                self?.isUpdatingFromState = false
-            }
-        })
-    }
-
-    private func expandRightPanel() {
-        isUpdatingFromState = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            rightPanelItem.isCollapsed = false
-        }, completionHandler: {
-            Task { @MainActor [weak self] in
-                self?.isUpdatingFromState = false
-            }
-        })
+        WindowLayoutCoordinator.animate(
+            changes: { self.rightPanelItem.isCollapsed = collapsed },
+            completion: { [weak self] in self?.isUpdatingFromState = false }
+        )
     }
 
     // MARK: - Split View Resize Sync

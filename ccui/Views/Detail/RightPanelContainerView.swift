@@ -2,11 +2,12 @@ import SwiftUI
 
 struct RightPanelContainerView: View {
     @Environment(DetailUIState.self) private var uiState
-    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(NavigationStore.self) private var navigationStore
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
 
     var body: some View {
-        if let worktree = coordinator.selectedWorktree {
-            let repoPath = coordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
+        if let worktree = navigationStore.selectedWorktree {
+            let repoPath = worktreeLifecycleCoordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
             RightPanelView(
                 worktreePath: worktree.path,
                 repositoryPath: worktree.path,

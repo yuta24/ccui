@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 
 @Observable
 @MainActor
@@ -18,15 +17,12 @@ final class HooksStore {
         didSet { selectedEntryID = nil }
     }
     var selectedEntryID: UUID?
-    private(set) var dirtyLevels: Set<HookLevel> = []
 
-    var isDirty: Bool { !dirtyLevels.isEmpty }
+    var isDirty: Bool { settingsStore.isDirty }
 
     // MARK: - Internal
 
-    private var worktreePath: String = ""
-    /// Preserve full JSON per level so save doesn't destroy non-hooks keys
-    private var rawSettings: [HookLevel: [String: Any]] = [:]
+    private let settingsStore = LevelScopedSettingsStore<HookLevel>()
     /// Per-level in-memory entries (source of truth for edits)
     private var levelCache: [HookLevel: [ClaudeHookPayload.HookEventName: [HookEntry]]] = [:]
 
@@ -39,18 +35,8 @@ final class HooksStore {
     // MARK: - Lifecycle
 
     func load(worktreePath: String) async {
-        self.worktreePath = worktreePath
-        dirtyLevels = []
-        let wp = worktreePath
-        let loaded = await Task.detached(priority: .userInitiated) {
-            var result: [HookLevel: [String: Any]] = [:]
-            for level in HookLevel.allCases {
-                result[level] = Self.readSettings(at: level.settingsPath(worktreePath: wp))
-            }
-            return result
-        }.value
-        for (level, json) in loaded {
-            rawSettings[level] = json
+        await settingsStore.load(worktreePath: worktreePath)
+        for level in HookLevel.allCases {
             levelCache[level] = parseEntries(for: level)
         }
         entries = levelCache[selectedLevel] ?? [:]
@@ -62,10 +48,8 @@ final class HooksStore {
         selectedLevel = .worktree
         selectedEventName = .preToolUse
         selectedEntryID = nil
-        dirtyLevels = []
-        worktreePath = ""
-        rawSettings = [:]
         levelCache = [:]
+        settingsStore.reset()
     }
 
     // MARK: - CRUD
@@ -117,15 +101,19 @@ final class HooksStore {
     // MARK: - Save
 
     func save() async {
-        for level in HookLevel.allCases where dirtyLevels.contains(level) {
-            await saveLevel(level)
+        let levelsToUpdate = settingsStore.dirtyLevels
+        await settingsStore.save { [weak self] level, settings in
+            self?.buildSettings(for: level, existing: settings) ?? settings
         }
+        let succeededLevels = levelsToUpdate.subtracting(settingsStore.dirtyLevels)
+        for level in succeededLevels {
+            levelCache[level] = parseEntries(for: level)
+        }
+        entries = levelCache[selectedLevel] ?? [:]
     }
 
-    private func saveLevel(_ level: HookLevel) async {
-        let path = level.settingsPath(worktreePath: worktreePath)
-        var settings: [String: Any] = rawSettings[level] ?? [:]
-
+    private func buildSettings(for level: HookLevel, existing settings: [String: Any]) -> [String: Any] {
+        var settings = settings
         let levelEntries = levelCache[level] ?? [:]
         // Seed from existing hooks to preserve unknown event keys
         var hooksDict: [String: Any] = (settings["hooks"] as? [String: Any]) ?? [:]
@@ -151,28 +139,7 @@ final class HooksStore {
         }
 
         settings["hooks"] = hooksDict
-
-        let result = await Task.detached(priority: .utility) { () -> Result<[String: Any], Error> in
-            do {
-                let directory = (path as NSString).deletingLastPathComponent
-                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-                let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-                try data.write(to: URL(fileURLWithPath: path), options: .atomic)
-                return .success(Self.readSettings(at: path))
-            } catch {
-                return .failure(error)
-            }
-        }.value
-
-        switch result {
-        case .success(let reloaded):
-            dirtyLevels.remove(level)
-            rawSettings[level] = reloaded
-            levelCache[level] = parseEntries(for: level)
-            entries = levelCache[selectedLevel] ?? [:]
-        case .failure(let error):
-            Logger.store.error("Failed to save hooks to \(path, privacy: .public): \(error)")
-        }
+        return settings
     }
 
     // MARK: - Fire Log
@@ -200,16 +167,8 @@ final class HooksStore {
 
     // MARK: - Private
 
-    private nonisolated static func readSettings(at path: String) -> [String: Any] {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return [:]
-        }
-        return json
-    }
-
     private func parseEntries(for level: HookLevel) -> [ClaudeHookPayload.HookEventName: [HookEntry]] {
-        let raw = rawSettings[level] ?? [:]
+        let raw = settingsStore.rawSettings[level] ?? [:]
         guard let hooksDict = raw["hooks"] as? [String: Any] else {
             return Dictionary(uniqueKeysWithValues: Self.allEvents.map { ($0, [HookEntry]()) })
         }
@@ -259,7 +218,7 @@ final class HooksStore {
         cache[event] = eventEntries
         levelCache[level] = cache
         entries = cache
-        dirtyLevels.insert(level)
+        settingsStore.markDirty(level)
     }
 
     private func modifyEntry(_ id: UUID, mutation: (inout HookEntry) -> Void) {

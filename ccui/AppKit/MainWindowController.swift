@@ -2,9 +2,9 @@ import SwiftUI
 
 @MainActor
 final class MainWindowController: NSWindowController {
-    let stores: StoreContainer
+    let stores: AppDependencies
 
-    init(stores: StoreContainer) {
+    init(stores: AppDependencies) {
         self.stores = stores
 
         let window = NSWindow(

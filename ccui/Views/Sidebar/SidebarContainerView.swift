@@ -4,7 +4,8 @@ struct SidebarContainerView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
     @Environment(ClaudeEventStore.self) private var claudeEventStore
-    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(NavigationStore.self) private var navigationStore
+    @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
     @Environment(DetailUIState.self) private var detailUIState
     @Environment(SessionComparisonStore.self) private var sessionComparisonStore
 
@@ -22,11 +23,11 @@ struct SidebarContainerView: View {
     var body: some View {
         SidebarView(
             onResumeSession: { sessionId in
-                guard let worktree = coordinator.selectedWorktree else { return }
+                guard let worktree = navigationStore.selectedWorktree else { return }
                 requestLaunch(PendingLaunch(worktree: worktree, sessionId: sessionId, isResume: true))
             },
             onNewSession: {
-                guard let worktree = coordinator.selectedWorktree else { return }
+                guard let worktree = navigationStore.selectedWorktree else { return }
                 if terminalSessionStore.session(for: worktree)?.isProcessRunning == true {
                     pendingNewSessionWorktree = worktree
                 } else {
@@ -34,7 +35,7 @@ struct SidebarContainerView: View {
                 }
             },
             onEvaluateSession: { entry in
-                guard let worktree = coordinator.selectedWorktree else { return }
+                guard let worktree = navigationStore.selectedWorktree else { return }
                 if let session = claudeEventStore.sessions[worktree.path]?[entry.sessionId] {
                     detailUIState.sessionEvaluationStore.open(session: session, title: entry.title)
                     detailUIState.rightPanelTab = .eval
@@ -43,7 +44,7 @@ struct SidebarContainerView: View {
                 }
             },
             onCompareSession: { entryA, entryB in
-                guard let worktree = coordinator.selectedWorktree else { return }
+                guard let worktree = navigationStore.selectedWorktree else { return }
                 if let sessionA = claudeEventStore.sessions[worktree.path]?[entryA.sessionId],
                    let sessionB = claudeEventStore.sessions[worktree.path]?[entryB.sessionId] {
                     sessionComparisonStore.open(sessionA: sessionA, titleA: entryA.title, sessionB: sessionB, titleB: entryB.title)
@@ -129,10 +130,10 @@ struct SidebarContainerView: View {
     private func presentLaunchFailure(_ failure: TerminalSessionStore.LaunchFailure) {
         let worktreeName = (failure.worktreePath as NSString).lastPathComponent
         let codeSuffix = failure.exitCode.map { " (exit code \($0))" } ?? ""
-        coordinator.errorMessage = failure.isResume
+        worktreeLifecycleCoordinator.errorMessage = failure.isResume
             ? "Couldn't resume the session in \(worktreeName)\(codeSuffix). It may no longer be available to resume."
             : "Couldn't start Claude Code in \(worktreeName)\(codeSuffix). Check that the `claude` CLI is installed and on your PATH."
-        coordinator.showErrorAlert = true
+        worktreeLifecycleCoordinator.isErrorAlertPresented = true
     }
 
     private func makeHandlerConfigurator(worktreePath: String, sessionId: String) -> (any TerminalSession) -> Void {

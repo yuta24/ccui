@@ -33,14 +33,14 @@ final class DetailUIState {
     var agentLayoutMode: AgentLayoutMode = .full
     var isRightPanelVisible = false
     var rightPanelTab: RightPanelTab = .timeline
-    var showingConfiguration = false
+    var isConfigurationSheetPresented = false
     var sessionEvaluationStore = SessionEvaluationStore()
     var sessionAnalyticsStore: SessionAnalyticsStore
     var webViewStore = WebViewStore()
 
-    init(persistenceCoordinator: ClaudeEventPersistenceCoordinator? = nil) {
-        if let persistenceCoordinator {
-            self.sessionAnalyticsStore = SessionAnalyticsStore(coordinator: persistenceCoordinator)
+    init(persistence: ClaudeEventPersistence? = nil) {
+        if let persistence {
+            self.sessionAnalyticsStore = SessionAnalyticsStore(persistence: persistence)
         } else {
             self.sessionAnalyticsStore = SessionAnalyticsStore()
         }
@@ -51,7 +51,7 @@ final class DetailUIState {
         agentLayoutMode = .full
         isRightPanelVisible = false
         rightPanelTab = .timeline
-        showingConfiguration = false
+        isConfigurationSheetPresented = false
         sessionEvaluationStore.close()
         webViewStore.reset()
     }

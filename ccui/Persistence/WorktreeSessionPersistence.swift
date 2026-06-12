@@ -11,7 +11,7 @@ protocol WorktreeSessionPersistence: Sendable {
     func save(_ entries: [String: [WorktreeSessionEntry]]) throws
 }
 
-final class JSONFileWorktreeSessionPersistence: WorktreeSessionPersistence {
+nonisolated final class JSONFileWorktreeSessionPersistence: WorktreeSessionPersistence {
     private let fileURL: URL
 
     init(fileURL: URL = JSONFileWorktreeSessionPersistence.defaultFileURL) {

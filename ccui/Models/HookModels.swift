@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Hook Level
 
-enum HookLevel: String, CaseIterable, Identifiable, Sendable {
+enum HookLevel: String, CaseIterable, Identifiable, Hashable, Sendable {
     case worktree = "Worktree"
     case user = "User"
 
@@ -26,6 +26,8 @@ enum HookLevel: String, CaseIterable, Identifiable, Sendable {
         }
     }
 }
+
+extension HookLevel: SettingsLevel {}
 
 // MARK: - Hook Command
 

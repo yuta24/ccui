@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct BottomTerminalTabBarView: View {
-    @Environment(AppCoordinator.self) private var coordinator
+    @Environment(NavigationStore.self) private var navigationStore
     @Environment(ShellSessionStore.self) private var shellStore
     @Environment(BottomPanelState.self) private var panelState
 
     var body: some View {
-        if let worktree = coordinator.selectedWorktree {
+        if let worktree = navigationStore.selectedWorktree {
             tabBar(worktreePath: worktree.path)
         } else {
             placeholderTabBar

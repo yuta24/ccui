@@ -2,14 +2,14 @@ import SwiftUI
 
 @MainActor
 final class RootContainerViewController: NSViewController {
-    private let stores: StoreContainer
+    private let stores: AppDependencies
     private var keyMonitor: Any?
     private var isShowingSheet = false
     private var isShowingAlert = false
     private var presentedSheetVC: NSViewController?
     private var isObserving = false
 
-    init(stores: StoreContainer) {
+    init(stores: AppDependencies) {
         self.stores = stores
         super.init(nibName: nil, bundle: nil)
     }
@@ -60,8 +60,8 @@ final class RootContainerViewController: NSViewController {
 
     private func observeSheetState() {
         withObservationTracking {
-            _ = stores.appCoordinator.showingAddWorktree
-            _ = stores.detailUIState.showingConfiguration
+            _ = stores.worktreeLifecycleCoordinator.showingAddWorktree
+            _ = stores.detailUIState.isConfigurationSheetPresented
         } onChange: {
             Task { @MainActor [weak self] in
                 self?.handleSheetStateChanged()
@@ -72,21 +72,21 @@ final class RootContainerViewController: NSViewController {
 
     private func handleSheetStateChanged() {
         // Present AddWorktree sheet
-        if let wtStore = stores.appCoordinator.showingAddWorktree, !isShowingSheet {
+        if let wtStore = stores.worktreeLifecycleCoordinator.showingAddWorktree, !isShowingSheet {
             presentAddWorktreeSheet(wtStore: wtStore)
             return
         }
 
         // Present Configuration sheet
-        if stores.detailUIState.showingConfiguration,
-           let worktree = stores.appCoordinator.selectedWorktree,
+        if stores.detailUIState.isConfigurationSheetPresented,
+           let worktree = stores.navigationStore.selectedWorktree,
            !isShowingSheet {
             presentConfigurationSheet(worktree: worktree)
             return
         }
 
         // Dismiss if state says closed
-        if stores.appCoordinator.showingAddWorktree == nil && !stores.detailUIState.showingConfiguration && isShowingSheet {
+        if stores.worktreeLifecycleCoordinator.showingAddWorktree == nil && !stores.detailUIState.isConfigurationSheetPresented && isShowingSheet {
             dismissSheet()
         }
     }
@@ -96,7 +96,7 @@ final class RootContainerViewController: NSViewController {
             AddWorktreeView(
                 worktreeStore: wtStore,
                 repositoryPath: wtStore.repositoryPath,
-                initialBaseBranch: stores.appCoordinator.initialBaseBranch
+                initialBaseBranch: stores.worktreeLifecycleCoordinator.initialBaseBranch
             )
         )
 
@@ -107,14 +107,14 @@ final class RootContainerViewController: NSViewController {
     }
 
     private func presentConfigurationSheet(worktree: Worktree) {
-        let repoPath = stores.appCoordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
+        let repoPath = stores.worktreeLifecycleCoordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
         let sheetView = stores.injectEnvironment(into:
             ConfigurationSheet(
                 worktreePath: worktree.path,
                 repositoryPath: repoPath,
                 isPresented: Binding(
-                    get: { [weak self] in self?.stores.detailUIState.showingConfiguration ?? false },
-                    set: { [weak self] in self?.stores.detailUIState.showingConfiguration = $0 }
+                    get: { [weak self] in self?.stores.detailUIState.isConfigurationSheetPresented ?? false },
+                    set: { [weak self] in self?.stores.detailUIState.isConfigurationSheetPresented = $0 }
                 )
             )
         )
@@ -148,11 +148,11 @@ final class RootContainerViewController: NSViewController {
         // Clean up state when sheet is dismissed by user (e.g. Esc key),
         // but skip when we're dismissing programmatically (state already correct)
         guard !isDismissingProgrammatically else { return }
-        if stores.appCoordinator.showingAddWorktree != nil {
-            stores.appCoordinator.showingAddWorktree = nil
+        if stores.worktreeLifecycleCoordinator.showingAddWorktree != nil {
+            stores.worktreeLifecycleCoordinator.showingAddWorktree = nil
         }
-        if stores.detailUIState.showingConfiguration {
-            stores.detailUIState.showingConfiguration = false
+        if stores.detailUIState.isConfigurationSheetPresented {
+            stores.detailUIState.isConfigurationSheetPresented = false
         }
     }
 
@@ -160,8 +160,8 @@ final class RootContainerViewController: NSViewController {
 
     private func observeAlertState() {
         withObservationTracking {
-            _ = stores.appCoordinator.showForceDeleteAlert
-            _ = stores.appCoordinator.showErrorAlert
+            _ = stores.worktreeLifecycleCoordinator.isForceDeleteAlertPresented
+            _ = stores.worktreeLifecycleCoordinator.isErrorAlertPresented
             _ = stores.repositoryStore.lastError
         } onChange: {
             Task { @MainActor [weak self] in
@@ -173,9 +173,9 @@ final class RootContainerViewController: NSViewController {
 
     private func handleAlertStateChanged() {
         guard !isShowingAlert else { return }
-        if stores.appCoordinator.showForceDeleteAlert {
+        if stores.worktreeLifecycleCoordinator.isForceDeleteAlertPresented {
             showForceDeleteAlert()
-        } else if stores.appCoordinator.showErrorAlert {
+        } else if stores.worktreeLifecycleCoordinator.isErrorAlertPresented {
             showCoordinatorErrorAlert()
         } else if stores.repositoryStore.lastError != nil {
             showStoreErrorAlert()
@@ -191,29 +191,25 @@ final class RootContainerViewController: NSViewController {
         alert.addButton(withTitle: "Force Delete")
         alert.addButton(withTitle: "Cancel")
 
-        stores.appCoordinator.showForceDeleteAlert = false
+        stores.worktreeLifecycleCoordinator.isForceDeleteAlertPresented = false
         isShowingAlert = true
 
         alert.beginSheetModal(for: window) { [weak self] response in
             guard let self else { return }
             self.isShowingAlert = false
             if response == .alertFirstButtonReturn {
-                self.stores.appCoordinator.forceDeleteWorktree(
-                    terminalSessionStore: self.stores.terminalSessionStore,
-                    shellSessionStore: self.stores.shellSessionStore,
-                    bottomPanelState: self.stores.bottomPanelState
-                )
+                self.stores.worktreeLifecycleCoordinator.forceDeleteWorktree()
             } else {
-                self.stores.appCoordinator.forceDeleteTarget = nil
+                self.stores.worktreeLifecycleCoordinator.forceDeleteTarget = nil
             }
         }
     }
 
     private func showCoordinatorErrorAlert() {
         guard let window = view.window else { return }
-        let message = stores.appCoordinator.errorMessage ?? "An unknown error occurred."
-        stores.appCoordinator.showErrorAlert = false
-        stores.appCoordinator.errorMessage = nil
+        let message = stores.worktreeLifecycleCoordinator.errorMessage ?? "An unknown error occurred."
+        stores.worktreeLifecycleCoordinator.isErrorAlertPresented = false
+        stores.worktreeLifecycleCoordinator.errorMessage = nil
         isShowingAlert = true
 
         let alert = NSAlert()
@@ -253,7 +249,7 @@ final class RootContainerViewController: NSViewController {
         let detailUIState = stores.detailUIState
         let quickOpenStore = stores.quickOpenStore
         let searchStore = stores.searchStore
-        let coordinator = stores.appCoordinator
+        let navigationStore = stores.navigationStore
         let sessionComparisonStore = stores.sessionComparisonStore
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -262,14 +258,14 @@ final class RootContainerViewController: NSViewController {
 
             // Cmd+Shift+E → toggle Agent/Files mode
             if chars == "e" && mods.contains(.command) && mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 detailUIState.contentMode = detailUIState.contentMode == .agent ? .files : .agent
                 return nil
             }
 
             // Cmd+U → toggle WebView split (Agent mode only)
             if chars == "u" && mods.contains(.command) && !mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 guard detailUIState.contentMode == .agent else { return event }
                 detailUIState.agentLayoutMode = detailUIState.agentLayoutMode == .full ? .split : .full
                 return nil
@@ -277,7 +273,7 @@ final class RootContainerViewController: NSViewController {
 
             // Cmd+I → toggle Right Panel (Agent mode only)
             if chars == "i" && mods.contains(.command) && !mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 guard detailUIState.contentMode == .agent else { return event }
                 detailUIState.isRightPanelVisible.toggle()
                 return nil
@@ -285,7 +281,7 @@ final class RootContainerViewController: NSViewController {
 
             // Cmd+Shift+F → content search (switch to Files mode) — check before Cmd+F
             if chars == "f" && mods.contains(.command) && mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 quickOpenStore.close()
                 detailUIState.contentMode = .files
                 searchStore.activate(mode: .content)
@@ -294,7 +290,7 @@ final class RootContainerViewController: NSViewController {
 
             // Cmd+F → file search (switch to Files mode)
             if chars == "f" && mods.contains(.command) && !mods.contains(.shift) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 quickOpenStore.close()
                 detailUIState.contentMode = .files
                 searchStore.activate(mode: .files)
@@ -303,7 +299,7 @@ final class RootContainerViewController: NSViewController {
 
             // Cmd+P → quick open
             if chars == "p" && mods.contains(.command) {
-                guard coordinator.selectedWorktree != nil else { return event }
+                guard navigationStore.selectedWorktree != nil else { return event }
                 if !quickOpenStore.isVisible {
                     searchStore.deactivate()
                     quickOpenStore.open()
