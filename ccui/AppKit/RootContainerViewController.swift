@@ -251,6 +251,7 @@ final class RootContainerViewController: NSViewController {
         let searchStore = stores.searchStore
         let navigationStore = stores.navigationStore
         let sessionComparisonStore = stores.sessionComparisonStore
+        let terminalSessionStore = stores.terminalSessionStore
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
@@ -288,9 +289,13 @@ final class RootContainerViewController: NSViewController {
                 return nil
             }
 
-            // Cmd+F → file search (switch to Files mode)
+            // Cmd+F → Agent mode: ターミナルの内蔵Findバーを表示 / Files mode: ファイル名検索
             if chars == "f" && mods.contains(.command) && !mods.contains(.shift) {
-                guard navigationStore.selectedWorktree != nil else { return event }
+                guard let worktree = navigationStore.selectedWorktree else { return event }
+                if detailUIState.contentMode == .agent {
+                    terminalSessionStore.session(for: worktree)?.showFindBar()
+                    return nil
+                }
                 quickOpenStore.close()
                 detailUIState.contentMode = .files
                 searchStore.activate(mode: .files)

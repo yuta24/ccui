@@ -14,6 +14,8 @@ protocol TerminalSession: AnyObject {
     /// process to read it as a pasted image — the same path Claude Code uses
     /// for a manual clipboard paste.
     func pasteImage(_ image: NSImage)
+    /// Shows the terminal's built-in find bar for searching the scrollback buffer.
+    func showFindBar()
 }
 
 extension TerminalSession {

@@ -48,6 +48,12 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         terminalView.setNeedsDisplay(terminalView.bounds)
     }
 
+    func showFindBar() {
+        let menuItem = NSMenuItem()
+        menuItem.tag = Int(NSFindPanelAction.showFindPanel.rawValue)
+        terminalView.performFindPanelAction(menuItem)
+    }
+
     func pasteImage(_ image: NSImage) {
         guard let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),
