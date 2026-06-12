@@ -18,6 +18,11 @@ final class MainWindowController: NSWindowController {
         window.center()
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
+        let toolbar = NSToolbar()
+        toolbar.allowsUserCustomization = false
+        toolbar.allowsDisplayModeCustomization = false
+        window.toolbar = toolbar
+        window.toolbarStyle = .unified
 
         super.init(window: window)
 
