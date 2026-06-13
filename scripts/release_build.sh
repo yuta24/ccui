@@ -21,7 +21,6 @@ xcodebuild archive \
   MARKETING_VERSION="$VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   SPARKLE_PUBLIC_ED_KEY="${SPARKLE_PUBLIC_ED_KEY:-}" \
-  CODE_SIGN_IDENTITY="Developer ID Application" \
   2>&1 \
   | xcbeautify
 
