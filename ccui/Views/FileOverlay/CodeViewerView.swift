@@ -6,6 +6,7 @@ struct CodeViewerView: View {
     let store: CodeViewerStore
 
     @State private var editorState = SourceEditorState()
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Group {
@@ -24,7 +25,9 @@ struct CodeViewerView: View {
                 placeholderView(icon: "exclamationmark.triangle", message: message)
             }
         }
-        .id(store.loadedPath)
+        // EditorTheme.monochrome は NSColor を解決時点の appearance で固定 RGB に
+        // 変換するため、ライト/ダーク切替時にエディタを再生成して再解決させる。
+        .id("\(store.loadedPath ?? "")-\(colorScheme)")
         .onChange(of: store.loadedPath) {
             editorState = SourceEditorState()
         }
