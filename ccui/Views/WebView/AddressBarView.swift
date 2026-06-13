@@ -79,7 +79,7 @@ struct AddressBarView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.borderSubtle).frame(height: 1)
         }

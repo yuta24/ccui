@@ -19,7 +19,7 @@ struct SearchPaneView: View {
 
             resultsContent
         }
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
         .onAppear {
             isFieldFocused = true
         }

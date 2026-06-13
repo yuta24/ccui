@@ -28,6 +28,8 @@ final class AgentSplitViewController: NSSplitViewController {
 
         agentHostingController.safeAreaRegions = []
         agentHostingController.sizingOptions = []
+        agentHostingController.view.wantsLayer = true
+        agentHostingController.view.layer?.backgroundColor = NSColor.surfacePrimaryColor.resolvedRGB.cgColor
         let agentItem = NSSplitViewItem(viewController: agentHostingController)
         agentItem.minimumThickness = 300
         addSplitViewItem(agentItem)

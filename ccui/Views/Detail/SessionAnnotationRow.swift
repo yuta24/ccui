@@ -197,7 +197,7 @@ struct SessionAnnotationRow: View {
         } label: {
             Text(label)
                 .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? Color.surfaceBase : Color.textSecondary)
+                .foregroundStyle(isSelected ? Color.textInverted : Color.textSecondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(

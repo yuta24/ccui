@@ -3,9 +3,19 @@ import SwiftUI
 // MARK: - NSColor Tokens (AppKit layer — adaptive semantic colors)
 
 extension NSColor {
+    /// CGColor やRGBコンポーネントへ直接アクセスする AppKit API (例: `layer.backgroundColor`,
+    /// `.brightnessComponent`) は、labelColor や controlBackgroundColor のような
+    /// dynamic/catalog な NSColor を変換せずに渡すと誤った色や例外になる場合があるため、
+    /// deviceRGB に解決してから渡す。
+    var resolvedRGB: NSColor {
+        usingColorSpace(.deviceRGB) ?? self
+    }
+
     static let surfaceWindowColor = NSColor.windowBackgroundColor
     static let surfacePrimaryColor = NSColor.controlBackgroundColor
     static let textPrimaryColor = NSColor.labelColor
+    static let textSecondaryColor = NSColor.secondaryLabelColor
+    static let textTertiaryColor = NSColor.tertiaryLabelColor
     static let accentAmberColor = NSColor(named: "AccentColor") ?? NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1)
     static let accentMutedColor = (NSColor(named: "AccentColor") ?? NSColor(red: 0.96, green: 0.65, blue: 0.14, alpha: 1))
         .withAlphaComponent(0.25)
@@ -36,6 +46,8 @@ extension Color {
     static let textPrimary = Color(nsColor: .labelColor)
     static let textSecondary = Color(nsColor: .secondaryLabelColor)
     static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+    /// Contrasting text for solid accent/textPrimary-colored backgrounds (inverse of textPrimary).
+    static let textInverted = Color(nsColor: .windowBackgroundColor)
 
     // Accent — amber (Color.accent is auto-generated from AccentColor asset)
     static let accentSubtle = Color.accent.opacity(0.18)

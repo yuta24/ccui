@@ -23,7 +23,7 @@ struct BottomTerminalTabBarView: View {
             Spacer()
         }
         .frame(height: 32)
-        .background(.ultraThinMaterial)
+        .background(Color.surfaceElevated)
         .overlay(alignment: .top) { Divider() }
     }
 
@@ -73,7 +73,7 @@ struct BottomTerminalTabBarView: View {
             .padding(.trailing, 8)
         }
         .frame(height: 32)
-        .background(.ultraThinMaterial)
+        .background(Color.surfaceElevated)
         .overlay(alignment: .top) { Divider() }
     }
 

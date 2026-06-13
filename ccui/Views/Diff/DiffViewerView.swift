@@ -55,7 +55,7 @@ struct DiffViewerView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 
     // MARK: - States

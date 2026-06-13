@@ -132,7 +132,7 @@ final class BottomTerminalViewController: NSViewController {
                 } label: {
                     Text("New Terminal")
                         .font(.uiCaption)
-                        .foregroundStyle(Color.surfaceBase)
+                        .foregroundStyle(Color.textInverted)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.accent)
@@ -141,6 +141,7 @@ final class BottomTerminalViewController: NSViewController {
                 .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.surfacePrimary)
         )
         let vc = NSHostingController(rootView: emptyView)
         addChild(vc)

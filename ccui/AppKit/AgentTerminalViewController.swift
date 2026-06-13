@@ -30,7 +30,7 @@ final class AgentTerminalViewController: NSViewController {
         container.wantsLayer = true
         // フリーズ中にターミナルが境界をはみ出した際にクリップする。
         // ターミナルの背景色と揃えることで、サイズ固定中にできる隙間も目立たなくする。
-        container.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        container.layer?.backgroundColor = NSColor.windowBackgroundColor.resolvedRGB.cgColor
         container.layer?.masksToBounds = true
         view = container
 

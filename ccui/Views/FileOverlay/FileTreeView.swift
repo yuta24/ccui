@@ -34,7 +34,7 @@ struct FileTreeView: View {
                 }
             }
         }
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
         .task {
             if store.nodes.isEmpty && !store.isLoading {
                 await store.load()

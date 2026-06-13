@@ -66,7 +66,7 @@ struct FileViewerView: View {
                     } label: {
                         Text(mode.rawValue)
                             .font(.uiCaption)
-                            .foregroundStyle(isSelected ? Color.surfaceBase : Color.textSecondary)
+                            .foregroundStyle(isSelected ? Color.textInverted : Color.textSecondary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 4)
                             .background(isSelected ? Color.accent : Color.clear)
@@ -83,7 +83,7 @@ struct FileViewerView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 
     private func relativePath(for fullPath: String) -> String {

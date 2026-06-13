@@ -44,7 +44,7 @@ struct CodeViewerView: View {
             language: language,
             configuration: SourceEditorConfiguration(
                 appearance: .init(
-                    theme: .monochromeDark,
+                    theme: .monochrome,
                     font: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular),
                     lineHeightMultiple: 1.4,
                     wrapLines: false,

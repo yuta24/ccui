@@ -67,6 +67,7 @@ struct FileExplorerContent: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 36)
+        .background(Color.surfacePrimary)
     }
 
     // MARK: - Layout Helpers
@@ -93,7 +94,7 @@ struct FileExplorerContent: View {
         } else if let fileTreeStore {
             FileTreeView(store: fileTreeStore, changedFiles: cachedChangedFiles)
         } else {
-            Color.surfaceBase
+            Color.surfacePrimary
         }
     }
 
@@ -127,7 +128,7 @@ struct FileExplorerContent: View {
                     .foregroundStyle(Color.textTertiary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.surfaceBase)
+            .background(Color.surfacePrimary)
         }
     }
 
