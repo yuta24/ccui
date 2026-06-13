@@ -3,6 +3,7 @@ import SwiftUI
 struct RepositorySectionView: View {
     let repository: Repository
     let worktreeStore: WorktreeStore
+    var searchQuery: String = ""
     @Environment(RepositoryStore.self) private var store
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(NavigationStore.self) private var navigationStore
@@ -12,23 +13,53 @@ struct RepositorySectionView: View {
         !store.exists(repository)
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionHeader
+    private var filteredWorktrees: [Worktree] {
+        guard !searchQuery.isEmpty else { return worktreeStore.worktrees }
+        if QuickOpenStore.fuzzyScore(query: searchQuery, candidate: repository.name) != nil {
+            return worktreeStore.worktrees
+        }
+        return worktreeStore.worktrees.filter { wt in
+            QuickOpenStore.fuzzyScore(query: searchQuery, candidate: wt.displayName) != nil
+        }
+    }
 
-            if isMissing {
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Color.statusWarning)
-                    Text("Repository not found on disk")
-                        .font(.uiCaption)
-                        .foregroundStyle(Color.textTertiary)
+    private var matchesSearch: Bool {
+        Self.matches(repository: repository, worktrees: worktreeStore.worktrees, query: searchQuery)
+    }
+
+    static func matches(repository: Repository, worktrees: [Worktree], query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+        if QuickOpenStore.fuzzyScore(query: query, candidate: repository.name) != nil {
+            return true
+        }
+        return worktrees.contains { wt in
+            QuickOpenStore.fuzzyScore(query: query, candidate: wt.displayName) != nil
+        }
+    }
+
+    var body: some View {
+        Group {
+            if matchesSearch {
+                VStack(alignment: .leading, spacing: 0) {
+                    sectionHeader
+
+                    if isMissing {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color.statusWarning)
+                            Text("Repository not found on disk")
+                                .font(.uiCaption)
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    } else {
+                        worktreeList
+                    }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-            } else {
-                worktreeList
+
+                sectionDivider
             }
         }
         .task(id: repository.id) {
@@ -48,8 +79,6 @@ struct RepositorySectionView: View {
             }
             worktreeStore.stopWatching()
         }
-
-        sectionDivider
     }
 
     // MARK: - Section Header
@@ -100,7 +129,7 @@ struct RepositorySectionView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
         } else {
-            ForEach(worktreeStore.worktrees) { wt in
+            ForEach(filteredWorktrees) { wt in
                 let summary = claudeEventStore.agentSummary(for: wt.path)
                 let isHighlighted = summary.activity.isActive || summary.pendingAttentionCount > 0 || summary.hasUnacknowledgedFinished
 
@@ -119,7 +148,9 @@ struct RepositorySectionView: View {
                 }
             }
 
-            addWorktreeButton
+            if searchQuery.isEmpty {
+                addWorktreeButton
+            }
         }
     }
 

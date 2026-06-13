@@ -10,6 +10,21 @@ struct SidebarView: View {
     @Environment(NavigationStore.self) private var navigationStore
     @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
 
+    @State private var searchQuery: String = ""
+
+    private var hasAnyMatch: Bool {
+        guard !searchQuery.isEmpty else { return true }
+        return store.repositories.contains { matches($0) }
+    }
+
+    private func matches(_ repo: Repository) -> Bool {
+        guard !searchQuery.isEmpty else { return true }
+        if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
+            return RepositorySectionView.matches(repository: repo, worktrees: wtStore.worktrees, query: searchQuery)
+        }
+        return QuickOpenStore.fuzzyScore(query: searchQuery, candidate: repo.name) != nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             SidebarHeaderView(onAddRepository: {
@@ -21,21 +36,30 @@ struct SidebarView: View {
             if store.repositories.isEmpty {
                 SidebarEmptyStateView()
             } else {
+                SidebarSearchFieldView(text: $searchQuery)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 6)
+
                 ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(store.repositories) { repo in
-                            if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
-                                RepositorySectionView(
-                                    repository: repo,
-                                    worktreeStore: wtStore
-                                )
-                            } else {
-                                repositoryLoadingPlaceholder(repo)
+                    if hasAnyMatch {
+                        LazyVStack(spacing: 2) {
+                            ForEach(store.repositories) { repo in
+                                if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
+                                    RepositorySectionView(
+                                        repository: repo,
+                                        worktreeStore: wtStore,
+                                        searchQuery: searchQuery
+                                    )
+                                } else if matches(repo) {
+                                    repositoryLoadingPlaceholder(repo)
+                                }
                             }
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                    } else {
+                        noMatchesView
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 4)
                 }
                 .scrollContentBackground(.hidden)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -76,5 +100,18 @@ struct SidebarView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 8)
         }
+    }
+
+    private var noMatchesView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 24, weight: .ultraLight))
+                .foregroundStyle(Color.textTertiary)
+            Text("No matching worktrees")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 }
