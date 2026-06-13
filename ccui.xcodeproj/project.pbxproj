@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CC0000090000000000000012 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000080000000000000011 /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		98DB29482F848910009FA245 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC0000090000000000000012 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,6 +107,7 @@
 				98DB29362F84890F009FA245 /* Sources */,
 				98DB29372F84890F009FA245 /* Frameworks */,
 				98DB29382F84890F009FA245 /* Resources */,
+				CC00000A0000000000000013 /* Add Sparkle Info.plist Keys */,
 			);
 			buildRules = (
 			);
@@ -115,6 +121,7 @@
 				CC000002000000000000000B /* SwiftTerm */,
 				CC000004000000000000000D /* CodeEditSourceEditor */,
 				CC000005000000000000000E /* CodeEditLanguages */,
+				CC0000080000000000000011 /* Sparkle */,
 			);
 			productName = ccui;
 			productReference = 98DB293A2F84890F009FA245 /* ccui.app */;
@@ -204,6 +211,7 @@
 				CC000001000000000000000A /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 				CC000003000000000000000C /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */,
 				CC000006000000000000000F /* XCRemoteSwiftPackageReference "CodeEditLanguages" */,
+				CC0000070000000000000010 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -238,6 +246,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		CC00000A0000000000000013 /* Add Sparkle Info.plist Keys */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(CODESIGNING_FOLDER_PATH)/Contents/Info.plist",
+			);
+			name = "Add Sparkle Info.plist Keys";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nif [ \"${CONFIGURATION}\" != \"Release\" ]; then\n  exit 0\nfi\nPLIST=\"${CODESIGNING_FOLDER_PATH}/Contents/Info.plist\"\nif [ ! -f \"$PLIST\" ]; then\n  exit 0\nfi\nPB=/usr/libexec/PlistBuddy\n\"$PB\" -c \"Delete :SUFeedURL\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUFeedURL string https://yuta24.github.io/ccui/appcast.xml\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUEnableAutomaticChecks\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUEnableAutomaticChecks bool true\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUScheduledCheckInterval\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUScheduledCheckInterval integer 86400\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUPublicEDKey\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUPublicEDKey string ${SPARKLE_PUBLIC_ED_KEY}\" \"$PLIST\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		98DB29362F84890F009FA245 /* Sources */ = {
@@ -402,6 +428,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ccui/ccui.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -433,6 +460,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ccui/ccui.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -440,6 +468,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -450,6 +479,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bivre.ccui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				SPARKLE_PUBLIC_ED_KEY = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -605,6 +635,14 @@
 				minimumVersion = 0.1.20;
 			};
 		};
+		CC0000070000000000000010 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -622,6 +660,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CC000006000000000000000F /* XCRemoteSwiftPackageReference "CodeEditLanguages" */;
 			productName = CodeEditLanguages;
+		};
+		CC0000080000000000000011 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CC0000070000000000000010 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

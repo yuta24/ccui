@@ -50,6 +50,21 @@ scripts/test.sh                  # Run unit tests
 
 The built `.app` is written to `.build/Build/Products/<Configuration>/ccui.app`. You can also open `ccui.xcodeproj` in Xcode and run normally.
 
+## Release
+
+Pushing a `v*` tag builds, codesigns, notarizes, and publishes a Developer ID–signed `ccui.app`:
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+This triggers `.github/workflows/release.yml`, which archives and exports the app via `scripts/release_build.sh`, notarizes and staples it, attaches the zipped app to a GitHub Release, and (for non-prerelease tags) publishes `appcast.xml` to the `gh-pages` branch.
+
+### Auto-update (Sparkle)
+
+Release builds embed [Sparkle](https://sparkle-project.org) and check `https://yuta24.github.io/ccui/appcast.xml` for updates (daily, plus on-demand via the **Check for Updates…** menu item). Updates are verified with EdDSA signatures before installing.
+
 ## Architecture
 
 | Layer | Responsibility |

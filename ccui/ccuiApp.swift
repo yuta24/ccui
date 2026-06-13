@@ -1,8 +1,14 @@
+import Sparkle
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var stores: AppDependencies!
     var mainWindowController: MainWindowController?
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         stores = AppDependencies()
@@ -29,6 +35,13 @@ struct ccuiApp: App {
             if let stores = appDelegate.stores {
                 AppSettingsView()
                     .environment(stores.appSettingsStore)
+            }
+        }
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    appDelegate.updaterController.checkForUpdates(nil)
+                }
             }
         }
     }

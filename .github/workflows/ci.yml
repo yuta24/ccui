@@ -1,0 +1,35 @@
+# Continuous integration for pull requests targeting `main` and pushes
+# to `main`. Runs the unit test suite via `scripts/test.sh`.
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Cancel superseded runs on the same ref so a rebase / force-push doesn't
+# leave the previous run burning cycles. `release.yml` is keyed on tags
+# rather than branches, so it doesn't share this group.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # macOS 26.2 SDK / Xcode 26.2+ is required (SWIFT_DEFAULT_ACTOR_ISOLATION
+    # = MainActor, MACOSX_DEPLOYMENT_TARGET = 26.2).
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Run unit tests
+        run: scripts/test.sh

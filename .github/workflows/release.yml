@@ -1,0 +1,217 @@
+# Builds, codesigns, notarizes, and publishes ccui.app whenever a `v*`
+# tag is pushed. Also updates `appcast.xml` on the `gh-pages` branch so
+# installed clients pick up the release via Sparkle.
+#
+# Required repository secrets:
+#   SPARKLE_PRIVATE_KEY     — EdDSA private key (output of `generate_keys -x`).
+#   SPARKLE_PUBLIC_KEY      — matching public key, embedded into Info.plist
+#                             as SUPublicEDKey.
+#   DEV_ID_CERT_P12         — Developer ID Application .p12, base64-encoded.
+#   DEV_ID_CERT_PASSWORD    — password for the .p12.
+#   APPLE_ID                — Apple ID email used for notarization.
+#   NOTARYTOOL_PASSWORD     — app-specific password from appleid.apple.com,
+#                             NOT the Apple ID account password.
+#   TEAM_ID                 — 10-char Apple Developer Team ID (PS98BD6732).
+#
+# One-time bootstrap:
+#   1. Run `.build/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys`
+#      after resolving packages (`scripts/build.sh` resolves them). The
+#      public key goes to stdout as SPARKLE_PUBLIC_KEY; export the private
+#      key with `generate_keys -x` and register both as secrets above.
+#   2. Create an orphan `gh-pages` branch and enable Pages
+#      (Settings → Pages → Deploy from branch → gh-pages / root). The
+#      appcast is published there at
+#      https://yuta24.github.io/ccui/appcast.xml.
+#
+# Cutting a release: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # macOS 26.2 SDK / Xcode 26.2+ is required (MACOSX_DEPLOYMENT_TARGET = 26.2).
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BUILD_NUM=$(git rev-list --count HEAD)
+          # Any SemVer pre-release suffix (v0.1.0-rc1, v0.2.0-beta.3, …)
+          # is treated as a prerelease: the GitHub Release is marked as
+          # such, and the appcast.xml publish step is skipped so installed
+          # production clients don't auto-update to a candidate build.
+          if [[ "$VERSION" == *-* ]]; then
+            IS_PRERELEASE=true
+          else
+            IS_PRERELEASE=false
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_num=$BUILD_NUM" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+
+      - name: Import Developer ID certificate
+        env:
+          DEV_ID_CERT_P12: ${{ secrets.DEV_ID_CERT_P12 }}
+          DEV_ID_CERT_PASSWORD: ${{ secrets.DEV_ID_CERT_PASSWORD }}
+        run: |
+          # Keychain is isolated to this runner and torn down with it, so we
+          # don't bother cleaning up afterwards.
+          KEYCHAIN=release.keychain
+          security create-keychain -p runner "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p runner "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+          echo "$DEV_ID_CERT_P12" | base64 --decode > /tmp/cert.p12
+          security import /tmp/cert.p12 -k "$KEYCHAIN" \
+            -P "$DEV_ID_CERT_PASSWORD" -T /usr/bin/codesign
+          rm /tmp/cert.p12
+          # Allow codesign to access the imported key without an interactive
+          # prompt. Without this, `codesign` hangs on the runner.
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k runner "$KEYCHAIN"
+
+      - name: Build and export ccui.app
+        env:
+          SPARKLE_PUBLIC_ED_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+        run: |
+          scripts/release_build.sh \
+            "${{ steps.version.outputs.version }}" \
+            "${{ steps.version.outputs.build_num }}"
+
+      - name: Verify codesign
+        run: codesign --verify --deep --strict --verbose=2 build/ccui.app
+
+      - name: Zip for notarization
+        run: |
+          cd build
+          ditto -c -k --sequesterRsrc --keepParent \
+            ccui.app \
+            "ccui-${{ steps.version.outputs.version }}.zip"
+
+      - name: Notarize
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          NOTARYTOOL_PASSWORD: ${{ secrets.NOTARYTOOL_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          xcrun notarytool submit \
+            "build/ccui-${{ steps.version.outputs.version }}.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$NOTARYTOOL_PASSWORD" \
+            --team-id "$TEAM_ID" \
+            --wait
+
+      - name: Staple ticket
+        run: |
+          xcrun stapler staple build/ccui.app
+          # Re-zip so the released archive carries the stapled ticket.
+          rm "build/ccui-${{ steps.version.outputs.version }}.zip"
+          cd build
+          ditto -c -k --sequesterRsrc --keepParent \
+            ccui.app \
+            "ccui-${{ steps.version.outputs.version }}.zip"
+
+      - name: Sign update with Sparkle EdDSA
+        id: sparkle_sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          SIGN_UPDATE=$(find .build/SourcePackages/artifacts -name sign_update -type f -perm +111 2>/dev/null | head -n1)
+          if [ -z "$SIGN_UPDATE" ]; then
+            echo "sign_update tool not found under .build/SourcePackages/artifacts" >&2
+            exit 1
+          fi
+
+          # Guarantee the private key file is removed even if sign_update
+          # exits non-zero; without the trap, `set -e` would abort before
+          # the manual rm and leave the key on the runner.
+          KEY_FILE=$(mktemp)
+          trap 'rm -f "$KEY_FILE"' EXIT
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$KEY_FILE"
+
+          # sign_update -f outputs something like:
+          #   sparkle:edSignature="..." length="..."
+          # Strip newlines defensively in case a future Sparkle version
+          # appends extra whitespace; the output is interpolated directly
+          # into a single XML attribute group, so a stray \n would corrupt
+          # the appcast.
+          SIGNATURE_OUTPUT=$("$SIGN_UPDATE" \
+            "build/ccui-${{ steps.version.outputs.version }}.zip" \
+            -f "$KEY_FILE" | tr -d '\n')
+
+          {
+            echo "signature_attrs<<SIGEOF"
+            echo "$SIGNATURE_OUTPUT"
+            echo "SIGEOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ccui-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+      - name: Publish appcast.xml to gh-pages
+        # Skipped on pre-release tags so production clients (which point
+        # at this appcast) don't auto-update to a candidate build.
+        if: steps.version.outputs.is_prerelease == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUM: ${{ steps.version.outputs.build_num }}
+          SIGNATURE_ATTRS: ${{ steps.sparkle_sign.outputs.signature_attrs }}
+        run: |
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}/ccui-${VERSION}.zip"
+          PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
+
+          APPCAST=$(mktemp)
+          cat > "$APPCAST" <<APPCASTEOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>ccui</title>
+              <link>https://github.com/${{ github.repository }}</link>
+              <description>ccui updates</description>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION}</title>
+                <sparkle:version>${BUILD_NUM}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>26.2</sparkle:minimumSystemVersion>
+                <pubDate>${PUB_DATE}</pubDate>
+                <enclosure
+                  url="${DOWNLOAD_URL}"
+                  type="application/octet-stream"
+                  ${SIGNATURE_ATTRS} />
+              </item>
+            </channel>
+          </rss>
+          APPCASTEOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages:gh-pages 2>/dev/null || true
+          if git show-ref --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+          fi
+          cp "$APPCAST" appcast.xml
+          git add appcast.xml
+          git commit -m "Update appcast for ${VERSION}" || true
+          git push origin gh-pages
