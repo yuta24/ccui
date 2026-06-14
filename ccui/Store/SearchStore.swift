@@ -120,7 +120,7 @@ final class SearchStore {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
 
-            let results = await Self.runGitGrep(query: query, rootPath: root)
+            let results = await Self.runContentSearch(query: query, rootPath: root)
 
             guard !Task.isCancelled else { return }
             contentResults = results
@@ -128,12 +128,19 @@ final class SearchStore {
         }
     }
 
-    // MARK: - Git Grep
+    // MARK: - Content Search Process
 
-    private nonisolated static func runGitGrep(query: String, rootPath: String) async -> [ContentSearchResult] {
+    /// `rg` が利用可能ならそれを優先する（`.gitignore` を尊重しつつ未追跡ファイルも高速に検索できる）。
+    /// 利用できない場合は `git grep` にフォールバックする（追跡済みファイルのみ）。
+    private nonisolated static func runContentSearch(query: String, rootPath: String) async -> [ContentSearchResult] {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["grep", "-rnIF", "--untracked", "--color=never", "--", query]
+        if let rgPath = await SearchToolLocator.shared.ripgrepPath() {
+            process.executableURL = URL(fileURLWithPath: rgPath)
+            process.arguments = ["--hidden", "--glob", "!.git", "-n", "-F", "--no-heading", "--color=never", "--", query]
+        } else {
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["grep", "-rnIF", "--color=never", "--", query]
+        }
         process.currentDirectoryURL = URL(fileURLWithPath: rootPath)
 
         let stdout = Pipe()

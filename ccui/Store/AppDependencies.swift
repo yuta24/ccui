@@ -51,6 +51,7 @@ final class AppDependencies {
     func start() {
         claudeEventStore.start()
         terminalSessionStore.startResolvingClaudePath()
+        Task { _ = await SearchToolLocator.shared.ripgrepPath() }
     }
 
     func shutdown() {
