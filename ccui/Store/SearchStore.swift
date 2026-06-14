@@ -85,6 +85,11 @@ final class SearchStore {
     private func searchFiles(query: String) {
         let currentIndex = fileIndex
         searchTask = Task.detached(priority: .userInitiated) {
+            // 連続したキー入力ごとに 50k 件規模の index を全件スコアリングするのを避けるため、
+            // 短い debounce を挟んで最後の入力だけを処理する。
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled else { return }
+
             let queryLower = query.lowercased()
             var scored: [QuickOpenResult] = []
 
