@@ -71,20 +71,17 @@ struct AgentStatusBar: View {
     }
 }
 
-// MARK: - Content Toolbar (Content panel top)
+// MARK: - Content Controls (Titlebar accessory, trailing)
 
-struct ContentToolbar: View {
+struct ContentControlsBar: View {
     @Environment(NavigationStore.self) private var navigationStore
     @Environment(DetailUIState.self) private var detailUIState
 
     var body: some View {
-        HStack(spacing: 12) {
-            Spacer()
-
-            // Actions (right)
+        Group {
             if navigationStore.selectedWorktree != nil {
-                GlassEffectContainer(spacing: 4) {
-                    HStack(spacing: 4) {
+                GlassEffectContainer(spacing: PanelMetrics.contentControlSpacing) {
+                    HStack(spacing: PanelMetrics.contentControlSpacing) {
                         if detailUIState.contentMode == .agent {
                             Button {
                                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -94,7 +91,7 @@ struct ContentToolbar: View {
                                 Image(systemName: detailUIState.agentLayoutMode == .split ? "rectangle.split.1x2.fill" : "rectangle.split.1x2")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(detailUIState.agentLayoutMode == .split ? Color.accent : Color.primary)
-                                    .frame(width: 28, height: 28)
+                                    .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
@@ -108,7 +105,7 @@ struct ContentToolbar: View {
                             Image(systemName: "sidebar.trailing")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(detailUIState.isRightPanelVisible ? Color.accent : Color.primary)
-                                .frame(width: 28, height: 28)
+                                .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -121,7 +118,7 @@ struct ContentToolbar: View {
                             Image(systemName: "gearshape")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(detailUIState.isConfigurationSheetPresented ? Color.accent : Color.primary)
-                                .frame(width: 28, height: 28)
+                                .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -131,12 +128,8 @@ struct ContentToolbar: View {
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .frame(height: PanelMetrics.toolbarHeight)
-        .frame(maxWidth: .infinity)
-        .background(Color.surfaceWindow)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.borderSubtle).frame(height: 1)
-        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.trailing, PanelMetrics.windowEdgeInset + 10)
+        .frame(height: PanelMetrics.titleBarHeight)
     }
 }

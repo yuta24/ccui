@@ -96,7 +96,14 @@ enum PanelMetrics {
     static let panelGap: CGFloat = 0
     static let windowEdgeInset: CGFloat = 0
     static let titleBarHeight: CGFloat = 28
-    static let toolbarHeight: CGFloat = 32
+
+    // ContentControlsBar (titlebar accessory: layout split / inspector / configuration)
+    static let contentControlButtonSize: CGFloat = 24
+    static let contentControlSpacing: CGFloat = 4
+    /// Accessory width for the max case (3 buttons), used as the fixed NSHostingView frame width
+    /// since NSTitlebarAccessoryViewController doesn't size correctly via `.intrinsicContentSize`.
+    static let contentControlsAccessoryWidth: CGFloat =
+        3 * contentControlButtonSize + 2 * contentControlSpacing + windowEdgeInset + 10
 }
 
 // MARK: - View Modifiers

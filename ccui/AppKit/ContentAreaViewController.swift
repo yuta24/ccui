@@ -36,11 +36,6 @@ final class ContentAreaViewController: NSViewController {
     override func loadView() {
         let container = NSView()
 
-        // Toolbar pinned to the top of the content area only (not spanning the sidebar)
-        let toolbarHosting = NSHostingView(rootView: stores.injectEnvironment(into: ContentToolbar()))
-        toolbarHosting.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(toolbarHosting)
-
         splitVC = ContentSplitViewController()
         splitVC.splitView.isVertical = true
         splitVC.splitView.dividerStyle = .thin
@@ -73,12 +68,7 @@ final class ContentAreaViewController: NSViewController {
         container.addSubview(splitViewContainer)
 
         NSLayoutConstraint.activate([
-            toolbarHosting.topAnchor.constraint(equalTo: container.safeAreaLayoutGuide.topAnchor),
-            toolbarHosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            toolbarHosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            toolbarHosting.heightAnchor.constraint(equalToConstant: PanelMetrics.toolbarHeight),
-
-            splitViewContainer.topAnchor.constraint(equalTo: toolbarHosting.bottomAnchor),
+            splitViewContainer.topAnchor.constraint(equalTo: container.safeAreaLayoutGuide.topAnchor),
             splitViewContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             splitViewContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             splitViewContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),

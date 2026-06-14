@@ -38,6 +38,19 @@ final class MainWindowController: NSWindowController {
         statusAccessoryVC.view = statusHosting
         window.addTitlebarAccessoryViewController(statusAccessoryVC)
 
+        // Trailing accessory: content controls (layout split / inspector / configuration)
+        let controlsView = stores.injectEnvironment(into: ContentControlsBar())
+        let controlsHosting = NSHostingView(rootView: controlsView)
+        // .intrinsicContentSize does not size this accessory correctly; use an explicit frame
+        // sized for the max case (3 buttons). When fewer/no buttons are shown, the unused
+        // space stays transparent and right-aligned content shrinks within this width.
+        controlsHosting.sizingOptions = []
+        controlsHosting.frame = NSRect(x: 0, y: 0, width: PanelMetrics.contentControlsAccessoryWidth, height: PanelMetrics.titleBarHeight)
+        let controlsAccessoryVC = NSTitlebarAccessoryViewController()
+        controlsAccessoryVC.layoutAttribute = .trailing
+        controlsAccessoryVC.view = controlsHosting
+        window.addTitlebarAccessoryViewController(controlsAccessoryVC)
+
         stores.start()
     }
 
