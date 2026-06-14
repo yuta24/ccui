@@ -117,19 +117,38 @@ final class FileTreeStore {
 
     private nonisolated static func scanDirectory(at path: String, rootPath: String, fileIndex: GitFileIndex?) throws -> [FileNode] {
         let fm = FileManager.default
-        let contents = try fm.contentsOfDirectory(atPath: path)
+        // `includingPropertiesForKeys: [.isDirectoryKey]` でディレクトリ判定をまとめて
+        // prefetch し、エントリごとの追加 stat 呼び出し (fileExists) を避ける。
+        let contents = try fm.contentsOfDirectory(
+            at: URL(fileURLWithPath: path),
+            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
+            options: [.skipsHiddenFiles]
+        )
 
         var folders: [FileNode] = []
         var files: [FileNode] = []
 
-        for name in contents where !name.hasPrefix(".") {
+        for url in contents {
+            let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+            guard var isDirectory = resourceValues?.isDirectory else { continue }
+
+            let name = url.lastPathComponent
+            // `url.path` はディレクトリに末尾スラッシュを付与するため、
+            // 既存の path 表現（末尾スラッシュなし）に合わせて再構築する。
             let fullPath = (path as NSString).appendingPathComponent(name)
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }
+
+            // シンボリックリンクの場合、`isDirectoryKey` はリンク自体の種別を返すため、
+            // リンク先を解決する fileExists でディレクトリ判定する（旧実装と同じ挙動）。
+            if resourceValues?.isSymbolicLink == true {
+                var isDir: ObjCBool = false
+                if fm.fileExists(atPath: fullPath, isDirectory: &isDir) {
+                    isDirectory = isDir.boolValue
+                }
+            }
 
             let ignoreStatus: GitIgnoreStatus
             if let fileIndex {
-                if isDir.boolValue {
+                if isDirectory {
                     ignoreStatus = fileIndex.isIgnoredDirectory(fullPath) ? .ignored : .visible
                 } else {
                     ignoreStatus = fileIndex.isIgnored(fullPath) ? .ignored : .visible
@@ -138,7 +157,7 @@ final class FileTreeStore {
                 ignoreStatus = .visible
             }
 
-            if isDir.boolValue {
+            if isDirectory {
                 folders.append(FileNode(name: name, path: fullPath, isDirectory: true, gitIgnoreStatus: ignoreStatus))
             } else {
                 files.append(FileNode(name: name, path: fullPath, isDirectory: false, gitIgnoreStatus: ignoreStatus))
