@@ -147,7 +147,7 @@ struct AnalyticsDashboardView: View {
         .padding(.vertical, 10)
     }
 
-    private func summaryItem(value: String, label: String, color: Color? = nil) -> some View {
+    private func summaryItem(value: String, label: LocalizedStringKey, color: Color? = nil) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(value)
                 .font(.uiLabel)
@@ -160,7 +160,7 @@ struct AnalyticsDashboardView: View {
 
     @ViewBuilder
     private func chartSection<Content: View>(
-        title: String,
+        title: LocalizedStringKey,
         @ViewBuilder content: () -> Content
     ) -> some View {
         Rectangle()

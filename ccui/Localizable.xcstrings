@@ -1,0 +1,1178 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld cmd": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド %lld件"
+          }
+        }
+      }
+    },
+    "(all tools)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（すべてのツール）"
+          }
+        }
+      }
+    },
+    "(new rule)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（新規ルール）"
+          }
+        }
+      }
+    },
+    "AUTONOMY OVER TIME": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自律性の推移"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加"
+          }
+        }
+      }
+    },
+    "Add Command": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドを追加"
+          }
+        }
+      }
+    },
+    "Add Hook": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フックを追加"
+          }
+        }
+      }
+    },
+    "Add Repository": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポジトリを追加"
+          }
+        }
+      }
+    },
+    "Add Rule": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルールを追加"
+          }
+        }
+      }
+    },
+    "Add Worktree": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worktreeを追加"
+          }
+        }
+      }
+    },
+    "Add Worktree from \"%@\"...": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"%@\"からWorktreeを追加..."
+          }
+        }
+      }
+    },
+    "Add a repository\nto get started": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポジトリを追加して\n開始しましょう"
+          }
+        }
+      }
+    },
+    "Agent activity will appear here": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントのアクティビティがここに表示されます"
+          }
+        }
+      }
+    },
+    "Analytics": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分析"
+          }
+        }
+      }
+    },
+    "Annotation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注釈"
+          }
+        }
+      }
+    },
+    "Autonomy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自律性"
+          }
+        }
+      }
+    },
+    "Base Branch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ベースブランチ"
+          }
+        }
+      }
+    },
+    "Branch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブランチ"
+          }
+        }
+      }
+    },
+    "Branch Name": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブランチ名"
+          }
+        }
+      }
+    },
+    "Browse": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参照"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル"
+          }
+        }
+      }
+    },
+    "Capture Region to Agent": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択範囲をエージェントに送信"
+          }
+        }
+      }
+    },
+    "Changes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更"
+          }
+        }
+      }
+    },
+    "Check for Updates…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートを確認…"
+          }
+        }
+      }
+    },
+    "Claude Code rejects glob patterns in allow-rule tool names unless they target MCP tools (mcp__server__tool). Use a deny rule or an MCP-style pattern instead.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Codeでは、MCPツール（mcp__server__tool）を対象とする場合を除き、許可ルールのツール名にglobパターンを使用できません。代わりに拒否ルールまたはMCP形式のパターンを使用してください。"
+          }
+        }
+      }
+    },
+    "Clear filter": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルタをクリア"
+          }
+        }
+      }
+    },
+    "Close file": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを閉じる"
+          }
+        }
+      }
+    },
+    "Compare with": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "比較対象"
+          }
+        }
+      }
+    },
+    "Compare with...": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "比較対象を選択..."
+          }
+        }
+      }
+    },
+    "Configuration": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定"
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成"
+          }
+        }
+      }
+    },
+    "Default Mode": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトモード"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        }
+      }
+    },
+    "Destination": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存先"
+          }
+        }
+      }
+    },
+    "Dry Run": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドライラン"
+          }
+        }
+      }
+    },
+    "Enter URL": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URLを入力"
+          }
+        }
+      }
+    },
+    "Evaluate": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "評価"
+          }
+        }
+      }
+    },
+    "Evaluation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "評価"
+          }
+        }
+      }
+    },
+    "Explorer": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスプローラー"
+          }
+        }
+      }
+    },
+    "Filter worktrees": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worktreeを絞り込み"
+          }
+        }
+      }
+    },
+    "Go Back": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻る"
+          }
+        }
+      }
+    },
+    "Go Forward": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進む"
+          }
+        }
+      }
+    },
+    "Go to file…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルへ移動…"
+          }
+        }
+      }
+    },
+    "HOOKS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フック"
+          }
+        }
+      }
+    },
+    "INTERVENTIONS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "介入"
+          }
+        }
+      }
+    },
+    "Inspector (⌘I)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インスペクタ (⌘I)"
+          }
+        }
+      }
+    },
+    "KEY": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー"
+          }
+        }
+      }
+    },
+    "Loading branches…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブランチを読み込み中…"
+          }
+        }
+      }
+    },
+    "Loading...": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込み中..."
+          }
+        }
+      }
+    },
+    "Mark all as read": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて既読にする"
+          }
+        }
+      }
+    },
+    "Matcher": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マッチャー"
+          }
+        }
+      }
+    },
+    "New": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規"
+          }
+        }
+      }
+    },
+    "New Session": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規セッション"
+          }
+        }
+      }
+    },
+    "New Terminal": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規ターミナル"
+          }
+        }
+      }
+    },
+    "New Worktree": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規Worktree"
+          }
+        }
+      }
+    },
+    "No %@ rules": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ルールはありません"
+          }
+        }
+      }
+    },
+    "No active session": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティブなセッションはありません"
+          }
+        }
+      }
+    },
+    "No events for %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のイベントはありません"
+          }
+        }
+      }
+    },
+    "No events yet": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "イベントはまだありません"
+          }
+        }
+      }
+    },
+    "No hooks for %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のフックはありません"
+          }
+        }
+      }
+    },
+    "No label": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ラベルなし"
+          }
+        }
+      }
+    },
+    "No matching files": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致するファイルがありません"
+          }
+        }
+      }
+    },
+    "No matching worktrees": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致するWorktreeがありません"
+          }
+        }
+      }
+    },
+    "No session data": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッションデータがありません"
+          }
+        }
+      }
+    },
+    "OUTCOME": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果"
+          }
+        }
+      }
+    },
+    "Older events were dropped (limit: %lld). Metrics may be inaccurate.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古いイベントは破棄されました（上限: %lld件）。メトリクスは不正確な場合があります。"
+          }
+        }
+      }
+    },
+    "Older events were dropped. Metrics are minimums.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古いイベントは破棄されました。メトリクスは最小値です。"
+          }
+        }
+      }
+    },
+    "Older events were dropped. Scores may be inaccurate.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "古いイベントは破棄されました。スコアは不正確な場合があります。"
+          }
+        }
+      }
+    },
+    "Open panel to load diff": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パネルを開いてdiffを読み込み"
+          }
+        }
+      }
+    },
+    "Open with": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリで開く"
+          }
+        }
+      }
+    },
+    "PERMISSION INTERVENTIONS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "権限の介入"
+          }
+        }
+      }
+    },
+    "PERMISSIONS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "権限"
+          }
+        }
+      }
+    },
+    "Pattern preview": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パターンのプレビュー"
+          }
+        }
+      }
+    },
+    "REASONS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "理由"
+          }
+        }
+      }
+    },
+    "RESULT": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果"
+          }
+        }
+      }
+    },
+    "Refresh diff": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "diffを再読み込み"
+          }
+        }
+      }
+    },
+    "Reload file tree": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルツリーを再読み込み"
+          }
+        }
+      }
+    },
+    "Reload worktrees": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worktreeを再読み込み"
+          }
+        }
+      }
+    },
+    "Remove Repository": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポジトリを削除"
+          }
+        }
+      }
+    },
+    "Remove Worktree": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worktreeを削除"
+          }
+        }
+      }
+    },
+    "Repositories": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポジトリ"
+          }
+        }
+      }
+    },
+    "Repository not found on disk": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスク上にリポジトリが見つかりません"
+          }
+        }
+      }
+    },
+    "Resume a session from the sidebar\nor start a new one": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバーからセッションを再開するか\n新しいセッションを開始してください"
+          }
+        }
+      }
+    },
+    "Reveal in Finder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finderで表示"
+          }
+        }
+      }
+    },
+    "Rule": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルール"
+          }
+        }
+      }
+    },
+    "Run": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行"
+          }
+        }
+      }
+    },
+    "SESSION DURATION": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッション時間"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "Select a CLAUDE.md file": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLAUDE.mdファイルを選択してください"
+          }
+        }
+      }
+    },
+    "Select a file to preview": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレビューするファイルを選択してください"
+          }
+        }
+      }
+    },
+    "Select a file to view": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示するファイルを選択してください"
+          }
+        }
+      }
+    },
+    "Select a session to evaluate": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "評価するセッションを選択してください"
+          }
+        }
+      }
+    },
+    "Select a worktree": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worktreeを選択してください"
+          }
+        }
+      }
+    },
+    "Session Comparison": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッション比較"
+          }
+        }
+      }
+    },
+    "Sessions": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッション"
+          }
+        }
+      }
+    },
+    "Start New Session": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規セッションを開始"
+          }
+        }
+      }
+    },
+    "Start a new session?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいセッションを開始しますか？"
+          }
+        }
+      }
+    },
+    "Switch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切り替える"
+          }
+        }
+      }
+    },
+    "Switch session?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッションを切り替えますか？"
+          }
+        }
+      }
+    },
+    "TOOL USAGE": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ツール使用状況"
+          }
+        }
+      }
+    },
+    "The currently running Claude Code session in this worktree will be stopped. Unsaved progress in that session may be lost.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このWorktreeで現在実行中のClaude Codeセッションは停止されます。セッション内の保存されていない進行内容は失われる可能性があります。"
+          }
+        }
+      }
+    },
+    "Timeline": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイムライン"
+          }
+        }
+      }
+    },
+    "Toggle WebView Split (⌘U)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WebViewパネルの切り替え (⌘U)"
+          }
+        }
+      }
+    },
+    "USAGE BY CATEGORY": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カテゴリ別使用状況"
+          }
+        }
+      }
+    },
+    "User deny (read-only)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ユーザー拒否（読み取り専用）"
+          }
+        }
+      }
+    },
+    "avg autonomy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "平均自律性"
+          }
+        }
+      }
+    },
+    "ccui managed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ccui管理"
+          }
+        }
+      }
+    },
+    "cmd": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド"
+          }
+        }
+      }
+    },
+    "command": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド"
+          }
+        }
+      }
+    },
+    "e.g. Bash(swift package:*)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例: Bash(swift package:*)"
+          }
+        }
+      }
+    },
+    "exit %d": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了コード %d"
+          }
+        }
+      }
+    },
+    "interventions": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "介入数"
+          }
+        }
+      }
+    },
+    "sessions": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッション数"
+          }
+        }
+      }
+    },
+    "value": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "値"
+          }
+        }
+      }
+    },
+    "ここで設定した環境変数は、新しい Claude セッションの起動時に渡されます。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Environment variables set here are passed when a new Claude session is launched."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここで設定した環境変数は、新しい Claude セッションの起動時に渡されます。"
+          }
+        }
+      }
+    },
+    "環境変数": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Environment Variables"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境変数"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
