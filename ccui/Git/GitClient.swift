@@ -5,7 +5,7 @@ enum GitClient {
     // MARK: - Worktree
 
     nonisolated static func listWorktrees(repositoryPath: String) async throws -> String {
-        try await run(["worktree", "list", "--porcelain"], at: repositoryPath)
+        try await run(["--no-optional-locks", "worktree", "list", "--porcelain"], at: repositoryPath)
     }
 
     nonisolated static func addWorktree(args: [String], repositoryPath: String) async throws {
@@ -22,12 +22,12 @@ enum GitClient {
     // MARK: - Branch
 
     nonisolated static func listLocalBranches(repositoryPath: String) async throws -> [String] {
-        let output = try await run(["branch", "--format=%(refname:short)"], at: repositoryPath)
+        let output = try await run(["--no-optional-locks", "branch", "--format=%(refname:short)"], at: repositoryPath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
     nonisolated static func defaultBranch(repositoryPath: String) async throws -> String? {
-        let output = try await run(["symbolic-ref", "refs/remotes/origin/HEAD"], at: repositoryPath)
+        let output = try await run(["--no-optional-locks", "symbolic-ref", "refs/remotes/origin/HEAD"], at: repositoryPath)
         let ref = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ref.hasPrefix("refs/remotes/origin/") else { return nil }
         return String(ref.dropFirst("refs/remotes/origin/".count))
@@ -36,21 +36,21 @@ enum GitClient {
     // MARK: - Status
 
     nonisolated static func statusCount(worktreePath: String) async throws -> Int {
-        let output = try await run(["status", "--porcelain"], at: worktreePath)
+        let output = try await run(["--no-optional-locks", "status", "--porcelain"], at: worktreePath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
     }
 
     // MARK: - File Listing
 
     nonisolated static func lsFiles(_ args: [String], at repositoryPath: String) async throws -> String {
-        try await run(["ls-files"] + args, at: repositoryPath)
+        try await run(["--no-optional-locks", "ls-files"] + args, at: repositoryPath)
     }
 
     // MARK: - Diff
 
     nonisolated static func diff(repositoryPath: String) async throws -> String {
         do {
-            return try await run(["diff", "HEAD", "--color=never"], at: repositoryPath)
+            return try await run(["--no-optional-locks", "diff", "HEAD", "--color=never"], at: repositoryPath)
         } catch let error as GitError {
             // HEAD doesn't exist (empty repo with no commits)
             if case .commandFailed(let msg) = error, msg.contains("unknown revision") {
@@ -61,7 +61,7 @@ enum GitClient {
     }
 
     nonisolated static func untrackedFiles(repositoryPath: String) async throws -> [String] {
-        let output = try await run(["ls-files", "--others", "--exclude-standard"], at: repositoryPath)
+        let output = try await run(["--no-optional-locks", "ls-files", "--others", "--exclude-standard"], at: repositoryPath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
