@@ -16,6 +16,8 @@ protocol TerminalSession: AnyObject {
     func pasteImage(_ image: NSImage)
     /// Shows the terminal's built-in find bar for searching the scrollback buffer.
     func showFindBar()
+    /// Clears the visible screen and scrollback buffer, similar to Terminal.app's "Clear Buffer".
+    func clearScreen()
 }
 
 extension TerminalSession {

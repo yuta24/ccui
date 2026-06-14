@@ -54,6 +54,14 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         terminalView.performFindPanelAction(menuItem)
     }
 
+    func clearScreen() {
+        // Feeds the "erase screen + scrollback, cursor home" sequence directly into the
+        // terminal's display buffer, without sending anything to the running process.
+        // Goes through TerminalView.feed (not Terminal.feed) so the display and cursor
+        // caret position are refreshed via the normal feedPrepare/feedFinish path.
+        terminalView.feed(text: "\u{1b}[2J\u{1b}[3J\u{1b}[H")
+    }
+
     func pasteImage(_ image: NSImage) {
         guard let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),

@@ -252,6 +252,8 @@ final class RootContainerViewController: NSViewController {
         let navigationStore = stores.navigationStore
         let sessionComparisonStore = stores.sessionComparisonStore
         let terminalSessionStore = stores.terminalSessionStore
+        let shellSessionStore = stores.shellSessionStore
+        let bottomPanelState = stores.bottomPanelState
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
@@ -277,6 +279,34 @@ final class RootContainerViewController: NSViewController {
                 guard navigationStore.selectedWorktree != nil else { return event }
                 guard detailUIState.contentMode == .agent else { return event }
                 detailUIState.isRightPanelVisible.toggle()
+                return nil
+            }
+
+            // Cmd+T → new terminal tab in bottom panel (Agent mode only)
+            if chars == "t" && mods.contains(.command) && !mods.contains(.shift) {
+                guard let worktree = navigationStore.selectedWorktree else { return event }
+                guard detailUIState.contentMode == .agent else { return event }
+                let isFirst = shellSessionStore.tabs(for: worktree.path).isEmpty
+                shellSessionStore.addTab(for: worktree.path)
+                if isFirst {
+                    bottomPanelState.setExpanded(true, for: worktree.path)
+                }
+                return nil
+            }
+
+            // Cmd+K → clear active terminal tab output (Agent mode only)
+            if chars == "k" && mods.contains(.command) && !mods.contains(.shift) {
+                guard let worktree = navigationStore.selectedWorktree else { return event }
+                guard detailUIState.contentMode == .agent else { return event }
+                shellSessionStore.activeTab(for: worktree.path)?.session.clearScreen()
+                return nil
+            }
+
+            // Cmd+J → toggle bottom terminal panel (Agent mode only)
+            if chars == "j" && mods.contains(.command) && !mods.contains(.shift) {
+                guard let worktree = navigationStore.selectedWorktree else { return event }
+                guard detailUIState.contentMode == .agent else { return event }
+                bottomPanelState.toggle(for: worktree.path)
                 return nil
             }
 
