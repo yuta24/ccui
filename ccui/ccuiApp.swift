@@ -43,6 +43,11 @@ struct ccuiApp: App {
                     appDelegate.updaterController.checkForUpdates(nil)
                 }
             }
+            CommandGroup(after: .help) {
+                Button("問題を報告…") {
+                    IssueReporter.report()
+                }
+            }
         }
     }
 }

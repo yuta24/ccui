@@ -52,7 +52,7 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
         // tool_input is an arbitrary JSON object — store as a JSON string
         if container.contains(.toolInput) {
             let raw = try container.decode(AnyCodableValue.self, forKey: .toolInput)
-            let data = try JSONSerialization.data(withJSONObject: raw.value, options: [.sortedKeys])
+            let data = try JSONSerialization.data(withJSONObject: raw.value, options: [.sortedKeys, .fragmentsAllowed])
             toolInput = String(data: data, encoding: .utf8)
         } else {
             toolInput = nil

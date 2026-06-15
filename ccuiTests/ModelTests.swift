@@ -337,6 +337,54 @@ struct ClaudeHookPayloadTests {
         #expect(payload.toolInput != nil)
     }
 
+    @Test func decodeWithNullToolInput() throws {
+        let json = """
+        {
+            "hook_event_name": "PreToolUse",
+            "cwd": "/repo",
+            "tool_input": null
+        }
+        """
+        let payload = try JSONDecoder().decode(ClaudeHookPayload.self, from: Data(json.utf8))
+        #expect(payload.toolInput == "null")
+    }
+
+    @Test func decodeWithStringToolInput() throws {
+        let json = """
+        {
+            "hook_event_name": "PreToolUse",
+            "cwd": "/repo",
+            "tool_input": "raw-string"
+        }
+        """
+        let payload = try JSONDecoder().decode(ClaudeHookPayload.self, from: Data(json.utf8))
+        #expect(payload.toolInput == "\"raw-string\"")
+    }
+
+    @Test func decodeWithNumericToolInput() throws {
+        let json = """
+        {
+            "hook_event_name": "PreToolUse",
+            "cwd": "/repo",
+            "tool_input": 42
+        }
+        """
+        let payload = try JSONDecoder().decode(ClaudeHookPayload.self, from: Data(json.utf8))
+        #expect(payload.toolInput == "42")
+    }
+
+    @Test func decodeWithBoolToolInput() throws {
+        let json = """
+        {
+            "hook_event_name": "PreToolUse",
+            "cwd": "/repo",
+            "tool_input": true
+        }
+        """
+        let payload = try JSONDecoder().decode(ClaudeHookPayload.self, from: Data(json.utf8))
+        #expect(payload.toolInput == "true")
+    }
+
     @Test func decodeNotification() throws {
         let json = """
         {
