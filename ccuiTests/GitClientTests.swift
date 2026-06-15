@@ -167,20 +167,6 @@ struct GitClientTests {
         #expect(count == 2)
     }
 
-    @Test func statusCountIgnoresClaudeSettingsLocal() async throws {
-        let repo = try Self.makeTempDirectory()
-        defer { try? FileManager.default.removeItem(atPath: repo) }
-        Self.initRepo(at: repo)
-        Self.writeFile("a.txt", to: repo)
-        Self.commitAll("init", at: repo)
-
-        try FileManager.default.createDirectory(atPath: (repo as NSString).appendingPathComponent(".claude"), withIntermediateDirectories: true)
-        Self.writeFile(".claude/settings.local.json", to: repo, contents: "{}")
-
-        let count = try await GitClient.statusCount(worktreePath: repo)
-        #expect(count == 0)
-    }
-
     // MARK: - lsFiles
 
     @Test func lsFilesListsTrackedFiles() async throws {

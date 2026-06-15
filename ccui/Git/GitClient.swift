@@ -36,12 +36,7 @@ enum GitClient {
     // MARK: - Status
 
     nonisolated static func statusCount(worktreePath: String) async throws -> Int {
-        // .claude/settings.local.json は ClaudeHooksInstaller がワークツリーごとに
-        // 自動生成するファイルで、ユーザーの変更ではないため dirty 判定から除外する。
-        let output = try await run(
-            ["--no-optional-locks", "status", "--porcelain", "--", ".", ":!.claude/settings.local.json"],
-            at: worktreePath
-        )
+        let output = try await run(["--no-optional-locks", "status", "--porcelain"], at: worktreePath)
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }.count
     }
 

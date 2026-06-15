@@ -126,19 +126,13 @@ final class WorktreeStore: Identifiable {
         let wtPath = worktree.path
 
         try await Task.detached(priority: .userInitiated) {
-            var gitForce = force
             if !force {
                 let count = try await GitClient.statusCount(worktreePath: wtPath)
                 if count > 0 {
                     throw GitError.worktreeDirty(wtPath)
                 }
-                // statusCount は ClaudeHooksInstaller が生成する
-                // .claude/settings.local.json を無視するが、git 自身の
-                // dirty チェックはこのファイルを見て拒否するため、
-                // ユーザー視点で clean と判定できた場合は force で回避する。
-                gitForce = true
             }
-            try await GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: gitForce)
+            try await GitClient.removeWorktree(path: wtPath, repositoryPath: repoPath, force: force)
         }.value
 
         reloadTask?.cancel()
