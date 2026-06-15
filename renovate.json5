@@ -1,0 +1,71 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+
+  // GitHub Actions (.github/workflows/*.yml の `uses: owner/repo@vX`) は
+  // config:recommended に含まれる github-actions マネージャーが自動で検出・更新する。
+
+  // Xcode は SwiftPM の依存を Package.swift ではなく
+  // ccui.xcodeproj/project.pbxproj の XCRemoteSwiftPackageReference で管理しており、
+  // Renovate の swift マネージャーは Package.swift しか見ないため対象外になる。
+  // そのため customManagers (regex) で minimumVersion を直接更新する。
+  //
+  // 注意: ここで minimumVersion を更新しても
+  // ccui.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved は
+  // 自動更新されない。PR をマージしたら一度 scripts/build.sh を実行して
+  // Package.resolved の差分をコミットすること。
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "SwiftTerm",
+      "fileMatch": ["^ccui\\.xcodeproj/project\\.pbxproj$"],
+      "matchStrings": [
+        "repositoryURL = \"https://github\\.com/migueldeicaza/SwiftTerm\\.git\";\\s*\\n\\s*requirement = \\{\\s*\\n\\s*kind = \\w+;\\s*\\n\\s*minimumVersion = (?<currentValue>[\\d.]+);"
+      ],
+      "depNameTemplate": "migueldeicaza/SwiftTerm",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "CodeEditSourceEditor",
+      "fileMatch": ["^ccui\\.xcodeproj/project\\.pbxproj$"],
+      "matchStrings": [
+        "repositoryURL = \"https://github\\.com/CodeEditApp/CodeEditSourceEditor\\.git\";\\s*\\n\\s*requirement = \\{\\s*\\n\\s*kind = \\w+;\\s*\\n\\s*minimumVersion = (?<currentValue>[\\d.]+);"
+      ],
+      "depNameTemplate": "CodeEditApp/CodeEditSourceEditor",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "CodeEditLanguages",
+      "fileMatch": ["^ccui\\.xcodeproj/project\\.pbxproj$"],
+      "matchStrings": [
+        "repositoryURL = \"https://github\\.com/CodeEditApp/CodeEditLanguages\\.git\";\\s*\\n\\s*requirement = \\{\\s*\\n\\s*kind = \\w+;\\s*\\n\\s*minimumVersion = (?<currentValue>[\\d.]+);"
+      ],
+      "depNameTemplate": "CodeEditApp/CodeEditLanguages",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Sparkle",
+      "fileMatch": ["^ccui\\.xcodeproj/project\\.pbxproj$"],
+      "matchStrings": [
+        "repositoryURL = \"https://github\\.com/sparkle-project/Sparkle\";\\s*\\n\\s*requirement = \\{\\s*\\n\\s*kind = \\w+;\\s*\\n\\s*minimumVersion = (?<currentValue>[\\d.]+);"
+      ],
+      "depNameTemplate": "sparkle-project/Sparkle",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ],
+
+  "packageRules": [
+    {
+      "matchFileNames": ["ccui.xcodeproj/project.pbxproj"],
+      "addLabels": ["xcode-dependencies"]
+    }
+  ]
+}
