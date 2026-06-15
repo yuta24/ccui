@@ -61,7 +61,7 @@ nonisolated struct ClaudeHookPayload: Decodable, Sendable {
 }
 
 /// Wrapper for decoding arbitrary JSON values from hook payloads.
-private struct AnyCodableValue: Decodable {
+private nonisolated struct AnyCodableValue: Decodable {
     let value: Any
 
     init(from decoder: Decoder) throws {
