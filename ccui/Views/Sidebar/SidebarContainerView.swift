@@ -131,7 +131,7 @@ struct SidebarContainerView: View {
         let worktreeName = (failure.worktreePath as NSString).lastPathComponent
         let codeSuffix = failure.exitCode.map { " (exit code \($0))" } ?? ""
         worktreeLifecycleCoordinator.errorMessage = failure.isResume
-            ? "Couldn't resume the session in \(worktreeName)\(codeSuffix). It may no longer be available to resume."
+            ? "Couldn't resume the session in \(worktreeName)\(codeSuffix). It may no longer be available to resume, or the `claude` CLI may not be on your PATH."
             : "Couldn't start Claude Code in \(worktreeName)\(codeSuffix). Check that the `claude` CLI is installed and on your PATH."
         worktreeLifecycleCoordinator.isErrorAlertPresented = true
     }

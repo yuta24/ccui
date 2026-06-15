@@ -141,7 +141,9 @@ final class TerminalSessionStore {
             workingDirectory: worktree.path,
             label: "Terminal",
             executable: "/bin/zsh",
-            args: ["-l", "-c", claudeArgs],
+            // `-c` 付きは TTY があっても非対話扱いになり .zshrc が読まれないため、
+            // ShellTab (`-l` のみ、TTY 経由で対話シェルになる) と環境を揃えるために `-i` を付与する。
+            args: ["-i", "-l", "-c", claudeArgs],
             additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings()
         )
         configureHandlers?(session)

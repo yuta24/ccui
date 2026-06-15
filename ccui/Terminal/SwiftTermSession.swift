@@ -94,10 +94,18 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
 
     nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
+        let decoded = exitCode.map(Self.decodeWaitStatus)
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.isProcessRunning = false
-            self.onProcessTerminated?(exitCode)
+            self.onProcessTerminated?(decoded)
         }
+    }
+
+    /// SwiftTerm は `waitpid` の生の wait status をそのまま渡してくるため、
+    /// シェルの `$?` に相当する値（正常終了は WEXITSTATUS、シグナル終了は 128+signal）に変換する。
+    nonisolated private static func decodeWaitStatus(_ status: Int32) -> Int32 {
+        let signal = status & 0x7f
+        return signal == 0 ? (status >> 8) & 0xff : 128 + signal
     }
 }
