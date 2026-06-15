@@ -6,13 +6,23 @@ struct SessionListSection: View {
     let onNewSession: () -> Void
     let onEvaluateSession: (WorktreeSessionEntry) -> Void
     let onCompareSession: (WorktreeSessionEntry, WorktreeSessionEntry) -> Void
+    var onJumpToWorktree: (() -> Void)?
 
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
+    @Environment(RepositoryStore.self) private var repositoryStore
 
     private var reversedSessions: [WorktreeSessionEntry] {
         (worktreeSessionStore.entries[worktree.path] ?? []).reversed()
+    }
+
+    private var repositoryName: String? {
+        repositoryStore.repositories.first { $0.id == worktree.repositoryID }?.name
+    }
+
+    private var indicatorColor: Color {
+        WorktreeRowView.indicatorColor(worktree: worktree, summary: claudeEventStore.agentSummary(for: worktree.path))
     }
 
     var body: some View {
@@ -33,35 +43,58 @@ struct SessionListSection: View {
     // MARK: - Header
 
     private var sectionHeader: some View {
-        HStack(spacing: 6) {
-            Text("Sessions")
-                .font(.uiCaption)
-                .foregroundStyle(Color.textPrimary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(indicatorColor)
+                    .frame(width: 4, height: 16)
 
-            Text("\u{00B7}")
-                .font(.uiCaption)
-                .foregroundStyle(Color.textTertiary)
+                Text("Sessions")
+                    .font(.uiCaption)
+                    .foregroundStyle(Color.textPrimary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
 
-            Text(worktree.displayName)
-                .font(.uiCaption)
-                .foregroundStyle(Color.textSecondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
+                Spacer()
 
-            Spacer()
-
-            Button(action: onNewSession) {
-                HStack(spacing: 4) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 9, weight: .medium))
-                    Text("New")
-                        .font(.uiCaption)
+                if let onJumpToWorktree {
+                    Button(action: onJumpToWorktree) {
+                        Image(systemName: "location")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(width: 18, height: 18)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.textSecondary)
+                    .help("Show in repository list")
+                    .accessibilityLabel("Show in repository list")
                 }
+
+                Button(action: onNewSession) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 9, weight: .medium))
+                        Text("New")
+                            .font(.uiCaption)
+                    }
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(Color.accent)
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(Color.accent)
+
+            HStack(spacing: 4) {
+                if let repositoryName {
+                    Text(repositoryName)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 7, weight: .medium))
+                }
+                Text(worktree.displayName)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(.uiCaption)
+            .foregroundStyle(Color.textTertiary)
+            .padding(.leading, 10)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)

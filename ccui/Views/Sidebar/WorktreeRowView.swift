@@ -4,7 +4,6 @@ struct WorktreeRowView: View {
     let worktree: Worktree
     let isSelected: Bool
     let summary: ClaudeEventStore.WorktreeAgentSummary
-    let isHighlighted: Bool
     let statusCount: Int?
     let onSelect: () -> Void
 
@@ -35,13 +34,18 @@ struct WorktreeRowView: View {
         }
     }
 
+    /// この worktree の行・関連パネルで共通して使うインジケーターバーの色。
+    /// アクティブ/要対応中はアクティビティ色、メイン worktree は accent、それ以外は控えめなグレー。
+    static func indicatorColor(worktree: Worktree, summary: ClaudeEventStore.WorktreeAgentSummary) -> Color {
+        let isHighlighted = summary.activity.isActive || summary.pendingAttentionCount > 0 || summary.hasUnacknowledgedFinished
+        return isHighlighted ? summary.activity.color :
+            worktree.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5)
+    }
+
     private var rowInner: some View {
         HStack(spacing: 8) {
             RoundedRectangle(cornerRadius: 3)
-                .fill(
-                    isHighlighted ? summary.activity.color :
-                    worktree.isMain ? Color.accent.opacity(0.8) : Color.textTertiary.opacity(0.5)
-                )
+                .fill(Self.indicatorColor(worktree: worktree, summary: summary))
                 .frame(width: 4, height: 16)
 
             Text(worktree.displayName)

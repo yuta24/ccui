@@ -40,49 +40,62 @@ struct SidebarView: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 6)
 
-                ScrollView {
-                    if hasAnyMatch {
-                        LazyVStack(spacing: 2) {
-                            ForEach(store.repositories) { repo in
-                                if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
-                                    RepositorySectionView(
-                                        repository: repo,
-                                        worktreeStore: wtStore,
-                                        searchQuery: searchQuery
-                                    )
-                                } else if matches(repo) {
-                                    repositoryLoadingPlaceholder(repo)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        if hasAnyMatch {
+                            LazyVStack(spacing: 2) {
+                                ForEach(store.repositories) { repo in
+                                    if let wtStore = worktreeLifecycleCoordinator.worktreeStores[repo.id] {
+                                        RepositorySectionView(
+                                            repository: repo,
+                                            worktreeStore: wtStore,
+                                            searchQuery: searchQuery
+                                        )
+                                    } else if matches(repo) {
+                                        repositoryLoadingPlaceholder(repo)
+                                    }
                                 }
                             }
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.bottom, 4)
-                    } else {
-                        noMatchesView
-                    }
-                }
-                .scrollContentBackground(.hidden)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    // Pinned session list for the selected worktree — stays visible
-                    // regardless of how far the repository list above is scrolled.
-                    if let worktree = navigationStore.selectedWorktree {
-                        VStack(spacing: 0) {
-                            Rectangle()
-                                .fill(Color.borderSubtle)
-                                .frame(height: 1)
-
-                            SessionListSection(
-                                worktree: worktree,
-                                onResumeSession: onResumeSession,
-                                onNewSession: onNewSession,
-                                onEvaluateSession: onEvaluateSession,
-                                onCompareSession: onCompareSession
-                            )
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .frame(height: 240, alignment: .top)
+                            .padding(.bottom, 4)
+                        } else {
+                            noMatchesView
                         }
-                        .background(Color.surfaceWindow)
+                    }
+                    .scrollContentBackground(.hidden)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        // Pinned session list for the selected worktree — stays visible
+                        // regardless of how far the repository list above is scrolled.
+                        if let worktree = navigationStore.selectedWorktree {
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                    .fill(Color.borderSubtle)
+                                    .frame(height: 1)
+
+                                SessionListSection(
+                                    worktree: worktree,
+                                    onResumeSession: onResumeSession,
+                                    onNewSession: onNewSession,
+                                    onEvaluateSession: onEvaluateSession,
+                                    onCompareSession: onCompareSession,
+                                    onJumpToWorktree: {
+                                        // フィルタで対象行が非表示だとスクロール先の id が
+                                        // ツリーに存在せず scrollTo が無反応になるため、
+                                        // 先にクエリをクリアしてから次の描画後にスクロールする。
+                                        searchQuery = ""
+                                        DispatchQueue.main.async {
+                                            withAnimation {
+                                                proxy.scrollTo(worktree.id, anchor: .center)
+                                            }
+                                        }
+                                    }
+                                )
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .frame(height: 240, alignment: .top)
+                            }
+                            .background(Color.surfaceWindow)
+                        }
                     }
                 }
             }

@@ -131,18 +131,17 @@ struct RepositorySectionView: View {
         } else {
             ForEach(filteredWorktrees) { wt in
                 let summary = claudeEventStore.agentSummary(for: wt.path)
-                let isHighlighted = summary.activity.isActive || summary.pendingAttentionCount > 0 || summary.hasUnacknowledgedFinished
 
                 WorktreeRowView(
                     worktree: wt,
                     isSelected: navigationStore.selectedWorktree == wt,
                     summary: summary,
-                    isHighlighted: isHighlighted,
                     statusCount: worktreeStore.statusCounts[wt.path],
                     onSelect: {
                         navigationStore.selectWorktree(wt, claudeEventStore: claudeEventStore, lifecycle: worktreeLifecycleCoordinator)
                     }
                 )
+                .id(wt.id)
                 .contextMenu {
                     worktreeContextMenu(wt)
                 }
