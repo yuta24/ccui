@@ -18,9 +18,26 @@ final class WebViewStore {
     /// When true, the panel shows a drag-to-select overlay for capturing a
     /// region of the page as an image to send to the agent.
     var isRegionCaptureActive = false
+    /// 0.0–1.0 while a page is loading; mirrors `WKWebView.estimatedProgress`
+    /// to drive a thin progress indicator below the address bar.
+    var estimatedProgress: Double = 0
+    /// Set when the most recent navigation failed (e.g. the dev server isn't
+    /// running yet). Cleared as soon as a new navigation starts.
+    var loadErrorMessage: String?
 
     @ObservationIgnored private var observations: [NSKeyValueObservation] = []
     @ObservationIgnored private var didInitialLoad = false
+    /// The navigation most recently started via `load(urlString:)`. Used to
+    /// tell apart failures of a navigation we explicitly requested (which
+    /// should surface as a full-panel error) from failures of page-initiated
+    /// navigations, like a link to a blocked scheme or a broken sub-link,
+    /// which shouldn't blank out a page that's still valid and visible.
+    @ObservationIgnored var currentNavigation: WKNavigation?
+    /// The URL most recently passed to `load(urlString:)`. Unlike `urlString`
+    /// (which mirrors `WKWebView.url` and can roll back to the previous page
+    /// once a failed navigation is no longer provisional), this stays put so
+    /// `retry()` re-attempts the URL that actually failed.
+    @ObservationIgnored private var requestedURLString = WebViewStore.defaultURLString
 
     init() {
         let config = WKWebViewConfiguration()
@@ -65,6 +82,11 @@ final class WebViewStore {
             let value = change.newValue ?? false
             MainActor.assumeIsolated { self?.canGoForward = value }
         })
+
+        observations.append(webView.observe(\.estimatedProgress, options: [.new]) { [weak self] _, change in
+            let value = change.newValue ?? 0
+            MainActor.assumeIsolated { self?.estimatedProgress = value }
+        })
     }
 
     /// Marks initial load as performed. Returns true if this was the first call.
@@ -76,8 +98,9 @@ final class WebViewStore {
 
     func load(urlString: String) {
         self.urlString = urlString
+        requestedURLString = urlString
         guard let url = URL(string: urlString) else { return }
-        webView.load(URLRequest(url: url))
+        currentNavigation = webView.load(URLRequest(url: url))
     }
 
     func goBack() {
@@ -88,6 +111,11 @@ final class WebViewStore {
     func goForward() {
         guard webView.canGoForward else { return }
         webView.goForward()
+    }
+
+    /// Re-attempts the most recently requested URL after a load failure.
+    func retry() {
+        load(urlString: requestedURLString)
     }
 
     /// Renders the currently visible page content to an image.
@@ -102,6 +130,11 @@ final class WebViewStore {
     func reload() {
         if isLoading {
             webView.stopLoading()
+        } else if loadErrorMessage != nil {
+            // The last navigation never committed, so there's nothing for
+            // `webView.reload()` to reload — re-issue the request instead,
+            // matching the error overlay's Retry button.
+            retry()
         } else {
             webView.reload()
         }
@@ -115,6 +148,9 @@ final class WebViewStore {
         canGoBack = false
         canGoForward = false
         isRegionCaptureActive = false
+        estimatedProgress = 0
+        loadErrorMessage = nil
+        currentNavigation = nil
 
         // A zero-size WKWebView hasn't established its render-process IPC yet
         // (see WebViewController.viewDidLayout); loading into it here would be

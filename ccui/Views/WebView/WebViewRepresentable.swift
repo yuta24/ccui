@@ -43,6 +43,46 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
                 return .cancel
             }
         }
+
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            store.loadErrorMessage = nil
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            // Only a navigation we explicitly requested via `load(urlString:)`
+            // should be able to blank the panel with a full-screen error. A
+            // page-initiated navigation (e.g. a link to a blocked scheme like
+            // mailto:/tel:, or a broken sub-link) failing shouldn't cover up a
+            // page that's still valid and on screen.
+            guard navigation === store.currentNavigation else { return }
+            showError(error)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            guard navigation === store.currentNavigation else { return }
+            showError(error)
+        }
+
+        private func showError(_ error: Error) {
+            let nsError = error as NSError
+            guard !isCancellation(nsError) else { return }
+            store.loadErrorMessage = nsError.localizedDescription
+        }
+
+        /// -999 (cancelled) fires for user-initiated stops and for navigations
+        /// superseded by a newer one. `WebKitErrorDomain`/`WKErrorDomain` code
+        /// 102 ("Frame load interrupted by policy change") fires when
+        /// `decidePolicyFor` returns `.cancel`, e.g. a redirect into a blocked
+        /// scheme. Neither is a real failure.
+        private func isCancellation(_ error: NSError) -> Bool {
+            if error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled {
+                return true
+            }
+            if (error.domain == "WKErrorDomain" || error.domain == "WebKitErrorDomain") && error.code == 102 {
+                return true
+            }
+            return false
+        }
     }
 }
 
