@@ -5,6 +5,7 @@ struct TimelineView: View {
     @Environment(ClaudeEventStore.self) private var claudeEventStore
     @State private var cachedEvents: [ClaudeEvent] = []
     @State private var cachedInterventionIds: Set<UUID> = []
+    @State private var cachedToolDurations: [UUID: TimeInterval] = [:]
     @State private var hasTruncatedSessions: Bool = false
 
     var body: some View {
@@ -109,6 +110,7 @@ struct TimelineView: View {
                         TimelineEventRow(
                             event: event,
                             previousEvent: index > 0 ? events[index - 1] : nil,
+                            toolDuration: cachedToolDurations[event.id],
                             isLast: index == events.count - 1,
                             isIntervention: interventionIds.contains(event.id)
                         )
@@ -146,6 +148,31 @@ struct TimelineView: View {
         allEvents.sort(by: { $0.receivedAt < $1.receivedAt })
         cachedEvents = allEvents
         cachedInterventionIds = interventionIds
+        cachedToolDurations = Self.computeToolDurations(from: allEvents)
         hasTruncatedSessions = hasTruncated
+    }
+
+    // Walks the merged+sorted event list per session, pairing preToolUse with its
+    // matching postToolUse. Skips events with "__anonymous__" sessionId to avoid
+    // false matches across unidentified concurrent sessions.
+    private static func computeToolDurations(from events: [ClaudeEvent]) -> [UUID: TimeInterval] {
+        var durations: [UUID: TimeInterval] = [:]
+        var pendingPre: [String: ClaudeEvent] = [:]
+        for event in events {
+            guard event.sessionId != "__anonymous__" else { continue }
+            switch event.hookEventName {
+            case .preToolUse:
+                pendingPre[event.sessionId] = event
+            case .postToolUse:
+                if let pre = pendingPre[event.sessionId] {
+                    let duration = event.receivedAt.timeIntervalSince(pre.receivedAt)
+                    if duration > 0 { durations[pre.id] = duration }
+                    pendingPre.removeValue(forKey: event.sessionId)
+                }
+            default:
+                break
+            }
+        }
+        return durations
     }
 }

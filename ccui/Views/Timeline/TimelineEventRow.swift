@@ -3,6 +3,7 @@ import SwiftUI
 struct TimelineEventRow: View {
     let event: ClaudeEvent
     let previousEvent: ClaudeEvent?
+    let toolDuration: TimeInterval?
     let isLast: Bool
     let isIntervention: Bool
 
@@ -45,6 +46,10 @@ struct TimelineEventRow: View {
                         .font(.uiCaption)
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(1)
+                    if let duration = toolDuration {
+                        Spacer()
+                        toolDurationView(duration)
+                    }
                 }
 
                 if let detail = eventDetail {
@@ -128,21 +133,46 @@ struct TimelineEventRow: View {
         }
     }
 
+    private func toolDurationView(_ duration: TimeInterval) -> some View {
+        // Log scale: 1s ≈ 12%, 10s ≈ 42%, 60s ≈ 72%, 300s = 100%
+        let logFraction = log(duration + 1) / log(301)
+        let barWidth = max(4, CGFloat(min(logFraction, 1.0)) * 48)
+        let color = durationColor(duration)
+        return HStack(spacing: 4) {
+            Capsule()
+                .fill(color.opacity(0.5))
+                .frame(width: barWidth, height: 2)
+            Text(Self.formatInterval(duration))
+                .font(.uiCaptionMono)
+                .foregroundStyle(color)
+        }
+    }
+
+    private func durationColor(_ duration: TimeInterval) -> Color {
+        if duration < 3 { return .statusClean }
+        if duration < 15 { return .accent }
+        return .statusWarning
+    }
+
+    // Shared interval formatter — used by toolDurationView and elapsedSincePrevious.
+    private static func formatInterval(_ interval: TimeInterval) -> String {
+        if interval < 60 {
+            return String(format: "%.1fs", interval)
+        } else if interval < 3600 {
+            let minutes = Int(interval) / 60
+            let seconds = Int(interval) % 60
+            return "\(minutes)m\(seconds)s"
+        } else {
+            let hours = Int(interval) / 3600
+            let minutes = (Int(interval) % 3600) / 60
+            return "\(hours)h\(minutes)m"
+        }
+    }
+
     private var elapsedSincePrevious: String? {
         guard let prev = previousEvent else { return nil }
         let interval = event.receivedAt.timeIntervalSince(prev.receivedAt)
         guard interval >= 1.0 else { return nil }
-
-        if interval < 60 {
-            return "+\(String(format: "%.1f", interval))s"
-        } else if interval < 3600 {
-            let minutes = Int(interval) / 60
-            let seconds = Int(interval) % 60
-            return "+\(minutes)m\(seconds)s"
-        } else {
-            let hours = Int(interval) / 3600
-            let minutes = (Int(interval) % 3600) / 60
-            return "+\(hours)h\(minutes)m"
-        }
+        return "+" + Self.formatInterval(interval)
     }
 }
