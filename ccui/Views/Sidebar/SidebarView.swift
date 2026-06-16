@@ -30,7 +30,6 @@ struct SidebarView: View {
             SidebarHeaderView(onAddRepository: {
                 worktreeLifecycleCoordinator.addRepository(store: store)
             })
-            .padding(.top, 10)
             .padding(.bottom, 8)
 
             if store.repositories.isEmpty {
