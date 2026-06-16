@@ -18,6 +18,11 @@ protocol TerminalSession: AnyObject {
     func showFindBar()
     /// Clears the visible screen and scrollback buffer, similar to Terminal.app's "Clear Buffer".
     func clearScreen()
+    /// Sends text to the running process as if the user typed it, followed by a newline.
+    func sendText(_ text: String)
+    /// Sends multi-line text using bracketed paste escape sequences so embedded newlines
+    /// are not treated as separate Enter keypresses by the PTY line discipline.
+    func pasteText(_ text: String)
 }
 
 extension TerminalSession {

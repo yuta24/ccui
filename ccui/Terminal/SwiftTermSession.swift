@@ -62,6 +62,17 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
         terminalView.feed(text: "\u{1b}[2J\u{1b}[3J\u{1b}[H")
     }
 
+    func sendText(_ text: String) {
+        terminalView.send(txt: text + "\n")
+    }
+
+    func pasteText(_ text: String) {
+        // ESC[200~ / ESC[201~ bracketed paste: the PTY line discipline and readline treat
+        // all content between these markers as literal pasted text, so embedded \n characters
+        // are not interpreted as Enter keypresses before the full message is delivered.
+        terminalView.send(txt: "\u{1b}[200~\(text)\u{1b}[201~\n")
+    }
+
     func pasteImage(_ image: NSImage) {
         guard let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),

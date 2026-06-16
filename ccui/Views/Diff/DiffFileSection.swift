@@ -3,6 +3,7 @@ import SwiftUI
 struct DiffFileSection: View {
     let entry: DiffFileEntry
     let contentWidth: CGFloat
+    let onSendToAgent: ((String) -> Void)?
 
     @State private var isExpanded = true
 
@@ -98,8 +99,14 @@ struct DiffFileSection: View {
         return ScrollView(.horizontal, showsIndicators: true) {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(entry.hunks) { hunk in
-                    DiffHunkView(hunk: hunk, gutterWidth: gutterWidth, contentWidth: contentWidth)
-                        .equatable()
+                    DiffHunkView(
+                        hunk: hunk,
+                        gutterWidth: gutterWidth,
+                        contentWidth: contentWidth,
+                        filePath: displayPath,
+                        onSendToAgent: onSendToAgent
+                    )
+                    .equatable()
                 }
             }
             .frame(minWidth: contentWidth, alignment: .leading)

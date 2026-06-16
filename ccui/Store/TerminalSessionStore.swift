@@ -104,6 +104,10 @@ final class TerminalSessionStore {
         sessions[worktree.path]?.session
     }
 
+    func session(forWorktreePath path: String) -> (any TerminalSession)? {
+        sessions[path]?.session
+    }
+
     func currentSessionId(for worktreePath: String) -> String? {
         sessions[worktreePath]?.sessionId
     }

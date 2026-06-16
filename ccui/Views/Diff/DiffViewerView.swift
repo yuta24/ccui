@@ -2,7 +2,9 @@ import SwiftUI
 
 struct DiffViewerView: View {
     @Environment(DiffStore.self) private var store
+    @Environment(TerminalSessionStore.self) private var terminalSessionStore
     let repositoryPath: String
+    let worktreePath: String
 
     var body: some View {
         VStack(spacing: 0) {
@@ -90,12 +92,30 @@ struct DiffViewerView: View {
 
     // MARK: - Unified Diff View
 
+    private var sendToAgentAction: ((String) -> Void)? {
+        // Return nil early if no session exists at render time (hides the comment button).
+        // The closure re-checks at call time so a session that dies after render is caught.
+        guard terminalSessionStore.session(forWorktreePath: worktreePath) != nil else { return nil }
+        let store = terminalSessionStore
+        let path = worktreePath
+        return { text in
+            guard let session = store.session(forWorktreePath: path),
+                  session.isProcessRunning else { return }
+            session.pasteText(text)
+        }
+    }
+
     private func diffSplitView(entries: [DiffFileEntry]) -> some View {
-        GeometryReader { proxy in
+        let sendAction = sendToAgentAction
+        return GeometryReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(entries) { entry in
-                        DiffFileSection(entry: entry, contentWidth: proxy.size.width)
+                        DiffFileSection(
+                            entry: entry,
+                            contentWidth: proxy.size.width,
+                            onSendToAgent: sendAction
+                        )
                     }
                 }
             }

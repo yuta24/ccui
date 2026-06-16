@@ -58,7 +58,7 @@ struct RightPanelView: View {
             case .timeline:
                 TimelineView(worktreePath: worktreePath)
             case .changes:
-                DiffViewerView(repositoryPath: repositoryPath)
+                DiffViewerView(repositoryPath: repositoryPath, worktreePath: worktreePath)
             case .eval:
                 SessionEvaluationView(
                     store: sessionEvaluationStore,

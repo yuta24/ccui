@@ -54,7 +54,7 @@ struct DiffFileContentView: View {
     private var diffLines: some View {
         let maxOldLine = entry.hunks.flatMap(\.lines).compactMap(\.oldLineNumber).max() ?? 0
         let maxNewLine = entry.hunks.flatMap(\.lines).compactMap(\.newLineNumber).max() ?? 0
-        let gutterWidth = lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
+        let gutterWidth = DiffLineStyling.lineNumberWidth(maxLine: max(maxOldLine, maxNewLine))
         let items = displayItems
 
         return GeometryReader { proxy in
@@ -105,56 +105,19 @@ struct DiffFileContentView: View {
                 .frame(width: 1)
                 .padding(.trailing, 8)
 
-            Text(lineSign(line.kind))
+            Text(DiffLineStyling.sign(line.kind))
                 .font(.monoCaption)
-                .foregroundStyle(lineColor(line.kind))
+                .foregroundStyle(DiffLineStyling.signColor(line.kind))
                 .frame(width: 12)
 
             Text(line.content.isEmpty ? " " : line.content)
                 .font(.monoCaption)
-                .foregroundStyle(contentColor(line.kind))
+                .foregroundStyle(DiffLineStyling.contentColor(line.kind))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 1)
-        .background(lineBackground(line.kind))
-    }
-
-    private func lineSign(_ kind: DiffLineKind) -> String {
-        switch kind {
-        case .addition: "+"
-        case .deletion: "-"
-        case .context: " "
-        }
-    }
-
-    private func lineColor(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAddition
-        case .deletion: .diffDeletion
-        case .context: .textTertiary
-        }
-    }
-
-    private func contentColor(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAddition.opacity(0.9)
-        case .deletion: .diffDeletion.opacity(0.9)
-        case .context: .textSecondary
-        }
-    }
-
-    private func lineBackground(_ kind: DiffLineKind) -> Color {
-        switch kind {
-        case .addition: .diffAdditionBg
-        case .deletion: .diffDeletionBg
-        case .context: .clear
-        }
-    }
-
-    private func lineNumberWidth(maxLine: Int) -> CGFloat {
-        let digits = max(String(maxLine).count, 3)
-        return CGFloat(digits) * 7 + 4
+        .background(DiffLineStyling.background(line.kind))
     }
 }
