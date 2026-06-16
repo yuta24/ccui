@@ -15,7 +15,7 @@ struct WebViewPlaceholderView: View {
                 .padding(.horizontal)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 }
 
@@ -40,6 +40,6 @@ struct WebViewErrorView: View {
                 .controlSize(.small)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.surfaceBase)
+        .background(Color.surfacePrimary)
     }
 }

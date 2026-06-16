@@ -67,7 +67,7 @@ struct AddressBarView: View {
                 .foregroundStyle(Color.textPrimary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.surfaceBase)
+                .background(Color.surfaceHover)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)

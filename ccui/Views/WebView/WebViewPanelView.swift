@@ -121,7 +121,7 @@ private struct WebViewTabBarItem: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
-        .background(isActive ? Color.surfaceBase : Color.clear)
+        .background(isActive ? Color.surfaceHover : Color.clear)
         .overlay(alignment: .trailing) {
             Button(action: onClose) {
                 Image(systemName: "xmark")
