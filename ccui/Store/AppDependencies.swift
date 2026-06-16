@@ -13,7 +13,6 @@ final class AppDependencies {
     let navigationStore: NavigationStore
     let worktreeLifecycleCoordinator: WorktreeLifecycleCoordinator
     let detailUIState: DetailUIState
-    let sessionComparisonStore: SessionComparisonStore
     let diffStore: DiffStore
     let quickOpenStore: QuickOpenStore
     let searchStore: SearchStore
@@ -28,8 +27,6 @@ final class AppDependencies {
         self.terminalSessionStore = TerminalSessionStore(appSettingsStore: settingsStore, eventBus: eventBus)
         let notificationService = NotificationService()
         self.notificationService = notificationService
-        // ClaudeEventStore（書き込み）と SessionAnalyticsStore（読み取り）が
-        // 同じ actor インスタンスを共有することで index.json の整合性を担保する。
         let claudeEventPersistence = ClaudeEventPersistence()
         self.claudeEventStore = ClaudeEventStore(
             persistence: claudeEventPersistence,
@@ -40,8 +37,7 @@ final class AppDependencies {
         self.shellSessionStore = ShellSessionStore(appSettingsStore: settingsStore, eventBus: eventBus)
         self.navigationStore = NavigationStore(eventBus: eventBus)
         self.worktreeLifecycleCoordinator = WorktreeLifecycleCoordinator(eventBus: eventBus)
-        self.detailUIState = DetailUIState(persistence: claudeEventPersistence)
-        self.sessionComparisonStore = SessionComparisonStore()
+        self.detailUIState = DetailUIState()
         self.diffStore = DiffStore()
         self.quickOpenStore = QuickOpenStore()
         self.searchStore = SearchStore()
@@ -72,7 +68,6 @@ final class AppDependencies {
             .environment(navigationStore)
             .environment(worktreeLifecycleCoordinator)
             .environment(detailUIState)
-            .environment(sessionComparisonStore)
             .environment(diffStore)
             .environment(quickOpenStore)
             .environment(searchStore)

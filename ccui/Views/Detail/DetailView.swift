@@ -6,7 +6,6 @@ struct DetailView: View {
     let fileOverlayStore: FileOverlayStore
     let codeViewerStore: CodeViewerStore
     let searchStore: SearchStore
-    let sessionComparisonStore: SessionComparisonStore
     @Environment(DetailUIState.self) private var uiState
     @Environment(DiffStore.self) private var diffStore
     @Environment(TerminalSessionStore.self) private var terminalSessionStore

@@ -35,7 +35,6 @@ struct SessionEvaluationView: View {
                     .lineLimit(1)
             }
             Button {
-                store.close()
                 isVisible = false
             } label: {
                 Image(systemName: "xmark")
@@ -69,7 +68,7 @@ struct SessionEvaluationView: View {
     private func evaluationContent(_ eval: SessionEvaluation) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if store.isTruncated {
+                if eval.isTruncated {
                     truncatedBanner
                     divider
                 }

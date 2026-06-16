@@ -250,7 +250,6 @@ final class RootContainerViewController: NSViewController {
         let quickOpenStore = stores.quickOpenStore
         let searchStore = stores.searchStore
         let navigationStore = stores.navigationStore
-        let sessionComparisonStore = stores.sessionComparisonStore
         let terminalSessionStore = stores.terminalSessionStore
         let shellSessionStore = stores.shellSessionStore
         let bottomPanelState = stores.bottomPanelState
@@ -344,10 +343,6 @@ final class RootContainerViewController: NSViewController {
 
             // Esc
             if event.keyCode == 53 {
-                if sessionComparisonStore.isVisible {
-                    sessionComparisonStore.close()
-                    return nil
-                }
                 if quickOpenStore.isVisible {
                     quickOpenStore.close()
                     return nil

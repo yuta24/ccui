@@ -5,7 +5,6 @@ struct SessionListSection: View {
     let onResumeSession: (String) -> Void
     let onNewSession: () -> Void
     let onEvaluateSession: (WorktreeSessionEntry) -> Void
-    let onCompareSession: (WorktreeSessionEntry, WorktreeSessionEntry) -> Void
     var onJumpToWorktree: (() -> Void)?
 
     @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
@@ -132,12 +131,7 @@ struct SessionListSection: View {
                         terminalSessionStore.removeIfMatches(path: worktree.path, sessionId: entry.sessionId)
                         worktreeSessionStore.removeSession(for: worktree.path, sessionId: entry.sessionId)
                     },
-                    onEvaluate: { onEvaluateSession(entry) },
-                    onCompare: { otherEntry in onCompareSession(entry, otherEntry) },
-                    availableSessions: reversedSessions.filter {
-                        $0.sessionId != entry.sessionId
-                            && claudeEventStore.sessions[worktree.path]?[$0.sessionId] != nil
-                    }
+                    onEvaluate: { onEvaluateSession(entry) }
                 )
             }
         }

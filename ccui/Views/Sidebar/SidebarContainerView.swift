@@ -7,7 +7,6 @@ struct SidebarContainerView: View {
     @Environment(NavigationStore.self) private var navigationStore
     @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
     @Environment(DetailUIState.self) private var detailUIState
-    @Environment(SessionComparisonStore.self) private var sessionComparisonStore
 
     /// 実行中セッションを置き換える launch を確認待ちにする。
     /// 確認中に選択 worktree が変わっても要求時点の対象を保つため worktree をスナップショットで保持する。
@@ -43,13 +42,6 @@ struct SidebarContainerView: View {
                     detailUIState.contentMode = .agent
                 }
             },
-            onCompareSession: { entryA, entryB in
-                guard let worktree = navigationStore.selectedWorktree else { return }
-                if let sessionA = claudeEventStore.sessions[worktree.path]?[entryA.sessionId],
-                   let sessionB = claudeEventStore.sessions[worktree.path]?[entryB.sessionId] {
-                    sessionComparisonStore.open(sessionA: sessionA, titleA: entryA.title, sessionB: sessionB, titleB: entryB.title)
-                }
-            }
         )
         .confirmationDialog(
             "Switch session?",

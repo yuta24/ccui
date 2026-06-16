@@ -6,7 +6,6 @@ struct ContentView: View {
     @Environment(NavigationStore.self) private var navigationStore
     @Environment(WorktreeLifecycleCoordinator.self) private var worktreeLifecycleCoordinator
     @Environment(DetailUIState.self) private var detailUIState
-    @Environment(SessionComparisonStore.self) private var sessionComparisonStore
     @Environment(QuickOpenStore.self) private var quickOpenStore
     @Environment(SearchStore.self) private var searchStore
     @State private var fileOverlayStore = FileOverlayStore()
@@ -21,19 +20,13 @@ struct ContentView: View {
                         fileTreeStore: navigationStore.fileTreeStore,
                         fileOverlayStore: fileOverlayStore,
                         codeViewerStore: codeViewerStore,
-                        searchStore: searchStore,
-                        sessionComparisonStore: sessionComparisonStore
+                        searchStore: searchStore
                     )
                     .environment(detailUIState)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     emptyState
                 }
-            }
-
-            if sessionComparisonStore.isVisible {
-                SessionComparisonView(store: sessionComparisonStore)
-                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
 
             if quickOpenStore.isVisible, let worktree = navigationStore.selectedWorktree {
@@ -46,7 +39,6 @@ struct ContentView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: sessionComparisonStore.isVisible)
         .animation(.easeInOut(duration: 0.15), value: quickOpenStore.isVisible)
         .onChange(of: fileOverlayStore.selectedFile) { _, newFile in
             if newFile != nil, detailUIState.contentMode != .files {
@@ -55,7 +47,6 @@ struct ContentView: View {
         }
         .onChange(of: navigationStore.selectedWorktree) { _, newValue in
             detailUIState.resetForWorktreeChange()
-            sessionComparisonStore.close()
             quickOpenStore.close()
             searchStore.deactivate()
             if let wt = newValue {

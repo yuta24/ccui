@@ -13,14 +13,12 @@ enum AgentLayoutMode {
 enum RightPanelTab: String, CaseIterable {
     case timeline = "Timeline"
     case changes = "Changes"
-    case stats = "Stats"
     case eval = "Eval"
 
     var icon: String {
         switch self {
         case .timeline: "chart.bar.xaxis"
         case .changes: "arrow.left.arrow.right"
-        case .stats: "chart.bar"
         case .eval: "checkmark.seal"
         }
     }
@@ -35,16 +33,7 @@ final class DetailUIState {
     var rightPanelTab: RightPanelTab = .timeline
     var isConfigurationSheetPresented = false
     var sessionEvaluationStore = SessionEvaluationStore()
-    var sessionAnalyticsStore: SessionAnalyticsStore
     var webViewTabsStore = WebViewTabsStore()
-
-    init(persistence: ClaudeEventPersistence? = nil) {
-        if let persistence {
-            self.sessionAnalyticsStore = SessionAnalyticsStore(persistence: persistence)
-        } else {
-            self.sessionAnalyticsStore = SessionAnalyticsStore()
-        }
-    }
 
     func resetForWorktreeChange() {
         contentMode = .agent

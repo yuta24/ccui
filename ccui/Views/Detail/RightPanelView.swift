@@ -3,9 +3,7 @@ import SwiftUI
 struct RightPanelView: View {
     let worktreePath: String
     let repositoryPath: String
-    let statsRepositoryPath: String
     let sessionEvaluationStore: SessionEvaluationStore
-    let sessionAnalyticsStore: SessionAnalyticsStore
     @Binding var selectedTab: RightPanelTab
     @Environment(DiffStore.self) private var diffStore
 
@@ -61,16 +59,11 @@ struct RightPanelView: View {
                 TimelineView(worktreePath: worktreePath)
             case .changes:
                 DiffViewerView(repositoryPath: repositoryPath)
-            case .stats:
-                AnalyticsDashboardView(
-                    store: sessionAnalyticsStore,
-                    repositoryPath: statsRepositoryPath
-                )
             case .eval:
                 SessionEvaluationView(
                     store: sessionEvaluationStore,
                     isVisible: Binding(
-                        get: { true },
+                        get: { sessionEvaluationStore.evaluation != nil },
                         set: { newValue in
                             if !newValue {
                                 sessionEvaluationStore.close()

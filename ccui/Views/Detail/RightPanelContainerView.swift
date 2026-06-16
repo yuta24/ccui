@@ -10,10 +10,8 @@ struct RightPanelContainerView: View {
             let repoPath = worktreeLifecycleCoordinator.worktreeStores[worktree.repositoryID]?.repositoryPath ?? worktree.path
             RightPanelView(
                 worktreePath: worktree.path,
-                repositoryPath: worktree.path,
-                statsRepositoryPath: repoPath,
+                repositoryPath: repoPath,
                 sessionEvaluationStore: uiState.sessionEvaluationStore,
-                sessionAnalyticsStore: uiState.sessionAnalyticsStore,
                 selectedTab: Binding(
                     get: { uiState.rightPanelTab },
                     set: { uiState.rightPanelTab = $0 }

@@ -4,7 +4,6 @@ struct SidebarView: View {
     let onResumeSession: (String) -> Void
     let onNewSession: () -> Void
     let onEvaluateSession: (WorktreeSessionEntry) -> Void
-    let onCompareSession: (WorktreeSessionEntry, WorktreeSessionEntry) -> Void
 
     @Environment(RepositoryStore.self) private var store
     @Environment(NavigationStore.self) private var navigationStore
@@ -76,7 +75,6 @@ struct SidebarView: View {
                                     onResumeSession: onResumeSession,
                                     onNewSession: onNewSession,
                                     onEvaluateSession: onEvaluateSession,
-                                    onCompareSession: onCompareSession,
                                     onJumpToWorktree: {
                                         // フィルタで対象行が非表示だとスクロール先の id が
                                         // ツリーに存在せず scrollTo が無反応になるため、

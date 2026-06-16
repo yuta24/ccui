@@ -5,8 +5,6 @@ import OSLog
 /// Claude イベント（セッション）のディスク永続化を担う actor。
 /// 全ての I/O をこの actor 内で直列化することで、index.json への
 /// 競合書き込みおよび読み取りの不整合を防ぐ。
-/// `ClaudeEventStore`（書き込み主体）と `SessionAnalyticsStore`（読み取り）が
-/// 同じインスタンスを共有することで、ファイルシステム上の整合性を担保する。
 actor ClaudeEventPersistence {
     private let baseDirectory: URL
 

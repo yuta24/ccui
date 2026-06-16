@@ -139,4 +139,29 @@ struct SessionEvaluationTests {
         #expect(eval.interventionsByTool["AskUserQuestion"] == 1)
         #expect(eval.interventionsByTool["UserPromptSubmit"] == 1)
     }
+
+    @Test func computeOutcomePassThrough() {
+        var session = TestHelpers.makeSession()
+        session.setAnnotation(outcome: .success, failureReasons: [])
+        let eval = SessionEvaluation.compute(from: session)
+        #expect(eval.outcome == .success)
+        #expect(eval.failureReasons.isEmpty)
+    }
+
+    @Test func computeFailureReasonsPassThrough() {
+        var session = TestHelpers.makeSession()
+        session.setAnnotation(outcome: .failure, failureReasons: [.permissionDenied, .toolSelectionError])
+        let eval = SessionEvaluation.compute(from: session)
+        #expect(eval.outcome == .failure)
+        #expect(eval.failureReasons == [.permissionDenied, .toolSelectionError])
+    }
+
+    @Test func computeIsTruncatedPassThrough() {
+        var session = TestHelpers.makeSession()
+        let event = TestHelpers.makeEvent(hookEventName: .preToolUse, toolName: "Bash")
+        session.append(event, maxEvents: 0)
+        #expect(session.isTruncated)
+        let eval = SessionEvaluation.compute(from: session)
+        #expect(eval.isTruncated)
+    }
 }
