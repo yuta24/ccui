@@ -7,6 +7,10 @@ struct WebViewPanelView: View {
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
 
     var body: some View {
+        // Hoist once so all references in this body read the same object and
+        // SwiftUI tracks `activeTab` / `activeTabIndex` only at this level.
+        let activeStore = tabsStore.activeTab.store
+
         VStack(spacing: 0) {
             if tabsStore.tabs.count > 1 {
                 WebViewTabBar(tabsStore: tabsStore)
@@ -14,16 +18,17 @@ struct WebViewPanelView: View {
 
             AddressBarView(
                 worktree: worktree,
-                store: tabsStore.activeTab.store,
+                store: activeStore,
                 onAddTab: { tabsStore.addTab() }
             )
             // Force recreation when switching tabs so @State (inputText, isFocused)
             // resets to the new tab's URL via onAppear.
-            .id(ObjectIdentifier(tabsStore.activeTab.store))
+            .id(ObjectIdentifier(activeStore))
 
-            if tabsStore.activeTab.store.isLoading {
-                WebViewProgressBar(progress: tabsStore.activeTab.store.estimatedProgress)
-            }
+            // WebViewLoadingBar reads isLoading and estimatedProgress from the store.
+            // Scoping them to a child view limits @Observable re-renders to just the
+            // progress bar instead of the entire WebViewPanelView body (~60 Hz during load).
+            WebViewLoadingBar(store: activeStore)
 
             ZStack {
                 // All tab WebViews are kept alive in the hierarchy. Only the
@@ -33,8 +38,8 @@ struct WebViewPanelView: View {
                     let isActive = tab.id == tabsStore.activeTab.id
                     WebViewRepresentable(
                         store: tab.store,
-                        onCreateNewTab: { configuration in
-                            let newTab = tabsStore.addTab(configuration: configuration)
+                        onCreateNewTab: { configuration, urlString in
+                            let newTab = tabsStore.addTab(configuration: configuration, initialURL: urlString)
                             return newTab.store.webView
                         }
                     )
@@ -43,22 +48,23 @@ struct WebViewPanelView: View {
                     .accessibilityHidden(!isActive)
                 }
 
-                let activeStore = tabsStore.activeTab.store
                 if let message = activeStore.loadErrorMessage {
                     WebViewErrorView(message: message) {
                         activeStore.retry()
                     }
-                } else if activeStore.urlString == WebViewStore.defaultURLString, !activeStore.isLoading {
+                } else if activeStore.urlString == WebViewStore.defaultURLString,
+                          !activeStore.isLoading,
+                          !activeStore.suppressPlaceholder {
                     WebViewPlaceholderView()
                 }
 
-                if tabsStore.activeTab.store.loadErrorMessage == nil,
-                   tabsStore.activeTab.store.isRegionCaptureActive,
+                if activeStore.loadErrorMessage == nil,
+                   activeStore.isRegionCaptureActive,
                    let session = terminalSessionStore.session(for: worktree)
                 {
                     RegionCaptureOverlayView(
                         worktree: worktree,
-                        store: tabsStore.activeTab.store,
+                        store: activeStore,
                         session: session
                     )
                 }
@@ -78,11 +84,14 @@ private struct WebViewTabBar: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 0) {
-                ForEach(Array(tabsStore.tabs.enumerated()), id: \.element.id) { index, tab in
+                // Use tab.id (UUID) in closures rather than a captured enumerated index,
+                // so selection and close remain correct even if tabs mutate before the
+                // user's tap is processed.
+                ForEach(tabsStore.tabs) { tab in
                     WebViewTabBarItem(
                         tab: tab,
                         isActive: tab.id == tabsStore.activeTab.id,
-                        onSelect: { tabsStore.selectTab(at: index) },
+                        onSelect: { tabsStore.selectTab(id: tab.id) },
                         onClose: { tabsStore.closeTab(id: tab.id) }
                     )
                 }
@@ -135,6 +144,21 @@ private struct WebViewTabBarItem: View {
             if isActive {
                 Rectangle().fill(Color.accent).frame(height: 2)
             }
+        }
+    }
+}
+
+// MARK: - Loading Bar
+
+/// Thin progress indicator scoped to its own View so that `estimatedProgress`
+/// KVO updates (~60 Hz during a page load) only invalidate this subtree instead
+/// of the entire `WebViewPanelView` body.
+private struct WebViewLoadingBar: View {
+    let store: WebViewStore
+
+    var body: some View {
+        if store.isLoading {
+            WebViewProgressBar(progress: store.estimatedProgress)
         }
     }
 }

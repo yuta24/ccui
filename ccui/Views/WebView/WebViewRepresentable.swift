@@ -8,9 +8,10 @@ import WebKit
 struct WebViewRepresentable: NSViewControllerRepresentable {
     let store: WebViewStore
     /// Called synchronously when WebKit requests a new window (target=_blank /
-    /// window.open()). The closure creates a new tab in `WebViewTabsStore` and
-    /// returns its `WKWebView` so WebKit can load the URL into it.
-    let onCreateNewTab: (WKWebViewConfiguration) -> WKWebView?
+    /// window.open()). Receives the WebKit configuration and the target URL
+    /// (nil if the request carries no URL). Returns the new tab's `WKWebView`
+    /// so WebKit can load the URL into it.
+    let onCreateNewTab: (WKWebViewConfiguration, String?) -> WKWebView?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(store: store, onCreateNewTab: onCreateNewTab)
@@ -29,9 +30,9 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
     @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let store: WebViewStore
-        var onCreateNewTab: (WKWebViewConfiguration) -> WKWebView?
+        var onCreateNewTab: (WKWebViewConfiguration, String?) -> WKWebView?
 
-        init(store: WebViewStore, onCreateNewTab: @escaping (WKWebViewConfiguration) -> WKWebView?) {
+        init(store: WebViewStore, onCreateNewTab: @escaping (WKWebViewConfiguration, String?) -> WKWebView?) {
             self.store = store
             self.onCreateNewTab = onCreateNewTab
         }
@@ -62,12 +63,15 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
             // page-initiated navigation (e.g. a link to a blocked scheme like
             // mailto:/tel:, or a broken sub-link) failing shouldn't cover up a
             // page that's still valid and on screen.
-            guard navigation === store.currentNavigation else { return }
+            // Guard also ensures we never pass when both sides are nil — which
+            // can happen if currentNavigation was cleared by reset() before the
+            // late-arriving failure callback fires.
+            guard let current = store.currentNavigation, navigation === current else { return }
             showError(error)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            guard navigation === store.currentNavigation else { return }
+            guard let current = store.currentNavigation, navigation === current else { return }
             showError(error)
         }
 
@@ -100,7 +104,7 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
             for navigationAction: WKNavigationAction,
             windowFeatures: WKWindowFeatures
         ) -> WKWebView? {
-            return onCreateNewTab(configuration)
+            return onCreateNewTab(configuration, navigationAction.request.url?.absoluteString)
         }
     }
 }

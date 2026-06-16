@@ -24,6 +24,10 @@ final class WebViewStore {
     /// Set when the most recent navigation failed (e.g. the dev server isn't
     /// running yet). Cleared as soon as a new navigation starts.
     var loadErrorMessage: String?
+    /// While true the empty-URL placeholder is suppressed. Set for WebKit-initiated
+    /// tabs (window.open) where the navigation has already started and the
+    /// placeholder would flash briefly before `isLoading` is observed.
+    private(set) var suppressPlaceholder = false
 
     @ObservationIgnored private var observations: [NSKeyValueObservation] = []
     @ObservationIgnored private var didInitialLoad = false
@@ -62,13 +66,29 @@ final class WebViewStore {
         webView.configuration.defaultWebpagePreferences.preferredContentMode = .mobile
         webView.autoresizingMask = [.width, .height]
         self.webView = webView
+        // The navigation has already started inside WebKit; suppress the placeholder
+        // until the URL commits so it doesn't flash over the loading page.
+        suppressPlaceholder = true
         installObservations()
+    }
+
+    deinit {
+        // Explicitly invalidate KVO tokens so the observed WKWebView is released
+        // promptly rather than waiting for the array to deallocate on its own.
+        observations.removeAll()
     }
 
     /// Prevents `viewDidLayout` from loading `about:blank` when WebKit has
     /// already started a navigation into this WebView (e.g. via window.open()).
     func skipInitialLoad() {
         didInitialLoad = true
+    }
+
+    /// Records the URL for `retry()` without starting a navigation.
+    /// Call this for WebKit-owned navigations (window.open) where
+    /// `load(urlString:)` is never invoked directly.
+    func setInitialURL(_ urlString: String) {
+        requestedURLString = urlString
     }
 
     private func installObservations() {
@@ -90,7 +110,16 @@ final class WebViewStore {
         observations.append(webView.observe(\.url, options: [.new]) { [weak self] _, change in
             let urlString = (change.newValue ?? nil)?.absoluteString
             MainActor.assumeIsolated {
-                if let urlString { self?.urlString = urlString }
+                guard let self else { return }
+                if let urlString {
+                    self.urlString = urlString
+                    // Once a WebKit navigation commits to a real URL, the placeholder
+                    // suppression is no longer needed — subsequent navigations to
+                    // about:blank (e.g. user-typed) should show the placeholder normally.
+                    if urlString != WebViewStore.defaultURLString {
+                        self.suppressPlaceholder = false
+                    }
+                }
             }
         })
 
@@ -172,6 +201,7 @@ final class WebViewStore {
         estimatedProgress = 0
         loadErrorMessage = nil
         currentNavigation = nil
+        suppressPlaceholder = false
 
         // A zero-size WKWebView hasn't established its render-process IPC yet
         // (see WebViewController.viewDidLayout); loading into it here would be
