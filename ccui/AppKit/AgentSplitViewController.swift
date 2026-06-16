@@ -15,7 +15,7 @@ final class AgentSplitViewController: NSSplitViewController {
     init(
         worktree: Worktree,
         isSplit: Bool,
-        webViewStore: WebViewStore,
+        webViewTabsStore: WebViewTabsStore,
         terminalSessionStore: TerminalSessionStore,
         bottomPanelState: BottomPanelState
     ) {
@@ -43,7 +43,7 @@ final class AgentSplitViewController: NSSplitViewController {
         addSplitViewItem(webViewItem)
 
         applyContent(
-            webViewStore: webViewStore,
+            webViewTabsStore: webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
             bottomPanelState: bottomPanelState
         )
@@ -57,7 +57,7 @@ final class AgentSplitViewController: NSSplitViewController {
     func update(
         worktree: Worktree,
         isSplit: Bool,
-        webViewStore: WebViewStore,
+        webViewTabsStore: WebViewTabsStore,
         terminalSessionStore: TerminalSessionStore,
         bottomPanelState: BottomPanelState
     ) {
@@ -68,7 +68,7 @@ final class AgentSplitViewController: NSSplitViewController {
         if self.worktree != worktree {
             self.worktree = worktree
             applyContent(
-                webViewStore: webViewStore,
+                webViewTabsStore: webViewTabsStore,
                 terminalSessionStore: terminalSessionStore,
                 bottomPanelState: bottomPanelState
             )
@@ -76,7 +76,7 @@ final class AgentSplitViewController: NSSplitViewController {
     }
 
     private func applyContent(
-        webViewStore: WebViewStore,
+        webViewTabsStore: WebViewTabsStore,
         terminalSessionStore: TerminalSessionStore,
         bottomPanelState: BottomPanelState
     ) {
@@ -86,7 +86,7 @@ final class AgentSplitViewController: NSSplitViewController {
                 .environment(bottomPanelState)
         )
         webViewHostingController.rootView = AnyView(
-            WebViewPanelView(worktree: worktree, store: webViewStore)
+            WebViewPanelView(worktree: worktree, tabsStore: webViewTabsStore)
                 .environment(terminalSessionStore)
         )
     }

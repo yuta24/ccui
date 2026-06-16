@@ -3,6 +3,7 @@ import SwiftUI
 struct AddressBarView: View {
     let worktree: Worktree
     @Bindable var store: WebViewStore
+    let onAddTab: () -> Void
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @State private var inputText: String = ""
     @FocusState private var isFocused: Bool
@@ -51,6 +52,14 @@ struct AddressBarView: View {
             .buttonStyle(.plain)
             .disabled(terminalSessionStore.session(for: worktree) == nil)
             .help("Capture Region to Agent")
+
+            Button(action: onAddTab) {
+                Image(systemName: "plus")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .help("New Tab")
 
             TextField("Enter URL", text: $inputText)
                 .font(.system(size: 12, design: .monospaced))

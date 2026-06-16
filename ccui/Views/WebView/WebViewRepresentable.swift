@@ -4,28 +4,36 @@ import WebKit
 /// Hosts the long-lived `WKWebView` owned by `WebViewStore`. The store is the
 /// source of truth for navigation state — this representable only attaches the
 /// view, performs the initial load when a non-zero frame is available, and
-/// installs the navigation delegate.
+/// installs the navigation and UI delegates.
 struct WebViewRepresentable: NSViewControllerRepresentable {
     let store: WebViewStore
+    /// Called synchronously when WebKit requests a new window (target=_blank /
+    /// window.open()). The closure creates a new tab in `WebViewTabsStore` and
+    /// returns its `WKWebView` so WebKit can load the URL into it.
+    let onCreateNewTab: (WKWebViewConfiguration) -> WKWebView?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(store: store)
+        Coordinator(store: store, onCreateNewTab: onCreateNewTab)
     }
 
     func makeNSViewController(context: Context) -> WebViewController {
-        WebViewController(store: store, navigationDelegate: context.coordinator)
+        WebViewController(store: store, coordinator: context.coordinator)
     }
 
     func updateNSViewController(_ controller: WebViewController, context: Context) {
-        // No-op. State changes flow directly through the store-owned WKWebView.
+        // Keep the coordinator's closure current so it always captures the
+        // latest tabsStore reference from the parent view.
+        context.coordinator.onCreateNewTab = onCreateNewTab
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let store: WebViewStore
+        var onCreateNewTab: (WKWebViewConfiguration) -> WKWebView?
 
-        init(store: WebViewStore) {
+        init(store: WebViewStore, onCreateNewTab: @escaping (WKWebViewConfiguration) -> WKWebView?) {
             self.store = store
+            self.onCreateNewTab = onCreateNewTab
         }
 
         func webView(
@@ -83,6 +91,17 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
             }
             return false
         }
+
+        // MARK: WKUIDelegate
+
+        func webView(
+            _ webView: WKWebView,
+            createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction,
+            windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
+            return onCreateNewTab(configuration)
+        }
     }
 }
 
@@ -90,10 +109,11 @@ struct WebViewRepresentable: NSViewControllerRepresentable {
 final class WebViewController: NSViewController {
     private let store: WebViewStore
 
-    init(store: WebViewStore, navigationDelegate: WKNavigationDelegate) {
+    init(store: WebViewStore, coordinator: WebViewRepresentable.Coordinator) {
         self.store = store
         super.init(nibName: nil, bundle: nil)
-        store.webView.navigationDelegate = navigationDelegate
+        store.webView.navigationDelegate = coordinator
+        store.webView.uiDelegate = coordinator
     }
 
     @available(*, unavailable)

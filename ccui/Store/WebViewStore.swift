@@ -50,6 +50,27 @@ final class WebViewStore {
         installObservations()
     }
 
+    /// Initializes the store with an existing `WKWebViewConfiguration`.
+    /// Used when WebKit creates a new window (target=_blank / window.open())
+    /// and provides a configuration that must be reused for the new WebView.
+    init(configuration: WKWebViewConfiguration) {
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        // Apply the same mobile layout preference as the default init. The
+        // configuration object is provided by WebKit (window.open / target=_blank)
+        // so we don't mutate it before passing it to WKWebView, but we can safely
+        // update defaultWebpagePreferences on the view's own stored copy after init.
+        webView.configuration.defaultWebpagePreferences.preferredContentMode = .mobile
+        webView.autoresizingMask = [.width, .height]
+        self.webView = webView
+        installObservations()
+    }
+
+    /// Prevents `viewDidLayout` from loading `about:blank` when WebKit has
+    /// already started a navigation into this WebView (e.g. via window.open()).
+    func skipInitialLoad() {
+        didInitialLoad = true
+    }
+
     private func installObservations() {
         // WKWebView mutates these properties on the main thread, so the KVO
         // callbacks already arrive there. Routing them through `Task { @MainActor }`

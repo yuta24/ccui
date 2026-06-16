@@ -10,7 +10,7 @@ struct AgentMainContentView: View {
         AgentSplitViewRepresentable(
             worktree: worktree,
             isSplit: uiState.agentLayoutMode == .split,
-            webViewStore: uiState.webViewStore,
+            webViewTabsStore: uiState.webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
             bottomPanelState: bottomPanelState
         )
@@ -23,7 +23,7 @@ struct AgentMainContentView: View {
 private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
     let worktree: Worktree
     let isSplit: Bool
-    let webViewStore: WebViewStore
+    let webViewTabsStore: WebViewTabsStore
     let terminalSessionStore: TerminalSessionStore
     let bottomPanelState: BottomPanelState
 
@@ -31,7 +31,7 @@ private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
         AgentSplitViewController(
             worktree: worktree,
             isSplit: isSplit,
-            webViewStore: webViewStore,
+            webViewTabsStore: webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
             bottomPanelState: bottomPanelState
         )
@@ -41,7 +41,7 @@ private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
         controller.update(
             worktree: worktree,
             isSplit: isSplit,
-            webViewStore: webViewStore,
+            webViewTabsStore: webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
             bottomPanelState: bottomPanelState
         )

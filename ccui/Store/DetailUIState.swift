@@ -36,7 +36,7 @@ final class DetailUIState {
     var isConfigurationSheetPresented = false
     var sessionEvaluationStore = SessionEvaluationStore()
     var sessionAnalyticsStore: SessionAnalyticsStore
-    var webViewStore = WebViewStore()
+    var webViewTabsStore = WebViewTabsStore()
 
     init(persistence: ClaudeEventPersistence? = nil) {
         if let persistence {
@@ -53,6 +53,6 @@ final class DetailUIState {
         rightPanelTab = .timeline
         isConfigurationSheetPresented = false
         sessionEvaluationStore.close()
-        webViewStore.reset()
+        webViewTabsStore.reset()
     }
 }
