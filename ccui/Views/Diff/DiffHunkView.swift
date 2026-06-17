@@ -55,6 +55,7 @@ private struct DiffLineRow: View {
     @State private var isHovered = false
     @State private var showingPopover = false
     @State private var commentText = ""
+    @FocusState private var isEditorFocused: Bool
 
     private var lineRef: String {
         if let n = line.newLineNumber { return "line \(n)" }
@@ -162,17 +163,31 @@ private struct DiffLineRow: View {
 
             Divider()
 
-            // Comment input
-            TextEditor(text: $commentText)
-                .font(.system(size: 12))
-                .frame(height: 80)
-                .scrollContentBackground(.hidden)
-                .background(Color.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.borderSubtle, lineWidth: 1)
-                )
+            // Comment input — auto-grows vertically with content.
+            // The hidden Text mirror drives the ZStack height; TextEditor fills it.
+            // background/clipShape go on the TextEditor directly so the CALayer mask
+            // clips NSTextView content correctly on macOS (parent-layer masks don't
+            // propagate into NSViewRepresentable's own layer subtree).
+            ZStack(alignment: .topLeading) {
+                Text(commentText.isEmpty ? " " : commentText)
+                    .font(.system(size: 12))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 8)
+                    .opacity(0)
+                    .accessibilityHidden(true)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextEditor(text: $commentText)
+                    .font(.system(size: 12))
+                    .scrollContentBackground(.hidden)
+                    .background(Color.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .focused($isEditorFocused)
+            }
+            .frame(minHeight: 60, maxHeight: 300)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.borderSubtle, lineWidth: 1)
+            )
 
             HStack {
                 Spacer()
@@ -194,6 +209,7 @@ private struct DiffLineRow: View {
         }
         .padding(14)
         .frame(width: 340)
+        .onAppear { isEditorFocused = true }
     }
 
     private func sendComment() {
