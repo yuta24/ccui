@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import OSLog
 
@@ -15,6 +16,7 @@ final class AppSettingsStore {
             settings = AppSettings()
         }
         self.persistence = persistence
+        applyAppearance(settings.appearanceMode)
     }
 
     var environmentVariables: [EnvironmentVariable] {
@@ -22,6 +24,23 @@ final class AppSettingsStore {
         set {
             settings.environmentVariables = newValue
             persist()
+        }
+    }
+
+    var appearanceMode: AppearanceMode {
+        get { settings.appearanceMode }
+        set {
+            settings.appearanceMode = newValue
+            applyAppearance(newValue)
+            persist()
+        }
+    }
+
+    private func applyAppearance(_ mode: AppearanceMode) {
+        switch mode {
+        case .system: NSApp.appearance = nil
+        case .light:  NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark:   NSApp.appearance = NSAppearance(named: .darkAqua)
         }
     }
 

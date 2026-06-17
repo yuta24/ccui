@@ -1,8 +1,9 @@
+import Combine
 import Sparkle
 import SwiftUI
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    var stores: AppDependencies!
+final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    @Published var stores: AppDependencies?
     var mainWindowController: MainWindowController?
     let updaterController = SPUStandardUpdaterController(
         startingUpdater: true,
@@ -11,8 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        stores = AppDependencies()
-        let controller = MainWindowController(stores: stores)
+        let deps = AppDependencies()
+        stores = deps
+        let controller = MainWindowController(stores: deps)
         controller.showWindow(nil)
         mainWindowController = controller
     }
@@ -32,10 +34,7 @@ struct ccuiApp: App {
 
     var body: some Scene {
         Settings {
-            if let stores = appDelegate.stores {
-                AppSettingsView()
-                    .environment(stores.appSettingsStore)
-            }
+            AppSettingsView()
         }
         .commands {
             CommandGroup(after: .appInfo) {
