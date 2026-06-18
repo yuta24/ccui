@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 enum AppearanceMode: String, CaseIterable, Identifiable, Hashable, Sendable, Codable {
     case system
@@ -7,11 +7,11 @@ enum AppearanceMode: String, CaseIterable, Identifiable, Hashable, Sendable, Cod
 
     var id: String { rawValue }
 
-    var displayName: String {
+    var displayName: LocalizedStringKey {
         switch self {
-        case .system: "システム"
-        case .light: "ライト"
-        case .dark: "ダーク"
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
         }
     }
 }

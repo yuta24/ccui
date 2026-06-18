@@ -141,6 +141,16 @@
         }
       }
     },
+    "Appearance": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観"
+          }
+        }
+      }
+    },
     "Annotation": {
       "localizations": {
         "ja": {
@@ -311,6 +321,16 @@
         }
       }
     },
+    "Dark": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダーク"
+          }
+        }
+      }
+    },
     "Default Mode": {
       "localizations": {
         "ja": {
@@ -401,6 +421,16 @@
         }
       }
     },
+    "General": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一般"
+          }
+        }
+      }
+    },
     "Go Back": {
       "localizations": {
         "ja": {
@@ -467,6 +497,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "キー"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライト"
           }
         }
       }
@@ -967,6 +1007,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しいセッションを開始しますか？"
+          }
+        }
+      }
+    },
+    "System": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム"
           }
         }
       }

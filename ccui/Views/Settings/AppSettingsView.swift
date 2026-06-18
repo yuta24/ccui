@@ -6,7 +6,7 @@ struct AppSettingsView: View {
     var body: some View {
         if let stores = appDelegate.stores {
             TabView {
-                Tab("一般", systemImage: "gearshape") {
+                Tab("General", systemImage: "gearshape") {
                     GeneralSettingsView()
                 }
                 Tab("Claude", systemImage: "terminal") {

@@ -6,7 +6,7 @@ struct GeneralSettingsView: View {
     var body: some View {
         @Bindable var store = settingsStore
         Form {
-            Picker("外観", selection: $store.appearanceMode) {
+            Picker("Appearance", selection: $store.appearanceMode) {
                 ForEach(AppearanceMode.allCases) { mode in
                     Text(mode.displayName).tag(mode)
                 }
