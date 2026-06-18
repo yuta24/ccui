@@ -7,12 +7,15 @@ struct DiffHunkView: View, Equatable {
     let filePath: String
     let onSendToAgent: ((String) -> Void)?
 
+    @Environment(\.codeFont) private var codeFont
+
     static func == (lhs: DiffHunkView, rhs: DiffHunkView) -> Bool {
         lhs.hunk == rhs.hunk
             && lhs.gutterWidth == rhs.gutterWidth
             && lhs.contentWidth == rhs.contentWidth
             && lhs.filePath == rhs.filePath
             && (lhs.onSendToAgent == nil) == (rhs.onSendToAgent == nil)
+            && lhs.codeFont == rhs.codeFont
     }
 
     var body: some View {
@@ -33,7 +36,7 @@ struct DiffHunkView: View, Equatable {
     private func hunkHeaderRow(_ header: String) -> some View {
         HStack(spacing: 0) {
             Text(header)
-                .font(.monoCaption)
+                .font(codeFont)
                 .foregroundStyle(Color.textTertiary)
         }
         .padding(.horizontal, 8)
@@ -52,6 +55,7 @@ private struct DiffLineRow: View {
     let filePath: String
     let onSendToAgent: ((String) -> Void)?
 
+    @Environment(\.codeFont) private var codeFont
     @State private var isHovered = false
     @State private var showingPopover = false
     @State private var commentText = ""
@@ -83,12 +87,12 @@ private struct DiffLineRow: View {
     private var lineContent: some View {
         HStack(alignment: .top, spacing: 0) {
             Text(line.oldLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
+                .font(codeFont)
                 .foregroundStyle(Color.gutterText)
                 .frame(width: gutterWidth, alignment: .trailing)
 
             Text(line.newLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
+                .font(codeFont)
                 .foregroundStyle(Color.gutterText)
                 .frame(width: gutterWidth, alignment: .trailing)
                 .padding(.trailing, 4)
@@ -99,12 +103,12 @@ private struct DiffLineRow: View {
                 .padding(.trailing, 8)
 
             Text(DiffLineStyling.sign(line.kind))
-                .font(.monoCaption)
+                .font(codeFont)
                 .foregroundStyle(DiffLineStyling.signColor(line.kind))
                 .frame(width: 12)
 
             Text(line.content.isEmpty ? " " : line.content)
-                .font(.monoCaption)
+                .font(codeFont)
                 .foregroundStyle(DiffLineStyling.contentColor(line.kind))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: true, vertical: false)

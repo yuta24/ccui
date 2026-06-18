@@ -87,6 +87,19 @@ extension Font {
     static let uiCaptionMono = Font.system(.subheadline, design: .monospaced)
 }
 
+// MARK: - Code Font Environment Key
+
+private struct CodeFontKey: EnvironmentKey {
+    static let defaultValue = Font.system(.subheadline, design: .monospaced)
+}
+
+extension EnvironmentValues {
+    var codeFont: Font {
+        get { self[CodeFontKey.self] }
+        set { self[CodeFontKey.self] = newValue }
+    }
+}
+
 // MARK: - Panel Metrics
 
 enum PanelMetrics {

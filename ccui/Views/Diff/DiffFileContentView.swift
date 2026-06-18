@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DiffFileContentView: View {
     let entry: DiffFileEntry
+    @Environment(AppSettingsStore.self) private var settingsStore
 
     var body: some View {
         if entry.status == .untracked {
@@ -78,7 +79,7 @@ struct DiffFileContentView: View {
     private func hunkHeaderRow(_ header: String) -> some View {
         HStack(spacing: 0) {
             Text(header)
-                .font(.monoCaption)
+                .font(settingsStore.resolvedFont)
                 .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,12 +91,12 @@ struct DiffFileContentView: View {
     private func diffLineRow(line: DiffLine, gutterWidth: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
             Text(line.oldLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
+                .font(settingsStore.resolvedFont)
                 .foregroundStyle(Color.gutterText)
                 .frame(width: gutterWidth, alignment: .trailing)
 
             Text(line.newLineNumber.map(String.init) ?? "")
-                .font(.monoCaption)
+                .font(settingsStore.resolvedFont)
                 .foregroundStyle(Color.gutterText)
                 .frame(width: gutterWidth, alignment: .trailing)
                 .padding(.trailing, 4)
@@ -106,12 +107,12 @@ struct DiffFileContentView: View {
                 .padding(.trailing, 8)
 
             Text(DiffLineStyling.sign(line.kind))
-                .font(.monoCaption)
+                .font(settingsStore.resolvedFont)
                 .foregroundStyle(DiffLineStyling.signColor(line.kind))
                 .frame(width: 12)
 
             Text(line.content.isEmpty ? " " : line.content)
-                .font(.monoCaption)
+                .font(settingsStore.resolvedFont)
                 .foregroundStyle(DiffLineStyling.contentColor(line.kind))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: true, vertical: false)

@@ -20,9 +20,12 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     var onProcessTerminated: ((Int32?) -> Void)?
     var onTitleChanged: ((String) -> Void)?
 
-    init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
+    init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = [], font: NSFont? = nil) {
         self.label = label
         terminalView = LoggingTerminalView(frame: .zero)
+        if let font {
+            terminalView.font = font
+        }
         terminalView.changeScrollback(10_000)
         var env = ProcessInfo.processInfo.environment
         env["TERM"] = "xterm-256color"
@@ -48,6 +51,10 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
     }
 
     var nsView: NSView { terminalView }
+
+    func updateFont(_ font: NSFont) {
+        terminalView.font = font
+    }
 
     func terminate() {
         terminalView.terminate()

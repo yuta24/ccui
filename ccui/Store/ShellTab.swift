@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @Observable
@@ -7,7 +8,7 @@ final class ShellTab: Identifiable {
     var title: String
     let session: any TerminalSession
 
-    init(worktreePath: String, additionalEnvironment: [String] = []) {
+    init(worktreePath: String, additionalEnvironment: [String] = [], font: NSFont? = nil) {
         let id = UUID()
         self.id = id
         self.title = "Shell"
@@ -16,7 +17,8 @@ final class ShellTab: Identifiable {
             label: "Shell",
             executable: "/bin/zsh",
             args: ["-l"],
-            additionalEnvironment: additionalEnvironment
+            additionalEnvironment: additionalEnvironment,
+            font: font
         )
         self.session = session
         session.onTitleChanged = { [weak self] title in

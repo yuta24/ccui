@@ -5,6 +5,7 @@ struct DiffFileSection: View {
     let contentWidth: CGFloat
     let onSendToAgent: ((String) -> Void)?
 
+    @Environment(AppSettingsStore.self) private var settingsStore
     @State private var isExpanded = true
 
     private var displayPath: String {
@@ -44,7 +45,7 @@ struct DiffFileSection: View {
                 Text(displayPath)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .font(.monoCaption)
+                    .font(settingsStore.resolvedFont)
                     .foregroundStyle(Color.textPrimary)
 
                 Spacer()
@@ -111,6 +112,7 @@ struct DiffFileSection: View {
             }
             .frame(minWidth: contentWidth, alignment: .leading)
         }
+        .environment(\.codeFont, settingsStore.resolvedFont)
         .background(Color.surfacePrimary)
     }
 

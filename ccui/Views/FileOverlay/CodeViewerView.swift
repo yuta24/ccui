@@ -7,6 +7,7 @@ struct CodeViewerView: View {
 
     @State private var editorState = SourceEditorState()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(AppSettingsStore.self) private var settingsStore
 
     var body: some View {
         Group {
@@ -27,7 +28,7 @@ struct CodeViewerView: View {
         }
         // EditorTheme.monochrome は NSColor を解決時点の appearance で固定 RGB に
         // 変換するため、ライト/ダーク切替時にエディタを再生成して再解決させる。
-        .id("\(store.loadedPath ?? "")-\(colorScheme)")
+        .id("\(store.loadedPath ?? "")-\(colorScheme)-\(settingsStore.fontName)-\(settingsStore.fontSize)")
         .onChange(of: store.loadedPath) {
             editorState = SourceEditorState()
         }
@@ -48,7 +49,7 @@ struct CodeViewerView: View {
             configuration: SourceEditorConfiguration(
                 appearance: .init(
                     theme: .monochrome,
-                    font: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                    font: settingsStore.resolvedNSFont,
                     lineHeightMultiple: 1.4,
                     wrapLines: false,
                     bracketPairEmphasis: nil

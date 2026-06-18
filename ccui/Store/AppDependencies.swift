@@ -42,6 +42,13 @@ final class AppDependencies {
         self.quickOpenStore = QuickOpenStore()
         self.searchStore = SearchStore()
         self.bottomPanelState = BottomPanelState(eventBus: eventBus)
+
+        let terminalStore = self.terminalSessionStore
+        let shellStore = self.shellSessionStore
+        settingsStore.onFontChanged = { [weak terminalStore, weak shellStore] in
+            terminalStore?.updateAllFonts()
+            shellStore?.updateAllFonts()
+        }
     }
 
     func start() {

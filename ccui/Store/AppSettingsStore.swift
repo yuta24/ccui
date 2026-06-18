@@ -1,12 +1,14 @@
 import AppKit
 import Foundation
 import OSLog
+import SwiftUI
 
 @Observable
 @MainActor
 final class AppSettingsStore {
     private(set) var settings: AppSettings
     private let persistence: any AppSettingsPersistence
+    var onFontChanged: (() -> Void)?
 
     init(persistence: any AppSettingsPersistence) {
         do {
@@ -16,6 +18,9 @@ final class AppSettingsStore {
             settings = AppSettings()
         }
         self.persistence = persistence
+        if !Self.availableMonospacedFonts.contains(settings.fontName) {
+            settings.fontName = AppSettings.defaultFontName
+        }
         applyAppearance(settings.appearanceMode)
     }
 
@@ -35,6 +40,45 @@ final class AppSettingsStore {
             persist()
         }
     }
+
+    var fontName: String {
+        get { settings.fontName }
+        set {
+            settings.fontName = newValue
+            persist()
+            onFontChanged?()
+        }
+    }
+
+    var fontSize: Double {
+        get { settings.fontSize }
+        set {
+            settings.fontSize = min(max(newValue, AppSettings.minFontSize), AppSettings.maxFontSize)
+            persist()
+            onFontChanged?()
+        }
+    }
+
+    var resolvedNSFont: NSFont {
+        NSFontManager.shared.font(withFamily: fontName, traits: .fixedPitchFontMask, weight: 5, size: CGFloat(fontSize))
+            ?? NSFont.monospacedSystemFont(ofSize: CGFloat(fontSize), weight: .regular)
+    }
+
+    var resolvedFont: Font {
+        Font.custom(fontName, size: fontSize)
+    }
+
+    nonisolated static let availableMonospacedFonts: [String] = {
+        NSFontManager.shared
+            .availableFontNames(with: .fixedPitchFontMask)?
+            .compactMap { name -> String? in
+                guard let font = NSFont(name: name, size: 12) else { return nil }
+                return font.familyName
+            }
+            .reduce(into: [String]()) { result, family in
+                if !result.contains(family) { result.append(family) }
+            } ?? []
+    }()
 
     private func applyAppearance(_ mode: AppearanceMode) {
         switch mode {

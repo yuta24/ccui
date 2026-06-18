@@ -162,7 +162,8 @@ final class TerminalSessionStore {
             // `-c` 付きは TTY があっても非対話扱いになり .zshrc が読まれないため、
             // ShellTab (`-l` のみ、TTY 経由で対話シェルになる) と環境を揃えるために `-i` を付与する。
             args: ["-i", "-l", "-c", claudeArgs],
-            additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings()
+            additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings(),
+            font: appSettingsStore.resolvedNSFont
         )
         configureHandlers?(session)
         wrapTerminationHandlerForFailureDetection(
@@ -220,6 +221,13 @@ final class TerminalSessionStore {
                 detachAndTerminate(existing)
             }
             sessions.removeValue(forKey: key)
+        }
+    }
+
+    func updateAllFonts() {
+        let font = appSettingsStore.resolvedNSFont
+        for entry in sessions.values {
+            entry.session.updateFont(font)
         }
     }
 

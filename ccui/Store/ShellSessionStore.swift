@@ -40,7 +40,7 @@ final class ShellSessionStore {
 
     @discardableResult
     func addTab(for worktreePath: String) -> ShellTab {
-        let tab = ShellTab(worktreePath: worktreePath, additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings())
+        let tab = ShellTab(worktreePath: worktreePath, additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings(), font: appSettingsStore.resolvedNSFont)
         tab.session.onProcessTerminated = { [weak self, weak tab] _ in
             guard let self, let tab else { return }
             self.closeTab(id: tab.id, worktreePath: worktreePath)
@@ -87,6 +87,15 @@ final class ShellSessionStore {
         let toRemove = tabsByPath.keys.filter { !paths.contains($0) }
         for path in toRemove {
             removeAll(for: path)
+        }
+    }
+
+    func updateAllFonts() {
+        let font = appSettingsStore.resolvedNSFont
+        for tabs in tabsByPath.values {
+            for tab in tabs {
+                tab.session.updateFont(font)
+            }
         }
     }
 

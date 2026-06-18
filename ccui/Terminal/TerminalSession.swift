@@ -23,6 +23,7 @@ protocol TerminalSession: AnyObject {
     /// Sends multi-line text using bracketed paste escape sequences so embedded newlines
     /// are not treated as separate Enter keypresses by the PTY line discipline.
     func pasteText(_ text: String)
+    func updateFont(_ font: NSFont)
 }
 
 extension TerminalSession {

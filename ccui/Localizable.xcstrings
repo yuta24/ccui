@@ -421,6 +421,36 @@
         }
       }
     },
+    "Font": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォント"
+          }
+        }
+      }
+    },
+    "Font Family": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォントファミリー"
+          }
+        }
+      }
+    },
+    "Font Size": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォントサイズ"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "ja": {
@@ -1047,6 +1077,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "ツール使用状況"
+          }
+        }
+      }
+    },
+    "The quick brown fox jumps over the lazy dog": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "素早い茶色の狐は怠惰な犬を飛び越える"
           }
         }
       }
