@@ -6,18 +6,13 @@ struct AppSettingsView: View {
     var body: some View {
         if let stores = appDelegate.stores {
             TabView {
-                GeneralSettingsView()
-                    .tabItem {
-                        Label("一般", systemImage: "gearshape")
-                    }
-                    .tag("general")
-                ClaudeSettingsView()
-                    .tabItem {
-                        Label("Claude", systemImage: "terminal")
-                    }
-                    .tag("claude")
+                Tab("一般", systemImage: "gearshape") {
+                    GeneralSettingsView()
+                }
+                Tab("Claude", systemImage: "terminal") {
+                    ClaudeSettingsView()
+                }
             }
-            .tabViewStyle(.sidebarAdaptable)
             .frame(width: 600, height: 480)
             .environment(stores.appSettingsStore)
         }
