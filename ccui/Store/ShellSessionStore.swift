@@ -55,19 +55,23 @@ final class ShellSessionStore {
     }
 
     func closeTab(id: UUID, worktreePath: String) {
-        guard let index = tabsByPath[worktreePath]?.firstIndex(where: { $0.id == id }) else { return }
-        let tab = tabsByPath[worktreePath]![index]
+        guard var tabs = tabsByPath[worktreePath],
+              let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let tab = tabs[index]
         if tab.session.isProcessRunning {
             tab.session.terminate()
         }
-        tabsByPath[worktreePath]!.remove(at: index)
+        tabs.remove(at: index)
 
-        if tabsByPath[worktreePath]!.isEmpty {
+        if tabs.isEmpty {
             tabsByPath.removeValue(forKey: worktreePath)
             activeTabIDByPath.removeValue(forKey: worktreePath)
-        } else if activeTabIDByPath[worktreePath] == id {
-            let newIndex = min(index, tabsByPath[worktreePath]!.count - 1)
-            activeTabIDByPath[worktreePath] = tabsByPath[worktreePath]![newIndex].id
+        } else {
+            tabsByPath[worktreePath] = tabs
+            if activeTabIDByPath[worktreePath] == id {
+                let newIndex = min(index, tabs.count - 1)
+                activeTabIDByPath[worktreePath] = tabs[newIndex].id
+            }
         }
     }
 

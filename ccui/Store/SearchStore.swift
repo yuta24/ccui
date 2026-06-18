@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @Observable
 @MainActor
@@ -123,11 +124,17 @@ final class SearchStore {
         isSearching = true
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                isSearching = false
+                return
+            }
 
             let results = await Self.runContentSearch(query: query, rootPath: root)
 
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                isSearching = false
+                return
+            }
             contentResults = results
             isSearching = false
         }
@@ -152,16 +159,32 @@ final class SearchStore {
         process.standardOutput = stdout
         process.standardError = FileHandle.nullDevice
 
+        // パイプからの読み取りをプロセス実行中に並行して行う。
+        // terminationHandler 内で readDataToEndOfFile() を呼ぶと、
+        // 出力がパイプバッファを超えた場合にプロセスが書き込みブロックし
+        // デッドロック→タイムアウトになる。
+        let stdoutData = OSAllocatedUnfairLock<Data>(initialState: Data())
+        let readGroup = DispatchGroup()
+        readGroup.enter()
+        DispatchQueue.global().async {
+            let data = stdout.fileHandleForReading.readDataToEndOfFile()
+            stdoutData.withLock { $0 = data }
+            readGroup.leave()
+        }
+
         do {
             try process.run()
         } catch {
+            stdout.fileHandleForReading.closeFile()
+            readGroup.wait()
             return []
         }
 
         let data = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 process.terminationHandler = { _ in
-                    let output = stdout.fileHandleForReading.readDataToEndOfFile()
+                    readGroup.wait()
+                    let output = stdoutData.withLock { $0 }
                     continuation.resume(returning: output)
                 }
             }

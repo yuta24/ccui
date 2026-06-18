@@ -140,10 +140,10 @@ enum DiffParser {
             for part in parts {
                 if part.hasPrefix("-") {
                     let nums = part.dropFirst().components(separatedBy: ",")
-                    oldLine = Int(nums[0]) ?? 1
+                    oldLine = Int(nums.first ?? "") ?? 1
                 } else if part.hasPrefix("+") {
                     let nums = part.dropFirst().components(separatedBy: ",")
-                    newLine = Int(nums[0]) ?? 1
+                    newLine = Int(nums.first ?? "") ?? 1
                 }
             }
         }

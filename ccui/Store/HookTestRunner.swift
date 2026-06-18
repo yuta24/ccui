@@ -1,4 +1,5 @@
 import Foundation
+import os
 import OSLog
 
 @Observable
@@ -59,9 +60,33 @@ final class HookTestRunner {
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
 
+        // パイプからの読み取りをプロセス実行中に並行して行う。
+        // waitUntilExit() 後に readDataToEndOfFile() を呼ぶと、
+        // 出力がパイプバッファを超えた場合にデッドロックする。
+        let outData = OSAllocatedUnfairLock<Data>(initialState: Data())
+        let errData = OSAllocatedUnfairLock<Data>(initialState: Data())
+        let readGroup = DispatchGroup()
+        let readQueue = DispatchQueue(label: "HookTestRunner.pipeRead", attributes: .concurrent)
+
+        readGroup.enter()
+        readQueue.async {
+            let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            outData.withLock { $0 = data }
+            readGroup.leave()
+        }
+        readGroup.enter()
+        readQueue.async {
+            let data = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            errData.withLock { $0 = data }
+            readGroup.leave()
+        }
+
         do {
             try process.run()
         } catch {
+            stdoutPipe.fileHandleForReading.closeFile()
+            stderrPipe.fileHandleForReading.closeFile()
+            readGroup.wait()
             return ("[error] \(error.localizedDescription)", -1)
         }
 
@@ -69,11 +94,10 @@ final class HookTestRunner {
 
         let result: (output: String, exitCode: Int32) = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
-                Task.detached(priority: .userInitiated) {
+                DispatchQueue.global().async {
                     stdinPipe.fileHandleForWriting.write(payload)
                     stdinPipe.fileHandleForWriting.closeFile()
 
-                    // Timeout after 10 seconds
                     let timeoutItem = DispatchWorkItem { [weak process] in
                         if process?.isRunning == true { process?.terminate() }
                     }
@@ -81,9 +105,10 @@ final class HookTestRunner {
 
                     process.waitUntilExit()
                     timeoutItem.cancel()
+                    readGroup.wait()
 
-                    let out = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                    let err = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let out = String(data: outData.withLock({ $0 }), encoding: .utf8) ?? ""
+                    let err = String(data: errData.withLock({ $0 }), encoding: .utf8) ?? ""
 
                     var output = ""
                     if !out.isEmpty { output += out }

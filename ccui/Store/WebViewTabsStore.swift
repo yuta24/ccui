@@ -8,7 +8,15 @@ final class WebViewTabsStore {
     // Use selectTab(at:) / selectTab(id:) to change the active tab.
     private(set) var activeTabIndex: Int = 0
 
-    var activeTab: WebViewTab { tabs[activeTabIndex] }
+    var activeTab: WebViewTab {
+        guard let tab = tabs.indices.contains(activeTabIndex) ? tabs[activeTabIndex] : tabs.first else {
+            let fallback = WebViewTab()
+            tabs = [fallback]
+            activeTabIndex = 0
+            return fallback
+        }
+        return tab
+    }
 
     init() {
         tabs = [WebViewTab()]

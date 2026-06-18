@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @Observable
 @MainActor
@@ -63,9 +64,21 @@ final class TerminalSessionStore {
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
 
+            // パイプからの読み取りをプロセス実行中に並行して行う
+            let pipeData = OSAllocatedUnfairLock<Data>(initialState: Data())
+            let readGroup = DispatchGroup()
+            readGroup.enter()
+            DispatchQueue.global().async {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                pipeData.withLock { $0 = data }
+                readGroup.leave()
+            }
+
             do {
                 try process.run()
             } catch {
+                pipe.fileHandleForReading.closeFile()
+                readGroup.wait()
                 return "claude"
             }
 
@@ -88,7 +101,8 @@ final class TerminalSessionStore {
                 await withCheckedContinuation { continuation in
                     process.terminationHandler = { _ in
                         timeoutTask.cancel()
-                        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                        readGroup.wait()
+                        let data = pipeData.withLock { $0 }
                         let resolved = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         continuation.resume(returning: resolved.isEmpty ? "claude" : resolved)
                     }

@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// コンテンツ検索に使う `rg` (ripgrep) のパスを解決し、結果をプロセス起動中キャッシュする。
 /// GUI アプリは Homebrew の PATH（`/opt/homebrew/bin` 等）を継承しないため、
@@ -36,9 +37,21 @@ actor SearchToolLocator {
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
 
+        // パイプからの読み取りをプロセス実行中に並行して行う
+        let pipeData = OSAllocatedUnfairLock<Data>(initialState: Data())
+        let readGroup = DispatchGroup()
+        readGroup.enter()
+        DispatchQueue.global().async {
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            pipeData.withLock { $0 = data }
+            readGroup.leave()
+        }
+
         do {
             try process.run()
         } catch {
+            pipe.fileHandleForReading.closeFile()
+            readGroup.wait()
             return nil
         }
 
@@ -59,7 +72,8 @@ actor SearchToolLocator {
             await withCheckedContinuation { continuation in
                 process.terminationHandler = { _ in
                     timeoutTask.cancel()
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    readGroup.wait()
+                    let data = pipeData.withLock { $0 }
                     let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
                     continuation.resume(returning: (path?.isEmpty ?? true) ? nil : path)
                 }
