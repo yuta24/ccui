@@ -67,14 +67,36 @@ enum AsyncProcess {
         }
         let resolution = OSAllocatedUnfairLock<Resolution?>(initialState: nil)
 
+        // パイプからの読み取りをプロセス実行中に並行して行う。
+        // terminationHandler 内で readDataToEndOfFile() を呼ぶと、
+        // 出力がパイプバッファを超えた場合にプロセスが書き込みブロックし
+        // デッドロック→タイムアウトになる。
+        let stdoutData = OSAllocatedUnfairLock<Data>(initialState: Data())
+        let stderrData = OSAllocatedUnfairLock<Data>(initialState: Data())
+
+        let readQueue = DispatchQueue(label: "AsyncProcess.pipeRead", attributes: .concurrent)
+        let readGroup = DispatchGroup()
+
+        readGroup.enter()
+        readQueue.async {
+            let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            stdoutData.withLock { $0 = data }
+            readGroup.leave()
+        }
+        readGroup.enter()
+        readQueue.async {
+            let data = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            stderrData.withLock { $0 = data }
+            readGroup.leave()
+        }
+
         return try await withCheckedThrowingContinuation { continuation in
             process.terminationHandler = { finished in
-                let outData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                let errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                readGroup.wait()
                 let output = Output(
                     exitCode: finished.terminationStatus,
-                    standardOutput: outData,
-                    standardError: errData
+                    standardOutput: stdoutData.withLock { $0 },
+                    standardError: stderrData.withLock { $0 }
                 )
                 let claimed = resolution.withLock { current -> Bool in
                     guard current == nil else { return false }
@@ -90,13 +112,18 @@ enum AsyncProcess {
                 try process.run()
             } catch {
                 process.terminationHandler = nil
+                stdoutPipe.fileHandleForReading.closeFile()
+                stderrPipe.fileHandleForReading.closeFile()
+                readGroup.wait()
                 continuation.resume(throwing: error)
                 return
             }
 
             if let stdinPipe, let standardInput {
-                stdinPipe.fileHandleForWriting.write(standardInput)
-                stdinPipe.fileHandleForWriting.closeFile()
+                DispatchQueue.global().async {
+                    stdinPipe.fileHandleForWriting.write(standardInput)
+                    stdinPipe.fileHandleForWriting.closeFile()
+                }
             }
 
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
@@ -107,6 +134,8 @@ enum AsyncProcess {
                 }
                 guard claimed else { return }
                 if process.isRunning { process.terminate() }
+                stdoutPipe.fileHandleForReading.closeFile()
+                stderrPipe.fileHandleForReading.closeFile()
                 continuation.resume(throwing: RunError.timeout)
             }
         }
