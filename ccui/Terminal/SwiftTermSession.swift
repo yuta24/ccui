@@ -1,5 +1,16 @@
 import AppKit
+import OSLog
 @preconcurrency import SwiftTerm
+
+private final class LoggingTerminalView: LocalProcessTerminalView {
+    override func send(source: TerminalView, data: ArraySlice<UInt8>) {
+        let bytes = Array(data)
+        let hex = bytes.map { String(format: "%02x", $0) }.joined(separator: " ")
+        let printable = bytes.map { (0x20...0x7e).contains($0) ? String(UnicodeScalar($0)) : "." }.joined()
+        Logger.terminal.debug("PTY SEND (\(bytes.count) bytes): \(hex) | \(printable)")
+        super.send(source: source, data: data)
+    }
+}
 
 @MainActor
 final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate {
@@ -11,7 +22,7 @@ final class SwiftTermSession: TerminalSession, LocalProcessTerminalViewDelegate 
 
     init(workingDirectory: String, label: String, executable: String, args: [String], additionalEnvironment: [String] = []) {
         self.label = label
-        terminalView = LocalProcessTerminalView(frame: .zero)
+        terminalView = LoggingTerminalView(frame: .zero)
         terminalView.changeScrollback(10_000)
         var env = ProcessInfo.processInfo.environment
         env["TERM"] = "xterm-256color"
