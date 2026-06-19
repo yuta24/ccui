@@ -109,7 +109,7 @@ struct RepositorySectionView: View {
         .padding(.vertical, 6)
         .contextMenu {
             Button("Remove Repository", role: .destructive) {
-                store.remove(repository)
+                worktreeLifecycleCoordinator.confirmRemoveRepository(repository, from: store)
             }
         }
     }

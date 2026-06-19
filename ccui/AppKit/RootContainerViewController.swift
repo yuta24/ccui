@@ -161,6 +161,7 @@ final class RootContainerViewController: NSViewController {
     private func observeAlertState() {
         withObservationTracking {
             _ = stores.worktreeLifecycleCoordinator.isForceDeleteAlertPresented
+            _ = stores.worktreeLifecycleCoordinator.isRemoveRepositoryAlertPresented
             _ = stores.worktreeLifecycleCoordinator.isErrorAlertPresented
             _ = stores.repositoryStore.lastError
         } onChange: {
@@ -175,10 +176,36 @@ final class RootContainerViewController: NSViewController {
         guard !isShowingAlert else { return }
         if stores.worktreeLifecycleCoordinator.isForceDeleteAlertPresented {
             showForceDeleteAlert()
+        } else if stores.worktreeLifecycleCoordinator.isRemoveRepositoryAlertPresented {
+            showRemoveRepositoryAlert()
         } else if stores.worktreeLifecycleCoordinator.isErrorAlertPresented {
             showCoordinatorErrorAlert()
         } else if stores.repositoryStore.lastError != nil {
             showStoreErrorAlert()
+        }
+    }
+
+    private func showRemoveRepositoryAlert() {
+        guard let window = view.window else { return }
+        guard let (repository, _) = stores.worktreeLifecycleCoordinator.removeRepositoryTarget else { return }
+        let alert = NSAlert()
+        alert.messageText = "Remove Repository"
+        alert.informativeText = "Are you sure you want to remove \"\(repository.name)\" from the sidebar? The repository files on disk will not be deleted."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+
+        stores.worktreeLifecycleCoordinator.isRemoveRepositoryAlertPresented = false
+        isShowingAlert = true
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self else { return }
+            self.isShowingAlert = false
+            if response == .alertFirstButtonReturn {
+                self.stores.worktreeLifecycleCoordinator.executeRemoveRepository()
+            } else {
+                self.stores.worktreeLifecycleCoordinator.removeRepositoryTarget = nil
+            }
         }
     }
 

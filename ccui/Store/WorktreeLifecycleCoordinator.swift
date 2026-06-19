@@ -13,6 +13,8 @@ final class WorktreeLifecycleCoordinator {
     var initialBaseBranch: String?
     var forceDeleteTarget: (Worktree, WorktreeStore)?
     var isForceDeleteAlertPresented = false
+    var removeRepositoryTarget: (Repository, RepositoryStore)?
+    var isRemoveRepositoryAlertPresented = false
 
     var errorMessage: String?
     var isErrorAlertPresented = false
@@ -92,6 +94,17 @@ final class WorktreeLifecycleCoordinator {
                 isErrorAlertPresented = true
             }
         }
+    }
+
+    func confirmRemoveRepository(_ repository: Repository, from store: RepositoryStore) {
+        removeRepositoryTarget = (repository, store)
+        isRemoveRepositoryAlertPresented = true
+    }
+
+    func executeRemoveRepository() {
+        guard let (repository, store) = removeRepositoryTarget else { return }
+        store.remove(repository)
+        removeRepositoryTarget = nil
     }
 
     func forceDeleteWorktree() {
