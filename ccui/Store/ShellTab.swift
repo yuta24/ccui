@@ -8,14 +8,14 @@ final class ShellTab: Identifiable {
     var title: String
     let session: any TerminalSession
 
-    init(worktreePath: String, additionalEnvironment: [String] = [], font: NSFont? = nil) {
+    init(worktreePath: String, shellPath: String = AppSettings.defaultShellPath, additionalEnvironment: [String] = [], font: NSFont? = nil) {
         let id = UUID()
         self.id = id
         self.title = "Shell"
         let session = SwiftTermSession(
             workingDirectory: worktreePath,
             label: "Shell",
-            executable: "/bin/zsh",
+            executable: shellPath,
             args: ["-l"],
             additionalEnvironment: additionalEnvironment,
             font: font

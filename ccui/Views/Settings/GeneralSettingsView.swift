@@ -41,6 +41,20 @@ struct GeneralSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 4)
             }
+
+            Section("Shell") {
+                Picker("Default Shell", selection: $store.shellPath) {
+                    ForEach(AppSettingsStore.availableShells, id: \.self) { path in
+                        Text(path).tag(path)
+                    }
+                }
+            }
+
+            Section("Notifications") {
+                Toggle("Enable Notifications", isOn: $store.notificationsEnabled)
+                Toggle("Notification Sound", isOn: $store.notificationSoundEnabled)
+                    .disabled(!store.notificationsEnabled)
+            }
         }
         .formStyle(.grouped)
     }

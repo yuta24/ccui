@@ -21,6 +21,9 @@ final class AppSettingsStore {
         if !Self.availableMonospacedFonts.contains(settings.fontName) {
             settings.fontName = AppSettings.defaultFontName
         }
+        if !Self.availableShells.contains(settings.shellPath) {
+            settings.shellPath = AppSettings.defaultShellPath
+        }
         applyAppearance(settings.appearanceMode)
     }
 
@@ -59,6 +62,30 @@ final class AppSettingsStore {
         }
     }
 
+    var shellPath: String {
+        get { settings.shellPath }
+        set {
+            settings.shellPath = newValue
+            persist()
+        }
+    }
+
+    var notificationsEnabled: Bool {
+        get { settings.notificationsEnabled }
+        set {
+            settings.notificationsEnabled = newValue
+            persist()
+        }
+    }
+
+    var notificationSoundEnabled: Bool {
+        get { settings.notificationSoundEnabled }
+        set {
+            settings.notificationSoundEnabled = newValue
+            persist()
+        }
+    }
+
     var resolvedNSFont: NSFont {
         NSFontManager.shared.font(withFamily: fontName, traits: .fixedPitchFontMask, weight: 5, size: CGFloat(fontSize))
             ?? NSFont.monospacedSystemFont(ofSize: CGFloat(fontSize), weight: .regular)
@@ -67,6 +94,16 @@ final class AppSettingsStore {
     var resolvedFont: Font {
         Font.custom(fontName, size: fontSize)
     }
+
+    nonisolated static let availableShells: [String] = {
+        guard let contents = try? String(contentsOfFile: "/etc/shells", encoding: .utf8) else {
+            return ["/bin/zsh", "/bin/bash"]
+        }
+        return contents
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.hasPrefix("/") && FileManager.default.isExecutableFile(atPath: $0) }
+    }()
 
     nonisolated static let availableMonospacedFonts: [String] = {
         NSFontManager.shared

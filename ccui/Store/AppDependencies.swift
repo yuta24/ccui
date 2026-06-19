@@ -25,7 +25,7 @@ final class AppDependencies {
         self.appSettingsStore = settingsStore
         self.repositoryStore = RepositoryStore(persistence: JSONFileRepositoryPersistence())
         self.terminalSessionStore = TerminalSessionStore(appSettingsStore: settingsStore, eventBus: eventBus)
-        let notificationService = NotificationService()
+        let notificationService = NotificationService(appSettingsStore: settingsStore)
         self.notificationService = notificationService
         let claudeEventPersistence = ClaudeEventPersistence()
         self.claudeEventStore = ClaudeEventStore(

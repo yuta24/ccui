@@ -40,7 +40,7 @@ final class ShellSessionStore {
 
     @discardableResult
     func addTab(for worktreePath: String) -> ShellTab {
-        let tab = ShellTab(worktreePath: worktreePath, additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings(), font: appSettingsStore.resolvedNSFont)
+        let tab = ShellTab(worktreePath: worktreePath, shellPath: appSettingsStore.shellPath, additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings(), font: appSettingsStore.resolvedNSFont)
         tab.session.onProcessTerminated = { [weak self, weak tab] _ in
             guard let self, let tab else { return }
             self.closeTab(id: tab.id, worktreePath: worktreePath)

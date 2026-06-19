@@ -6,8 +6,10 @@ import UserNotifications
 @MainActor
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private var authorizationTask: Task<Bool, Never>?
+    private let appSettingsStore: AppSettingsStore
 
-    override init() {
+    init(appSettingsStore: AppSettingsStore) {
+        self.appSettingsStore = appSettingsStore
         super.init()
         UNUserNotificationCenter.current().delegate = self
     }
@@ -15,6 +17,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     /// Dispatches a hook event and posts a native notification when the event
     /// represents a moment requiring user attention (permission request).
     func dispatch(event: ClaudeEvent) {
+        guard appSettingsStore.notificationsEnabled else { return }
         guard shouldNotify(for: event) else { return }
 
         let title = notificationTitle(for: event)
@@ -69,7 +72,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        content.sound = appSettingsStore.notificationSoundEnabled ? .default : nil
         content.userInfo = ["worktreePath": worktreePath]
         // Collapse repeated prompts from the same worktree into one thread.
         content.threadIdentifier = "ccui.permission.\(worktreePath)"

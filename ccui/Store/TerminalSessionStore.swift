@@ -56,10 +56,11 @@ final class TerminalSessionStore {
     }
 
     func startResolvingClaudePath() {
+        let shell = appSettingsStore.shellPath
         claudePathTask = Task.detached(priority: .userInitiated) {
             let process = Process()
             let pipe = Pipe()
-            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.executableURL = URL(fileURLWithPath: shell)
             process.arguments = ["-l", "-c", "which claude"]
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
@@ -155,12 +156,12 @@ final class TerminalSessionStore {
         } else {
             "\(claudePath) --session-id \(sessionId)"
         }
+        let shell = appSettingsStore.shellPath
         let session = SwiftTermSession(
             workingDirectory: worktree.path,
             label: "Terminal",
-            executable: "/bin/zsh",
-            // `-c` 付きは TTY があっても非対話扱いになり .zshrc が読まれないため、
-            // ShellTab (`-l` のみ、TTY 経由で対話シェルになる) と環境を揃えるために `-i` を付与する。
+            executable: shell,
+            // -c 付きは TTY があっても非対話扱いになり .zshrc が読まれないため -i を付与する
             args: ["-i", "-l", "-c", claudeArgs],
             additionalEnvironment: appSettingsStore.resolvedEnvironmentStrings(),
             font: appSettingsStore.resolvedNSFont

@@ -1262,6 +1262,56 @@
           }
         }
       }
+    },
+    "Default Shell": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトシェル"
+          }
+        }
+      }
+    },
+    "Enable Notifications": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知を有効にする"
+          }
+        }
+      }
+    },
+    "Notification Sound": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知サウンド"
+          }
+        }
+      }
+    },
+    "Shell": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シェル"
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
