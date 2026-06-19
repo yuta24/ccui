@@ -87,6 +87,7 @@ jobs:
       - name: Build and export ccui.app
         env:
           SPARKLE_PUBLIC_ED_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           scripts/release_build.sh \
             "${{ steps.version.outputs.version }}" \

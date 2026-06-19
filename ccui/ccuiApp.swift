@@ -1,4 +1,5 @@
 import Combine
+import Sentry
 import Sparkle
 import SwiftUI
 
@@ -12,6 +13,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let dsn = Bundle.main.object(forInfoDictionaryKey: "SentryDSN") as? String, !dsn.isEmpty {
+            SentrySDK.start { options in
+                options.dsn = dsn
+                options.sendDefaultPii = false
+            }
+        }
+
         let deps = AppDependencies()
         stores = deps
         let controller = MainWindowController(stores: deps)

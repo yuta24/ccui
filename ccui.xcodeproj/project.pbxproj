@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CC0000090000000000000012 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000080000000000000011 /* Sparkle */; };
+		CC00000D0000000000000016 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = CC00000C0000000000000015 /* Sentry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC0000090000000000000012 /* Sparkle in Frameworks */,
+				CC00000D0000000000000016 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,6 +124,7 @@
 				CC000004000000000000000D /* CodeEditSourceEditor */,
 				CC000005000000000000000E /* CodeEditLanguages */,
 				CC0000080000000000000011 /* Sparkle */,
+				CC00000C0000000000000015 /* Sentry */,
 			);
 			productName = ccui;
 			productReference = 98DB293A2F84890F009FA245 /* ccui.app */;
@@ -213,6 +216,7 @@
 				CC000003000000000000000C /* XCRemoteSwiftPackageReference "CodeEditSourceEditor" */,
 				CC000006000000000000000F /* XCRemoteSwiftPackageReference "CodeEditLanguages" */,
 				CC0000070000000000000010 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				CC00000B0000000000000014 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -262,7 +266,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nif [ \"${CONFIGURATION}\" != \"Release\" ]; then\n  exit 0\nfi\nPLIST=\"${CODESIGNING_FOLDER_PATH}/Contents/Info.plist\"\nif [ ! -f \"$PLIST\" ]; then\n  exit 0\nfi\nPB=/usr/libexec/PlistBuddy\n\"$PB\" -c \"Delete :SUFeedURL\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUFeedURL string https://yuta24.github.io/ccui/appcast.xml\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUEnableAutomaticChecks\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUEnableAutomaticChecks bool true\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUScheduledCheckInterval\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUScheduledCheckInterval integer 86400\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUPublicEDKey\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUPublicEDKey string ${SPARKLE_PUBLIC_ED_KEY}\" \"$PLIST\"\n";
+			shellScript = "set -e\nif [ \"${CONFIGURATION}\" != \"Release\" ]; then\n  exit 0\nfi\nPLIST=\"${CODESIGNING_FOLDER_PATH}/Contents/Info.plist\"\nif [ ! -f \"$PLIST\" ]; then\n  exit 0\nfi\nPB=/usr/libexec/PlistBuddy\n\"$PB\" -c \"Delete :SUFeedURL\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUFeedURL string https://yuta24.github.io/ccui/appcast.xml\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUEnableAutomaticChecks\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUEnableAutomaticChecks bool true\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUScheduledCheckInterval\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUScheduledCheckInterval integer 86400\" \"$PLIST\"\n\"$PB\" -c \"Delete :SUPublicEDKey\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Add :SUPublicEDKey string ${SPARKLE_PUBLIC_ED_KEY}\" \"$PLIST\"\n\"$PB\" -c \"Delete :SentryDSN\" \"$PLIST\" 2>/dev/null || true\nif [ -n \"${SENTRY_DSN}\" ]; then\n  \"$PB\" -c \"Add :SentryDSN string ${SENTRY_DSN}\" \"$PLIST\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -481,6 +485,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bivre.ccui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				SENTRY_DSN = "";
 				SPARKLE_PUBLIC_ED_KEY = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -645,6 +650,14 @@
 				minimumVersion = 2.6.0;
 			};
 		};
+		CC00000B0000000000000014 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			requirement = {
+				kind = exactVersion;
+				version = 9.18.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -667,6 +680,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CC0000070000000000000010 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		CC00000C0000000000000015 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CC00000B0000000000000014 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
