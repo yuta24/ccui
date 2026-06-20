@@ -46,7 +46,7 @@ struct RepositorySectionView: View {
                     if isMissing {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
+                                .font(.iconDefault)
                                 .foregroundStyle(Color.statusWarning)
                             Text("Repository not found on disk")
                                 .font(.uiCaption)
@@ -98,7 +98,7 @@ struct RepositorySectionView: View {
                 Task { await worktreeStore.load() }
             } label: {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.iconSmall)
                     .frame(width: 18, height: 18)
             }
             .buttonStyle(.plain)
@@ -192,7 +192,7 @@ struct RepositorySectionView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.iconSmall)
                 Text("Add Worktree")
                     .font(.uiCaption)
             }

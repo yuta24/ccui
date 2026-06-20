@@ -52,7 +52,7 @@ struct ClaudeMdEditorView: View {
 
     private var textEditor: some View {
         TextEditor(text: $store.editorContent)
-            .font(.system(.body, design: .monospaced))
+            .font(.monoBody)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
             .foregroundStyle(Color.textPrimary)

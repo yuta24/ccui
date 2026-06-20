@@ -75,7 +75,7 @@ struct PermissionsPanelView: View {
                                 .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }
@@ -100,13 +100,13 @@ struct PermissionsPanelView: View {
                             store.setDefaultMode(mode)
                         } label: {
                             Text(mode.displayName)
-                                .font(.system(size: 10))
+                                .font(.uiCaption)
                                 .foregroundStyle(store.defaultMode == mode ? Color.accent : Color.primary)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 3))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.badgeCornerRadius))
                     }
                 }
             }

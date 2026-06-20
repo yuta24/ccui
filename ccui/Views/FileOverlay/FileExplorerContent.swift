@@ -121,7 +121,7 @@ struct FileExplorerContent: View {
         } else {
             VStack(spacing: 8) {
                 Image(systemName: "doc.text")
-                    .font(.system(size: 28, weight: .thin))
+                    .font(.emptyStateIcon)
                     .foregroundStyle(Color.textTertiary.opacity(0.5))
                 Text("Select a file to preview")
                     .font(.uiCaption)
@@ -137,8 +137,8 @@ struct FileExplorerContent: View {
     private func viewerHeader(node: FileNode) -> some View {
         HStack(spacing: 6) {
             Image(systemName: FileTreeHelpers.fileIcon(for: node.name))
-                .font(.system(size: 10))
-                .foregroundStyle(Color.accent.opacity(0.7))
+                .font(.iconDefault)
+                .foregroundStyle(Color.accent.opacity(Opacity.mutedAccent))
 
             Text(relativePath(for: node.path))
                 .font(.uiCaptionMono)

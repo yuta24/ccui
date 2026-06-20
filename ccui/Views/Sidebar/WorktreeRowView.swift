@@ -25,10 +25,10 @@ struct WorktreeRowView: View {
     private var rowLabel: some View {
         if isSelected {
             rowInner
-                .background(RoundedRectangle(cornerRadius: 5).fill(Color.accentSubtle))
+                .background(RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius).fill(Color.accentSubtle))
         } else if isHovered {
             rowInner
-                .background(RoundedRectangle(cornerRadius: 5).fill(Color.surfaceHover))
+                .background(RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius).fill(Color.surfaceHover))
         } else {
             rowInner
         }
@@ -44,7 +44,7 @@ struct WorktreeRowView: View {
 
     private var rowInner: some View {
         HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 3)
+            RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
                 .fill(Self.indicatorColor(worktree: worktree, summary: summary))
                 .frame(width: 4, height: 16)
 
@@ -65,7 +65,7 @@ struct WorktreeRowView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(Color.accentSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius))
                 } else {
                     Circle()
                         .fill(Color.statusClean)

@@ -40,7 +40,7 @@ struct TimelineEventRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Image(systemName: eventIcon)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.iconSmall)
                         .foregroundStyle(eventColor)
                     Text(eventLabel)
                         .font(.uiCaption)

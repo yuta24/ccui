@@ -30,7 +30,7 @@ struct PermissionsRuleEditorView: View {
                                 .padding(.vertical, 3)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }
@@ -42,7 +42,7 @@ struct PermissionsRuleEditorView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.iconDefault)
                     Text("Add")
                         .font(.uiCaption)
                 }
@@ -99,7 +99,7 @@ struct PermissionsRuleEditorView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: 10)
 
@@ -129,7 +129,7 @@ struct PermissionsRuleEditorView: View {
                         store.removeRule(rule)
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 10))
+                            .font(.iconDefault)
                             .foregroundStyle(Color.textTertiary)
                     }
                     .buttonStyle(.plain)
@@ -165,9 +165,9 @@ struct PermissionsRuleEditorView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(Color.surfaceBase)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                         .strokeBorder(Color.borderDefault, lineWidth: 1)
                 )
             }
@@ -215,7 +215,7 @@ struct PermissionsRuleEditorView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background(Color.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
     }
 
     // MARK: - Tool Name Glob
@@ -223,7 +223,7 @@ struct PermissionsRuleEditorView: View {
     private var toolNameGlobWarning: some View {
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 10))
+                .font(.iconDefault)
                 .foregroundStyle(Color.diffDeletion)
             Text("Claude Code rejects glob patterns in allow-rule tool names unless they target MCP tools (mcp__server__tool). Use a deny rule or an MCP-style pattern instead.")
                 .font(.uiCaption)
@@ -232,7 +232,7 @@ struct PermissionsRuleEditorView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
         .background(Color.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
     }
 
     private func toolNamePatternPreview(_ rule: PermissionRule) -> some View {
@@ -257,7 +257,7 @@ struct PermissionsRuleEditorView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background(Color.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
     }
 
     // MARK: - User Deny Reference
@@ -281,7 +281,7 @@ struct PermissionsRuleEditorView: View {
             ForEach(store.userDenyRules) { rule in
                 HStack(spacing: 8) {
                     Image(systemName: "lock")
-                        .font(.system(size: 9))
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(Color.textTertiary)
                     Text(rule.value)
                         .font(.uiCaptionMono)

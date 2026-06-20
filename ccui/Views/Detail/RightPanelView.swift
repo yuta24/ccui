@@ -40,12 +40,12 @@ struct RightPanelView: View {
             selectedTab = tab
         } label: {
             Image(systemName: tab.icon)
-                .font(.system(size: 10, weight: .medium))
+                .font(.iconDefault)
                 .foregroundStyle(isSelected ? Color.accent : Color.textTertiary)
                 .frame(width: 24, height: 20)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
         .help(tab.rawValue)
     }
 

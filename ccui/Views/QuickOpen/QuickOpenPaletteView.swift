@@ -37,7 +37,7 @@ struct QuickOpenPaletteView: View {
                     .frame(width: panelWidth)
                     .frame(maxHeight: 420)
                     .fixedSize(horizontal: false, vertical: true)
-                    .glassEffect(in: .rect(cornerRadius: 10))
+                    .glassEffect(in: .rect(cornerRadius: PanelMetrics.panelCornerRadius))
                     .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 8)
                 }
                 .position(
@@ -59,7 +59,7 @@ struct QuickOpenPaletteView: View {
     private var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
+                .font(.iconLarge)
                 .foregroundStyle(Color.textTertiary)
 
             TextField("Go to file…", text: $quickOpenStore.query)

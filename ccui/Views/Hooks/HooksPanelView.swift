@@ -91,7 +91,7 @@ struct HooksPanelView: View {
                                 .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }

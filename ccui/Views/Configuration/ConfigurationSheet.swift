@@ -69,7 +69,7 @@ struct ConfigurationSheet: View {
                 isPresented = false
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.iconDefault)
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
@@ -92,7 +92,7 @@ struct ConfigurationSheet: View {
                         } label: {
                             HStack(spacing: 5) {
                                 Image(systemName: tab.icon)
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(.iconDefault)
                                 Text(tab.rawValue)
                                     .font(.uiCaption)
                             }
@@ -101,7 +101,7 @@ struct ConfigurationSheet: View {
                             .padding(.vertical, 5)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 5))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.itemCornerRadius))
                     }
                 }
             }
@@ -192,7 +192,7 @@ struct ConfigurationSheet: View {
                                 .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }
@@ -249,7 +249,7 @@ struct ConfigurationSheet: View {
                                 .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }
@@ -283,13 +283,13 @@ struct ConfigurationSheet: View {
                             permissionsStore.setDefaultMode(mode)
                         } label: {
                             Text(mode.displayName)
-                                .font(.system(size: 10))
+                                .font(.uiCaption)
                                 .foregroundStyle(permissionsStore.defaultMode == mode ? Color.accent : Color.primary)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 3))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.badgeCornerRadius))
                     }
                 }
             }

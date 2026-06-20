@@ -44,7 +44,7 @@ struct SessionListSection: View {
     private var sectionHeader: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
                     .fill(indicatorColor)
                     .frame(width: 4, height: 16)
 
@@ -59,7 +59,7 @@ struct SessionListSection: View {
                 if let onJumpToWorktree {
                     Button(action: onJumpToWorktree) {
                         Image(systemName: "location")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.iconDefault)
                             .frame(width: 18, height: 18)
                     }
                     .buttonStyle(.plain)
@@ -71,7 +71,7 @@ struct SessionListSection: View {
                 Button(action: onNewSession) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.iconSmall)
                         Text("New")
                             .font(.uiCaption)
                     }
@@ -85,7 +85,7 @@ struct SessionListSection: View {
                     Text(repositoryName)
                         .lineLimit(1)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 7, weight: .medium))
+                        .font(.iconMicro)
                 }
                 Text(worktree.displayName)
                     .lineLimit(1)
@@ -105,7 +105,7 @@ struct SessionListSection: View {
         Button(action: onNewSession) {
             HStack(spacing: 6) {
                 Image(systemName: "terminal")
-                    .font(.system(size: 10))
+                    .font(.iconDefault)
                 Text("New Session")
                     .font(.uiCaption)
             }

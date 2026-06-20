@@ -62,7 +62,7 @@ struct AgentStatusBar: View {
     private func statusItem(icon: String, color: Color, label: String) -> some View {
         HStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .medium))
+                .font(.iconSmall)
                 .foregroundStyle(color)
             Text(label)
                 .font(.uiCaptionMono)
@@ -89,13 +89,13 @@ struct ContentControlsBar: View {
                                 }
                             } label: {
                                 Image(systemName: detailUIState.agentLayoutMode == .split ? "rectangle.split.1x2.fill" : "rectangle.split.1x2")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.iconMedium)
                                     .foregroundStyle(detailUIState.agentLayoutMode == .split ? Color.accent : Color.primary)
                                     .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.contentControlCornerRadius))
                             .help("Toggle WebView Split (⌘U)")
                         }
 
@@ -103,26 +103,26 @@ struct ContentControlsBar: View {
                             detailUIState.isRightPanelVisible.toggle()
                         } label: {
                             Image(systemName: "sidebar.trailing")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.iconMedium)
                                 .foregroundStyle(detailUIState.isRightPanelVisible ? Color.accent : Color.primary)
                                 .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.contentControlCornerRadius))
                         .help("Inspector (⌘I)")
 
                         Button {
                             detailUIState.isConfigurationSheetPresented.toggle()
                         } label: {
                             Image(systemName: "gearshape")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.iconMedium)
                                 .foregroundStyle(detailUIState.isConfigurationSheetPresented ? Color.accent : Color.primary)
                                 .frame(width: PanelMetrics.contentControlButtonSize, height: PanelMetrics.contentControlButtonSize)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 6))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.contentControlCornerRadius))
                         .help("Configuration")
                     }
                 }

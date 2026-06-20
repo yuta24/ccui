@@ -14,7 +14,7 @@ struct AddressBarView: View {
                 store.goBack()
             } label: {
                 Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(store.canGoBack ? Color.textSecondary : Color.textTertiary)
             }
             .buttonStyle(.plain)
@@ -25,7 +25,7 @@ struct AddressBarView: View {
                 store.goForward()
             } label: {
                 Image(systemName: "arrow.uturn.forward")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(store.canGoForward ? Color.textSecondary : Color.textTertiary)
             }
             .buttonStyle(.plain)
@@ -36,7 +36,7 @@ struct AddressBarView: View {
                 store.reload()
             } label: {
                 Image(systemName: store.isLoading ? "xmark" : "arrow.clockwise")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(Color.textSecondary)
             }
             .buttonStyle(.plain)
@@ -46,7 +46,7 @@ struct AddressBarView: View {
                 store.isRegionCaptureActive.toggle()
             } label: {
                 Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(store.isRegionCaptureActive ? Color.accent : Color.textSecondary)
             }
             .buttonStyle(.plain)
@@ -55,22 +55,22 @@ struct AddressBarView: View {
 
             Button(action: onAddTab) {
                 Image(systemName: "plus")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(Color.textSecondary)
             }
             .buttonStyle(.plain)
             .help("New Tab")
 
             TextField("Enter URL", text: $inputText)
-                .font(.system(size: 12, design: .monospaced))
+                .font(.monoField)
                 .textFieldStyle(.plain)
                 .foregroundStyle(Color.textPrimary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color.surfaceHover)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                         .stroke(Color.borderSubtle, lineWidth: 1)
                 )
                 .focused($isFocused)

@@ -49,7 +49,7 @@ struct DiffViewerView: View {
                 Task { await store.load(repositoryPath: repositoryPath) }
             } label: {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(Color.textSecondary)
             }
             .buttonStyle(.plain)
@@ -65,7 +65,7 @@ struct DiffViewerView: View {
     private var idleView: some View {
         VStack(spacing: 12) {
             Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 36, weight: .ultraLight))
+                .font(.emptyStateIconLarge)
                 .foregroundStyle(Color.textTertiary)
             Text("Open panel to load diff")
                 .font(.uiLabel)
@@ -78,7 +78,7 @@ struct DiffViewerView: View {
     private func placeholderView(icon: String, message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 28, weight: .ultraLight))
+                .font(.emptyStateIcon)
                 .foregroundStyle(Color.textTertiary)
             Text(message)
                 .font(.uiLabel)

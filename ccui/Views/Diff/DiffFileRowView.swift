@@ -23,7 +23,7 @@ struct DiffFileRowView: View {
             onSelect()
         } label: {
             HStack(spacing: 8) {
-                statusBadge
+                DiffStatusBadge(status: entry.status)
 
                 Text(displayPath)
                     .lineLimit(1)
@@ -40,46 +40,17 @@ struct DiffFileRowView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                     .fill(isSelected ? Color.surfaceElevated : (isHovered ? Color.surfaceHover : Color.clear))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                     .strokeBorder(isSelected ? Color.borderDefault : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
-        }
-    }
-
-    private var statusBadge: some View {
-        Text(statusLetter)
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
-            .foregroundStyle(statusColor)
-            .frame(width: 16, height: 16)
-            .background(statusColor.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 3))
-    }
-
-    private var statusLetter: String {
-        switch entry.status {
-        case .added: "A"
-        case .modified: "M"
-        case .deleted: "D"
-        case .renamed: "R"
-        case .untracked: "U"
-        }
-    }
-
-    private var statusColor: Color {
-        switch entry.status {
-        case .added: .diffAddition
-        case .modified: .accent
-        case .deleted: .diffDeletion
-        case .renamed: .statusRenamed
-        case .untracked: .diffAddition
         }
     }
 

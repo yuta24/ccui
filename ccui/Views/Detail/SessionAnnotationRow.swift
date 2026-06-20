@@ -120,13 +120,13 @@ struct SessionAnnotationRow: View {
 
     private func outcomeBadge(_ outcome: SessionOutcome) -> some View {
         Text(outcome.displayLabel)
-            .font(.system(size: 9, weight: .medium))
+            .font(.iconSmall)
             .foregroundStyle(outcome.color)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(outcome.color.opacity(0.15))
+                RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
+                    .fill(outcome.color.opacity(Opacity.subtleOverlay))
             )
     }
 
@@ -190,7 +190,7 @@ struct SessionAnnotationRow: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                         .fill(isSelected ? Color.textPrimary : Color.surfaceElevated)
                 )
         }
@@ -218,11 +218,11 @@ struct SessionAnnotationRow: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(
-                    RoundedRectangle(cornerRadius: 3)
+                    RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
                         .fill(isSelected ? Color.interventionSubtle : Color.surfaceElevated)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 3)
+                    RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
                         .strokeBorder(isSelected ? Color.interventionColor.opacity(0.3) : Color.borderSubtle, lineWidth: 1)
                 )
         }

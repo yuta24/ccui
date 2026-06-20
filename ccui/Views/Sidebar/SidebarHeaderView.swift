@@ -18,7 +18,7 @@ struct SidebarHeaderView: View {
                     .frame(width: 20, height: 20)
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
             .help("Add Repository")
         }
         .padding(.horizontal, 14)

@@ -64,7 +64,7 @@ struct BottomTerminalTabBarView: View {
                 }
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
@@ -80,7 +80,7 @@ struct BottomTerminalTabBarView: View {
     private func tabChip(tab: ShellTab, isActive: Bool, worktreePath: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: "terminal")
-                .font(.system(size: 9, weight: .medium))
+                .font(.iconSmall)
             Text(tab.title)
                 .font(.uiCaption)
                 .lineLimit(1)
@@ -98,7 +98,7 @@ struct BottomTerminalTabBarView: View {
         .foregroundStyle(isActive ? Color.textPrimary : Color.textSecondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
         .contentShape(Rectangle())
         .onTapGesture {
             shellStore.setActiveTab(id: tab.id, worktreePath: worktreePath)

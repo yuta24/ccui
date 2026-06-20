@@ -9,7 +9,7 @@ struct AgentStatusBadge: View {
             HStack(spacing: 3) {
                 if activity != .idle {
                     Image(systemName: activity.systemImageName)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.iconSmall)
                         .foregroundStyle(activity.color)
                 }
                 if pendingAttentionCount > 0 {

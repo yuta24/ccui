@@ -125,10 +125,10 @@ private struct DiffLineRow: View {
             showingPopover = true
         } label: {
             Image(systemName: "plus.bubble.fill")
-                .font(.system(size: 9, weight: .medium))
+                .font(.iconSmall)
                 .foregroundStyle(Color.accent)
-                .frame(width: 16, height: 16)
-                .background(Color.accent.opacity(0.12))
+                .frame(width: PanelMetrics.badgeSize, height: PanelMetrics.badgeSize)
+                .background(Color.accent.opacity(Opacity.badgeBg))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -137,7 +137,6 @@ private struct DiffLineRow: View {
 
     private var commentPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Context header
             VStack(alignment: .leading, spacing: 4) {
                 Text(filePath)
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -145,16 +144,15 @@ private struct DiffLineRow: View {
                     .lineLimit(2)
                     .truncationMode(.middle)
                 Text(lineRef)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.monoDetail)
                     .foregroundStyle(Color.textTertiary)
 
-                // Diff line preview
                 HStack(spacing: 4) {
                     Text(DiffLineStyling.sign(line.kind))
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(.monoDetail)
                         .foregroundStyle(DiffLineStyling.signColor(line.kind))
                     Text(line.content.isEmpty ? " " : line.content)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(.monoDetail)
                         .foregroundStyle(DiffLineStyling.contentColor(line.kind))
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -162,34 +160,29 @@ private struct DiffLineRow: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(DiffLineStyling.background(line.kind).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
             }
 
             Divider()
 
-            // Comment input — auto-grows vertically with content.
-            // The hidden Text mirror drives the ZStack height; TextEditor fills it.
-            // background/clipShape go on the TextEditor directly so the CALayer mask
-            // clips NSTextView content correctly on macOS (parent-layer masks don't
-            // propagate into NSViewRepresentable's own layer subtree).
             ZStack(alignment: .topLeading) {
                 Text(commentText.isEmpty ? " " : commentText)
-                    .font(.system(size: 12))
+                    .font(.monoField)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 8)
                     .opacity(0)
                     .accessibilityHidden(true)
                     .fixedSize(horizontal: false, vertical: true)
                 TextEditor(text: $commentText)
-                    .font(.system(size: 12))
+                    .font(.monoField)
                     .scrollContentBackground(.hidden)
                     .background(Color.surfaceElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.inputCornerRadius))
                     .focused($isEditorFocused)
             }
             .frame(minHeight: 60, maxHeight: 300)
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: PanelMetrics.inputCornerRadius)
                     .stroke(Color.borderSubtle, lineWidth: 1)
             )
 

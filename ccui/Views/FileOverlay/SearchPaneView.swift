@@ -70,12 +70,12 @@ struct SearchPaneView: View {
             }
 
             Text(searchStore.mode == .files ? "Files" : "Content")
-                .font(.system(size: 9, weight: .medium))
+                .font(.iconSmall)
                 .foregroundStyle(Color.textTertiary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Color.surfaceHover)
-                .clipShape(RoundedRectangle(cornerRadius: 3))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -216,13 +216,13 @@ struct ContentSearchFileRow: View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.iconTiny)
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 12)
 
                 Image(systemName: FileTreeHelpers.fileIcon(for: result.fileName))
                     .font(.system(size: 10))
-                    .foregroundStyle(Color.accent.opacity(0.7))
+                    .foregroundStyle(Color.accent.opacity(Opacity.mutedAccent))
 
                 Text(result.fileName)
                     .font(.uiCaption)
@@ -243,7 +243,7 @@ struct ContentSearchFileRow: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(Color.surfaceHover)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius))
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

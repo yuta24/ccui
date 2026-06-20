@@ -33,13 +33,13 @@ struct FileTreeNodeList: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 8, weight: .semibold))
+                        .font(.iconTiny)
                         .foregroundStyle(Color.textTertiary)
                         .frame(width: 12)
 
                     Image(systemName: isExpanded ? "folder" : "folder.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.accent.opacity(0.7))
+                        .font(.iconMedium)
+                        .foregroundStyle(Color.accent.opacity(Opacity.mutedAccent))
 
                     Text(node.name)
                         .font(.uiLabel)
@@ -48,7 +48,7 @@ struct FileTreeNodeList: View {
 
                     Spacer()
                 }
-                .opacity(isIgnored ? 0.4 : 1.0)
+                .opacity(isIgnored ? Opacity.dimmed : 1.0)
                 .padding(.leading, CGFloat(depth) * 14 + 8)
                 .padding(.trailing, 8)
                 .padding(.vertical, 3)
@@ -91,7 +91,7 @@ struct FileTreeNodeList: View {
                     .frame(width: 12)
 
                 Image(systemName: FileTreeHelpers.fileIcon(for: node.name))
-                    .font(.system(size: 11))
+                    .font(.iconMedium)
                     .foregroundStyle(iconColor(isSelected: isSelected, changeStatus: changeStatus))
 
                 Text(node.name)
@@ -102,20 +102,15 @@ struct FileTreeNodeList: View {
                 Spacer()
 
                 if let status = changeStatus {
-                    Text(FileTreeHelpers.statusLetter(status))
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(FileTreeHelpers.statusColor(status))
-                        .frame(width: 16, height: 16)
-                        .background(FileTreeHelpers.statusColor(status).opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    DiffStatusBadge(status: status)
                 }
             }
-            .opacity(isIgnored ? 0.4 : 1.0)
+            .opacity(isIgnored ? Opacity.dimmed : 1.0)
             .padding(.leading, CGFloat(depth) * 14 + 8)
             .padding(.trailing, 8)
             .padding(.vertical, 3)
             .background(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                     .fill(isSelected ? Color.accentSubtle : (hoveredNode == node.id ? Color.surfaceHover : Color.clear))
                     .padding(.horizontal, 4)
             )

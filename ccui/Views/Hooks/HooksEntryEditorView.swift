@@ -44,7 +44,7 @@ struct HooksEntryEditorView: View {
                                 .padding(.vertical, 3)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 4))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: PanelMetrics.buttonCornerRadius))
                     }
                 }
             }
@@ -168,9 +168,9 @@ struct HooksEntryEditorView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(Color.surfaceBase)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                             .strokeBorder(Color.borderDefault, lineWidth: 1)
                     )
                 }
@@ -228,9 +228,9 @@ struct HooksEntryEditorView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(Color.surfaceBase)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                         .strokeBorder(Color.borderDefault, lineWidth: 1)
                 )
             }
@@ -315,7 +315,7 @@ struct HooksEntryEditorView: View {
                 .frame(maxHeight: 120)
                 .padding(6)
                 .background(Color.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius))
             }
         }
     }

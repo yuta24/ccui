@@ -80,11 +80,24 @@ extension Font {
     static let monoBody = Font.system(.body, design: .monospaced)
     static let monoSmall = Font.system(.callout, design: .monospaced)
     static let monoCaption = Font.system(.subheadline, design: .monospaced)
+    static let monoBadge = Font.system(size: 9, weight: .bold, design: .monospaced)
+    static let monoDetail = Font.system(size: 10, design: .monospaced)
+    static let monoField = Font.system(size: 12, design: .monospaced)
 
     static let uiTitle = Font.headline
     static let uiLabel = Font.body
     static let uiCaption = Font.subheadline
     static let uiCaptionMono = Font.system(.subheadline, design: .monospaced)
+
+    static let iconMicro = Font.system(size: 7, weight: .medium)
+    static let iconTiny = Font.system(size: 8, weight: .semibold)
+    static let iconSmall = Font.system(size: 9, weight: .medium)
+    static let iconDefault = Font.system(size: 10, weight: .medium)
+    static let iconMedium = Font.system(size: 11, weight: .medium)
+    static let iconLarge = Font.system(size: 12, weight: .medium)
+
+    static let emptyStateIcon = Font.system(size: 28, weight: .ultraLight)
+    static let emptyStateIconLarge = Font.system(size: 36, weight: .ultraLight)
 }
 
 // MARK: - Code Font Environment Key
@@ -110,13 +123,29 @@ enum PanelMetrics {
     static let windowEdgeInset: CGFloat = 0
     static let titleBarHeight: CGFloat = 28
 
+    static let badgeCornerRadius: CGFloat = 3
+    static let buttonCornerRadius: CGFloat = 4
+    static let inputCornerRadius: CGFloat = 6
+
+    static let badgeSize: CGFloat = 16
+
     // ContentControlsBar (titlebar accessory: layout split / inspector / configuration)
+    static let contentControlCornerRadius: CGFloat = 6
     static let contentControlButtonSize: CGFloat = 24
     static let contentControlSpacing: CGFloat = 4
     /// Accessory width for the max case (3 buttons), used as the fixed NSHostingView frame width
     /// since NSTitlebarAccessoryViewController doesn't size correctly via `.intrinsicContentSize`.
     static let contentControlsAccessoryWidth: CGFloat =
         3 * contentControlButtonSize + 2 * contentControlSpacing + windowEdgeInset + 10
+}
+
+// MARK: - Opacity Tokens
+
+enum Opacity {
+    static let badgeBg: Double = 0.12
+    static let subtleOverlay: Double = 0.15
+    static let dimmed: Double = 0.4
+    static let mutedAccent: Double = 0.7
 }
 
 // MARK: - View Modifiers
@@ -186,6 +215,22 @@ extension Color {
         case "Grep", "Glob": .statusRenamed.opacity(0.7)
         default: .textTertiary
         }
+    }
+}
+
+// MARK: - Diff Status Badge
+
+struct DiffStatusBadge: View {
+    let status: DiffFileEntry.Status
+
+    var body: some View {
+        let color = FileTreeHelpers.statusColor(status)
+        Text(FileTreeHelpers.statusLetter(status))
+            .font(.monoBadge)
+            .foregroundStyle(color)
+            .frame(width: PanelMetrics.badgeSize, height: PanelMetrics.badgeSize)
+            .background(color.opacity(Opacity.badgeBg))
+            .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius))
     }
 }
 

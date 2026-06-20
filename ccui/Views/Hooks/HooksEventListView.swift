@@ -28,7 +28,7 @@ struct HooksEventListView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: iconName(for: event))
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.iconDefault)
                     .foregroundStyle(isSelected ? Color.accent : Color.textSecondary)
                     .frame(width: 14)
 
@@ -45,7 +45,7 @@ struct HooksEventListView: View {
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
                         .background(Color.accentSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius))
                 }
 
                 if userCount > 0 {

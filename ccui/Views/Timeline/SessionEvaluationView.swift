@@ -38,7 +38,7 @@ struct SessionEvaluationView: View {
                 isVisible = false
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.iconSmall)
                     .foregroundStyle(Color.textTertiary)
             }
             .buttonStyle(.plain)
@@ -53,7 +53,7 @@ struct SessionEvaluationView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "checkmark.seal")
-                .font(.system(size: 24))
+                .font(.system(size: 24, weight: .ultraLight))
                 .foregroundStyle(Color.textTertiary)
             Text("Select a session to evaluate")
                 .font(.uiCaption)
@@ -100,7 +100,7 @@ struct SessionEvaluationView: View {
     private var truncatedBanner: some View {
         HStack(spacing: 4) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 9))
+                .font(.iconSmall)
                 .foregroundStyle(Color.statusWarning)
             Text("Older events were dropped. Scores may be inaccurate.")
                 .font(.uiCaption)
@@ -213,7 +213,7 @@ struct SessionEvaluationView: View {
             ForEach(sorted, id: \.key) { key, count in
                 HStack(spacing: 8) {
                     Image(systemName: "person.fill.questionmark")
-                        .font(.system(size: 9))
+                        .font(.iconSmall)
                         .foregroundStyle(Color.interventionColor)
                     Text(key)
                         .font(.uiCaptionMono)
@@ -254,12 +254,12 @@ struct SessionEvaluationView: View {
                 HStack(spacing: 4) {
                     ForEach(Array(eval.failureReasons).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { reason in
                         Text(reason.displayLabel)
-                            .font(.system(size: 10))
+                            .font(.uiCaption)
                             .foregroundStyle(Color.textSecondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(
-                                RoundedRectangle(cornerRadius: 3)
+                                RoundedRectangle(cornerRadius: PanelMetrics.badgeCornerRadius)
                                     .fill(Color.surfaceElevated)
                             )
                     }

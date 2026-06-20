@@ -40,7 +40,7 @@ struct DiffFileSection: View {
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 10)
 
-                statusBadge
+                DiffStatusBadge(status: entry.status)
 
                 Text(displayPath)
                     .lineLimit(1)
@@ -82,7 +82,7 @@ struct DiffFileSection: View {
     private func inlinePlaceholder(icon: String, message: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .medium))
+                .font(.iconDefault)
                 .foregroundStyle(Color.textTertiary)
             Text(message)
                 .font(.uiCaption)
@@ -117,35 +117,6 @@ struct DiffFileSection: View {
     }
 
     // MARK: - Helpers
-
-    private var statusBadge: some View {
-        Text(statusLetter)
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
-            .foregroundStyle(statusColor)
-            .frame(width: 16, height: 16)
-            .background(statusColor.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 3))
-    }
-
-    private var statusLetter: String {
-        switch entry.status {
-        case .added: "A"
-        case .modified: "M"
-        case .deleted: "D"
-        case .renamed: "R"
-        case .untracked: "U"
-        }
-    }
-
-    private var statusColor: Color {
-        switch entry.status {
-        case .added: .diffAddition
-        case .modified: .accent
-        case .deleted: .diffDeletion
-        case .renamed: .statusRenamed
-        case .untracked: .diffAddition
-        }
-    }
 
     private var statsView: some View {
         HStack(spacing: 4) {

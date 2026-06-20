@@ -5,7 +5,7 @@ struct SidebarEmptyStateView: View {
         VStack(spacing: 12) {
             Spacer()
             Image(systemName: "folder.badge.plus")
-                .font(.system(size: 28, weight: .ultraLight))
+                .font(.emptyStateIcon)
                 .foregroundStyle(Color.textTertiary)
 
             Text("Add a repository\nto get started")

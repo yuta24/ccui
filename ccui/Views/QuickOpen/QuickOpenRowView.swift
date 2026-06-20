@@ -10,8 +10,8 @@ struct QuickOpenRowView: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: FileTreeHelpers.fileIcon(for: result.node.name))
-                .font(.system(size: 11))
-                .foregroundStyle(Color.accent.opacity(0.7))
+                .font(.iconMedium)
+                .foregroundStyle(Color.accent.opacity(Opacity.mutedAccent))
                 .frame(width: 16)
 
             highlightedName
@@ -27,7 +27,7 @@ struct QuickOpenRowView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: PanelMetrics.buttonCornerRadius)
                 .fill(isSelected ? Color.accentSubtle : (isHovered ? Color.surfaceHover : Color.clear))
                 .padding(.horizontal, 4)
         )

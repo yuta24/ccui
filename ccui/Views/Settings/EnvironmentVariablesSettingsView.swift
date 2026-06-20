@@ -12,13 +12,13 @@ struct EnvironmentVariablesSettingsView: View {
                 Table($store.environmentVariables, selection: $selection) {
                     TableColumn("Name") { $variable in
                         TextField("KEY", text: $variable.key)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.monoBody)
                     }
                     .width(min: 120, ideal: 160)
 
                     TableColumn("Value") { $variable in
                         TextField("value", text: $variable.value)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.monoBody)
                     }
                     .width(min: 160, ideal: 240)
                 }

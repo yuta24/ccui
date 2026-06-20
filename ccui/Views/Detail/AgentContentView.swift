@@ -23,7 +23,7 @@ struct AgentContentView: View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "terminal")
-                .font(.system(size: 32))
+                .font(.system(size: 32, weight: .ultraLight))
                 .foregroundStyle(Color.textTertiary)
             VStack(spacing: 12) {
                 Text("No active session")
