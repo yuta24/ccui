@@ -101,7 +101,11 @@ struct SessionAnnotationRow: View {
             }
         }
         .buttonStyle(.plain)
-        .background(isHovered || showAnnotationPopover ? Color.surfaceHover : Color.clear)
+        .background(
+            RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius)
+                .fill(isHovered || showAnnotationPopover ? Color.surfaceHover : Color.clear)
+        )
+        .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { hovering in isHovered = hovering }
         .contextMenu {
             if session != nil {

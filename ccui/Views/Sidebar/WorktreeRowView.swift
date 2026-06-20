@@ -13,24 +13,16 @@ struct WorktreeRowView: View {
         Button {
             onSelect()
         } label: {
-            rowLabel
+            rowInner
+                .background(
+                    RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius)
+                        .fill(isSelected ? Color.accentSubtle : isHovered ? Color.surfaceHover : Color.clear)
+                )
+                .animation(.easeOut(duration: 0.15), value: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
-        }
-    }
-
-    @ViewBuilder
-    private var rowLabel: some View {
-        if isSelected {
-            rowInner
-                .background(RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius).fill(Color.accentSubtle))
-        } else if isHovered {
-            rowInner
-                .background(RoundedRectangle(cornerRadius: PanelMetrics.itemCornerRadius).fill(Color.surfaceHover))
-        } else {
-            rowInner
         }
     }
 

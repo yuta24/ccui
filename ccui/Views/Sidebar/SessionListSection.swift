@@ -102,18 +102,28 @@ struct SessionListSection: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        Button(action: onNewSession) {
-            HStack(spacing: 6) {
-                Image(systemName: "terminal")
-                    .font(.iconDefault)
-                Text("New Session")
-                    .font(.uiCaption)
+        VStack(spacing: 10) {
+            Text("No sessions yet")
+                .font(.uiCaption)
+                .foregroundStyle(Color.textTertiary)
+
+            Button(action: onNewSession) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.iconSmall)
+                    Text("New Session")
+                        .font(.uiCaption)
+                }
+                .foregroundStyle(Color.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.accentSubtle)
+                .clipShape(RoundedRectangle(cornerRadius: PanelMetrics.inputCornerRadius))
             }
-            .foregroundStyle(Color.textSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Session List

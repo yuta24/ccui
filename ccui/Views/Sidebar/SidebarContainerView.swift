@@ -101,7 +101,12 @@ struct SidebarContainerView: View {
                 for: worktree,
                 sessionId: sessionId,
                 isResume: true,
-                configureHandlers: makeHandlerConfigurator(worktreePath: worktree.path, sessionId: sessionId)
+                configureHandlers: TerminalSessionStore.makeHandlerConfigurator(
+                    worktreePath: worktree.path,
+                    sessionId: sessionId,
+                    terminalSessionStore: terminalSessionStore,
+                    worktreeSessionStore: worktreeSessionStore
+                )
             )
         }
     }
@@ -114,7 +119,12 @@ struct SidebarContainerView: View {
                 for: worktree,
                 sessionId: sessionId,
                 isResume: false,
-                configureHandlers: makeHandlerConfigurator(worktreePath: worktree.path, sessionId: sessionId)
+                configureHandlers: TerminalSessionStore.makeHandlerConfigurator(
+                    worktreePath: worktree.path,
+                    sessionId: sessionId,
+                    terminalSessionStore: terminalSessionStore,
+                    worktreeSessionStore: worktreeSessionStore
+                )
             )
         }
     }
@@ -126,18 +136,5 @@ struct SidebarContainerView: View {
             ? "Couldn't resume the session in \(worktreeName)\(codeSuffix). It may no longer be available to resume, or the `claude` CLI may not be on your PATH."
             : "Couldn't start Claude Code in \(worktreeName)\(codeSuffix). Check that the `claude` CLI is installed and on your PATH."
         worktreeLifecycleCoordinator.isErrorAlertPresented = true
-    }
-
-    private func makeHandlerConfigurator(worktreePath: String, sessionId: String) -> (any TerminalSession) -> Void {
-        let terminalStore = terminalSessionStore
-        let worktreeStore = worktreeSessionStore
-        return { session in
-            session.onProcessTerminated = { [weak terminalStore] _ in
-                terminalStore?.removeIfMatches(path: worktreePath, sessionId: sessionId)
-            }
-            session.onTitleChanged = { [weak worktreeStore] title in
-                worktreeStore?.updateTitle(for: worktreePath, sessionId: sessionId, title: title)
-            }
-        }
     }
 }

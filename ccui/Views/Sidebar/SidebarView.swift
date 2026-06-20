@@ -32,7 +32,9 @@ struct SidebarView: View {
             .padding(.bottom, 8)
 
             if store.repositories.isEmpty {
-                SidebarEmptyStateView()
+                SidebarEmptyStateView(onAddRepository: {
+                    worktreeLifecycleCoordinator.addRepository(store: store)
+                })
             } else {
                 SidebarSearchFieldView(text: $searchQuery)
                     .padding(.horizontal, 8)

@@ -5,6 +5,7 @@ struct AgentMainContentView: View {
     @Environment(DetailUIState.self) private var uiState
     @Environment(TerminalSessionStore.self) private var terminalSessionStore
     @Environment(BottomPanelState.self) private var bottomPanelState
+    @Environment(WorktreeSessionStore.self) private var worktreeSessionStore
 
     var body: some View {
         AgentSplitViewRepresentable(
@@ -12,7 +13,8 @@ struct AgentMainContentView: View {
             isSplit: uiState.agentLayoutMode == .split,
             webViewTabsStore: uiState.webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
-            bottomPanelState: bottomPanelState
+            bottomPanelState: bottomPanelState,
+            worktreeSessionStore: worktreeSessionStore
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -26,6 +28,7 @@ private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
     let webViewTabsStore: WebViewTabsStore
     let terminalSessionStore: TerminalSessionStore
     let bottomPanelState: BottomPanelState
+    let worktreeSessionStore: WorktreeSessionStore
 
     func makeNSViewController(context: Context) -> AgentSplitViewController {
         AgentSplitViewController(
@@ -33,7 +36,8 @@ private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
             isSplit: isSplit,
             webViewTabsStore: webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
-            bottomPanelState: bottomPanelState
+            bottomPanelState: bottomPanelState,
+            worktreeSessionStore: worktreeSessionStore
         )
     }
 
@@ -43,7 +47,8 @@ private struct AgentSplitViewRepresentable: NSViewControllerRepresentable {
             isSplit: isSplit,
             webViewTabsStore: webViewTabsStore,
             terminalSessionStore: terminalSessionStore,
-            bottomPanelState: bottomPanelState
+            bottomPanelState: bottomPanelState,
+            worktreeSessionStore: worktreeSessionStore
         )
     }
 }

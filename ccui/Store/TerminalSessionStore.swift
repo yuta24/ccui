@@ -215,6 +215,22 @@ final class TerminalSessionStore {
         sessions.removeValue(forKey: path)
     }
 
+    static func makeHandlerConfigurator(
+        worktreePath: String,
+        sessionId: String,
+        terminalSessionStore: TerminalSessionStore,
+        worktreeSessionStore: WorktreeSessionStore
+    ) -> (any TerminalSession) -> Void {
+        { [weak terminalSessionStore, weak worktreeSessionStore] session in
+            session.onProcessTerminated = { [weak terminalSessionStore] _ in
+                terminalSessionStore?.removeIfMatches(path: worktreePath, sessionId: sessionId)
+            }
+            session.onTitleChanged = { [weak worktreeSessionStore] title in
+                worktreeSessionStore?.updateTitle(for: worktreePath, sessionId: sessionId, title: title)
+            }
+        }
+    }
+
     func removeExcept(paths: Set<String>) {
         let toRemove = sessions.keys.filter { !paths.contains($0) }
         for key in toRemove {

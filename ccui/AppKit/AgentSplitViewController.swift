@@ -11,16 +11,19 @@ final class AgentSplitViewController: NSSplitViewController {
     private var webViewItem: NSSplitViewItem!
     private var worktree: Worktree
     private let bottomPanelState: BottomPanelState
+    private let worktreeSessionStore: WorktreeSessionStore
 
     init(
         worktree: Worktree,
         isSplit: Bool,
         webViewTabsStore: WebViewTabsStore,
         terminalSessionStore: TerminalSessionStore,
-        bottomPanelState: BottomPanelState
+        bottomPanelState: BottomPanelState,
+        worktreeSessionStore: WorktreeSessionStore
     ) {
         self.worktree = worktree
         self.bottomPanelState = bottomPanelState
+        self.worktreeSessionStore = worktreeSessionStore
         super.init(nibName: nil, bundle: nil)
 
         splitView.isVertical = true
@@ -59,7 +62,8 @@ final class AgentSplitViewController: NSSplitViewController {
         isSplit: Bool,
         webViewTabsStore: WebViewTabsStore,
         terminalSessionStore: TerminalSessionStore,
-        bottomPanelState: BottomPanelState
+        bottomPanelState: BottomPanelState,
+        worktreeSessionStore: WorktreeSessionStore
     ) {
         if isSplit == webViewItem.isCollapsed {
             animateSplit(isSplit)
@@ -84,6 +88,7 @@ final class AgentSplitViewController: NSSplitViewController {
             AgentContentView(worktree: worktree)
                 .environment(terminalSessionStore)
                 .environment(bottomPanelState)
+                .environment(worktreeSessionStore)
         )
         webViewHostingController.rootView = AnyView(
             WebViewPanelView(worktree: worktree, tabsStore: webViewTabsStore)

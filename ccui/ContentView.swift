@@ -83,13 +83,19 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 40, weight: .ultraLight))
+                .font(.emptyStateIconLarge)
                 .foregroundStyle(Color.textTertiary)
 
-            Text("Select a worktree")
-                .font(.uiLabel)
-                .foregroundStyle(Color.textTertiary)
+            VStack(spacing: 6) {
+                Text("Select a worktree")
+                    .font(.uiLabel)
+                    .foregroundStyle(Color.textSecondary)
+                Text("Choose a worktree from the sidebar to begin")
+                    .font(.uiCaption)
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.surfacePrimary)
     }
 }
