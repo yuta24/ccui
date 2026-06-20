@@ -99,7 +99,7 @@ struct PermissionsRuleEditorView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.iconEmphasis)
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: 10)
 
@@ -203,7 +203,7 @@ struct PermissionsRuleEditorView: View {
             ForEach(Array(samples.enumerated()), id: \.offset) { _, pair in
                 HStack(spacing: 6) {
                     Image(systemName: pair.1 ? "checkmark" : "xmark")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.iconEmphasis)
                         .foregroundStyle(pair.1 ? Color.statusClean : Color.textTertiary)
                         .frame(width: 12)
                     Text(pair.0)
@@ -245,7 +245,7 @@ struct PermissionsRuleEditorView: View {
             ForEach(Array(samples.enumerated()), id: \.offset) { _, pair in
                 HStack(spacing: 6) {
                     Image(systemName: pair.1 ? "checkmark" : "xmark")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.iconEmphasis)
                         .foregroundStyle(pair.1 ? Color.statusClean : Color.textTertiary)
                         .frame(width: 12)
                     Text(pair.0)
@@ -281,7 +281,7 @@ struct PermissionsRuleEditorView: View {
             ForEach(store.userDenyRules) { rule in
                 HStack(spacing: 8) {
                     Image(systemName: "lock")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.iconEmphasis)
                         .foregroundStyle(Color.textTertiary)
                     Text(rule.value)
                         .font(.uiCaptionMono)

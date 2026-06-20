@@ -36,7 +36,7 @@ struct DiffFileSection: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.iconDisclosure)
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 10)
 

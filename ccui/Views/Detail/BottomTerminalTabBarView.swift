@@ -16,7 +16,7 @@ struct BottomTerminalTabBarView: View {
     private var placeholderTabBar: some View {
         HStack(spacing: 0) {
             Image(systemName: "chevron.up")
-                .font(.system(size: 8, weight: .bold))
+                .font(.iconDisclosure)
                 .foregroundStyle(Color.textTertiary)
                 .frame(width: 24, height: 24)
                 .padding(.leading, 8)
@@ -37,7 +37,7 @@ struct BottomTerminalTabBarView: View {
                 panelState.toggle(for: worktreePath)
             } label: {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.iconDisclosure)
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
@@ -89,7 +89,7 @@ struct BottomTerminalTabBarView: View {
                 shellStore.closeTab(id: tab.id, worktreePath: worktreePath)
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 7, weight: .bold))
+                    .font(.iconCloseCompact)
                     .frame(width: 14, height: 14)
                     .contentShape(Rectangle())
             }

@@ -53,7 +53,7 @@ struct SessionEvaluationView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "checkmark.seal")
-                .font(.system(size: 24, weight: .ultraLight))
+                .font(.emptyStateIconMedium)
                 .foregroundStyle(Color.textTertiary)
             Text("Select a session to evaluate")
                 .font(.uiCaption)

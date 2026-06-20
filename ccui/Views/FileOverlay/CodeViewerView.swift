@@ -73,7 +73,7 @@ struct CodeViewerView: View {
     private var idleView: some View {
         VStack(spacing: 12) {
             Image(systemName: "curlybraces")
-                .font(.system(size: 36, weight: .ultraLight))
+                .font(.emptyStateIconLarge)
                 .foregroundStyle(Color.textTertiary)
             Text("Select a file to view")
                 .font(.uiLabel)
@@ -88,7 +88,7 @@ struct CodeViewerView: View {
     private func placeholderView(icon: String, message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 28, weight: .ultraLight))
+                .font(.emptyStateIcon)
                 .foregroundStyle(Color.textTertiary)
             Text(message)
                 .font(.uiLabel)

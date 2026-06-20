@@ -56,7 +56,7 @@ struct HooksEntryEditorView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.iconAction)
                     Text("Add")
                         .font(.uiCaption)
                 }
@@ -104,7 +104,7 @@ struct HooksEntryEditorView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: isSelected ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.iconSmall)
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: 10)
 
@@ -130,7 +130,7 @@ struct HooksEntryEditorView: View {
                             store.removeEntry(entry)
                         } label: {
                             Image(systemName: "trash")
-                                .font(.system(size: 10))
+                                .font(.iconDefault)
                                 .foregroundStyle(Color.textSecondary)
                         }
                         .buttonStyle(.plain)
@@ -187,7 +187,7 @@ struct HooksEntryEditorView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.iconEmphasis)
                         Text("Add Command")
                             .font(.uiCaption)
                     }
@@ -240,7 +240,7 @@ struct HooksEntryEditorView: View {
                     store.removeCommand(cmd, from: entry)
                 } label: {
                     Image(systemName: "minus.circle")
-                        .font(.system(size: 10))
+                        .font(.iconDefault)
                         .foregroundStyle(Color.textSecondary)
                 }
                 .buttonStyle(.plain)
@@ -295,7 +295,7 @@ struct HooksEntryEditorView: View {
                 case .finished(_, let exitCode):
                     HStack(spacing: 6) {
                         Image(systemName: exitCode == 0 ? "checkmark.circle" : "xmark.circle")
-                            .font(.system(size: 10))
+                            .font(.iconDefault)
                             .foregroundStyle(exitCode == 0 ? Color.statusClean : Color.diffDeletion)
                         Text("exit \(exitCode)")
                             .font(.system(.caption2, design: .monospaced))

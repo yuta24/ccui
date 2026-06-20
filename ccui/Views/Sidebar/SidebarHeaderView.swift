@@ -14,7 +14,7 @@ struct SidebarHeaderView: View {
                 onAddRepository()
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.iconAction)
                     .frame(width: 20, height: 20)
             }
             .buttonStyle(.plain)

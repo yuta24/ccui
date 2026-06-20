@@ -19,7 +19,7 @@ struct DiffFileContentView: View {
     private func placeholderView(icon: String, message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 28, weight: .ultraLight))
+                .font(.emptyStateIcon)
                 .foregroundStyle(Color.textTertiary)
             Text(message)
                 .font(.uiLabel)

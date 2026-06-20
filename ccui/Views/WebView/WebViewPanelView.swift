@@ -134,7 +134,7 @@ private struct WebViewTabBarItem: View {
         .overlay(alignment: .trailing) {
             Button(action: onClose) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .medium))
+                    .font(.iconClose)
                     .foregroundStyle(Color.textTertiary)
             }
             .buttonStyle(.plain)

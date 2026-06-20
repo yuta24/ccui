@@ -13,7 +13,7 @@ struct DestinationFieldView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .semibold))
+                        .font(.iconTiny)
                         .rotationEffect(.degrees(showDestination ? 90 : 0))
                     Text("Destination")
                         .font(.uiCaption)

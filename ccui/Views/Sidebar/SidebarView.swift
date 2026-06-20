@@ -115,7 +115,7 @@ struct SidebarView: View {
     private var noMatchesView: some View {
         VStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 24, weight: .ultraLight))
+                .font(.emptyStateIconMedium)
                 .foregroundStyle(Color.textTertiary)
             Text("No matching worktrees")
                 .font(.uiCaption)

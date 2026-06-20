@@ -45,7 +45,7 @@ struct SearchPaneView: View {
     private var searchHeader: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 11, weight: .medium))
+                .font(.iconMedium)
                 .foregroundStyle(Color.textTertiary)
 
             TextField(
@@ -216,7 +216,7 @@ struct ContentSearchFileRow: View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.iconTiny)
+                    .font(.iconDisclosure)
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 12)
 
@@ -238,7 +238,7 @@ struct ContentSearchFileRow: View {
                 Spacer()
 
                 Text("\(result.matches.count)")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .font(.monoCount)
                     .foregroundStyle(Color.textTertiary)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
@@ -281,7 +281,7 @@ struct ContentSearchMatchRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Text("\(match.lineNumber)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.monoDetail)
                 .foregroundStyle(Color.gutterText)
                 .frame(width: 36, alignment: .trailing)
 

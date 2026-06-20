@@ -55,7 +55,7 @@ struct FileExplorerContent: View {
                     Task { await fileTreeStore.load() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.iconSmall)
                         .foregroundStyle(Color.textTertiary)
                 }
                 .buttonStyle(.plain)
@@ -152,7 +152,7 @@ struct FileExplorerContent: View {
                 store.deselectFile()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(.iconTiny)
                     .foregroundStyle(Color.textTertiary)
                     .frame(width: 20, height: 20)
             }

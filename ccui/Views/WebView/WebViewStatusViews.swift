@@ -6,7 +6,7 @@ struct WebViewPlaceholderView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "network")
-                .font(.system(size: 20, weight: .ultraLight))
+                .font(.emptyStateIconSmall)
                 .foregroundStyle(Color.textTertiary)
             Text("Enter a URL above to preview your dev server")
                 .font(.uiCaption)
@@ -28,7 +28,7 @@ struct WebViewErrorView: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 20, weight: .ultraLight))
+                .font(.emptyStateIconSmall)
                 .foregroundStyle(Color.textTertiary)
             Text(message)
                 .font(.uiCaption)

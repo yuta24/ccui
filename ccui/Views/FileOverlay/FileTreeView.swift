@@ -16,7 +16,7 @@ struct FileTreeView: View {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 20, weight: .ultraLight))
+                        .font(.emptyStateIconSmall)
                         .foregroundStyle(Color.textTertiary)
                     Text(errorMessage)
                         .font(.uiCaption)

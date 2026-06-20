@@ -81,6 +81,7 @@ extension Font {
     static let monoSmall = Font.system(.callout, design: .monospaced)
     static let monoCaption = Font.system(.subheadline, design: .monospaced)
     static let monoBadge = Font.system(size: 9, weight: .bold, design: .monospaced)
+    static let monoCount = Font.system(size: 9, weight: .medium, design: .monospaced)
     static let monoDetail = Font.system(size: 10, design: .monospaced)
     static let monoField = Font.system(size: 12, design: .monospaced)
 
@@ -89,6 +90,7 @@ extension Font {
     static let uiCaption = Font.subheadline
     static let uiCaptionMono = Font.system(.subheadline, design: .monospaced)
 
+    // Size-based defaults
     static let iconMicro = Font.system(size: 7, weight: .medium)
     static let iconTiny = Font.system(size: 8, weight: .semibold)
     static let iconSmall = Font.system(size: 9, weight: .medium)
@@ -96,6 +98,15 @@ extension Font {
     static let iconMedium = Font.system(size: 11, weight: .medium)
     static let iconLarge = Font.system(size: 12, weight: .medium)
 
+    // Role-specific variants
+    static let iconDisclosure = Font.system(size: 8, weight: .bold)
+    static let iconClose = Font.system(size: 8, weight: .medium)
+    static let iconCloseCompact = Font.system(size: 7, weight: .bold)
+    static let iconAction = Font.system(size: 10, weight: .semibold)
+    static let iconEmphasis = Font.system(size: 9, weight: .semibold)
+
+    static let emptyStateIconSmall = Font.system(size: 20, weight: .ultraLight)
+    static let emptyStateIconMedium = Font.system(size: 24, weight: .ultraLight)
     static let emptyStateIcon = Font.system(size: 28, weight: .ultraLight)
     static let emptyStateIconLarge = Font.system(size: 36, weight: .ultraLight)
 }
