@@ -98,24 +98,24 @@ final class WebViewStore {
         // letting updates (e.g. `url` vs. `isLoading`) land out of order and the
         // address bar flicker. `assumeIsolated` applies them synchronously instead.
         observations.append(webView.observe(\.isLoading, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let value = change.newValue ?? false
-            MainActor.assumeIsolated { self?.isLoading = value }
+            MainActor.assumeIsolated { self.isLoading = value }
         })
 
         observations.append(webView.observe(\.title, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let value = (change.newValue ?? nil) ?? ""
-            MainActor.assumeIsolated { self?.title = value }
+            MainActor.assumeIsolated { self.title = value }
         })
 
         observations.append(webView.observe(\.url, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let urlString = (change.newValue ?? nil)?.absoluteString
             MainActor.assumeIsolated {
-                guard let self else { return }
                 if let urlString {
                     self.urlString = urlString
-                    // Once a WebKit navigation commits to a real URL, the placeholder
-                    // suppression is no longer needed — subsequent navigations to
-                    // about:blank (e.g. user-typed) should show the placeholder normally.
+                    // Clear placeholder suppression once a real URL commits.
                     if urlString != WebViewStore.defaultURLString {
                         self.suppressPlaceholder = false
                     }
@@ -124,18 +124,21 @@ final class WebViewStore {
         })
 
         observations.append(webView.observe(\.canGoBack, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let value = change.newValue ?? false
-            MainActor.assumeIsolated { self?.canGoBack = value }
+            MainActor.assumeIsolated { self.canGoBack = value }
         })
 
         observations.append(webView.observe(\.canGoForward, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let value = change.newValue ?? false
-            MainActor.assumeIsolated { self?.canGoForward = value }
+            MainActor.assumeIsolated { self.canGoForward = value }
         })
 
         observations.append(webView.observe(\.estimatedProgress, options: [.new]) { [weak self] _, change in
+            guard let self else { return }
             let value = change.newValue ?? 0
-            MainActor.assumeIsolated { self?.estimatedProgress = value }
+            MainActor.assumeIsolated { self.estimatedProgress = value }
         })
     }
 
