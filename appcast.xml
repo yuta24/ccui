@@ -6,15 +6,15 @@
     <description>ccui updates</description>
     <language>en</language>
     <item>
-      <title>Version 0.5.0</title>
-      <sparkle:version>221</sparkle:version>
-      <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+      <title>Version 0.5.1</title>
+      <sparkle:version>229</sparkle:version>
+      <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.2</sparkle:minimumSystemVersion>
-      <pubDate>Fri, 19 Jun 2026 14:54:46 +0000</pubDate>
+      <pubDate>Thu, 25 Jun 2026 05:46:58 +0000</pubDate>
       <enclosure
-        url="https://github.com/yuta24/ccui/releases/download/v0.5.0/ccui-0.5.0.zip"
+        url="https://github.com/yuta24/ccui/releases/download/v0.5.1/ccui-0.5.1.zip"
         type="application/octet-stream"
-        sparkle:edSignature="2qMDJiv8XDt96RUOHVMWb284Gsf/zc0WWFMzf6LkZ0MFuflkHReqzMC0sk0ulJrSRSjRkl/cn8kurccymbl/CQ==" length="26376435" />
+        sparkle:edSignature="WZGsQMUgqqbe8mvm2rR9SSeUHpQwwkx3+wqxnChmt20KCUKCaLgfsUOxlM8Rf+s/h+tOtn7RU7f3JtenG/CKDw==" length="27476817" />
     </item>
   </channel>
 </rss>
